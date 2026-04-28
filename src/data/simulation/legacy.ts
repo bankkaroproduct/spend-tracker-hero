@@ -170,7 +170,7 @@ export const SAVINGS_COMP = [
     clsColor: C.dkGreen,
     barColor: "linear-gradient(90deg,#0d9f5f,#16a34a)",
     barPct: 100,
-    savings: Math.round(marketTop?.total_savings_yearly || 0),
+    savings: marketYearlySavings(marketTop),
   },
   {
     name: USER_CARDS[1].name,
@@ -359,7 +359,7 @@ export { computeTxnSaved, computeTxnMissed, computeTxnMarketDelta } from "./comp
 export const CARD_PROMO = {
   name: cleanCardName(marketTop?.card_name || "HDFC Diners Black"),
   image: marketTop?.card_bg_image || marketTop?.image || "",
-  savings: Math.round(marketTop?.total_savings_yearly || 0),
+  savings: marketYearlySavings(marketTop),
   cg_url: marketTop?.cg_network_url || "",
   spending_breakdown: marketTop?.spending_breakdown,
   milestone_benefits: marketTop?.milestone_benefits,
