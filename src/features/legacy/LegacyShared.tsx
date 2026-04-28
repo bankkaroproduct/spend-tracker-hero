@@ -602,6 +602,21 @@ const ctaVariants = {
   needsdata: { bg: "#EDEDED", color: "#7a8296", prefix: null, chevron: true },
 };
 
+import { SCENARIO_PILL, SCENARIO_SAVED_COLOR, tagText } from "@/data/simulation/txnScenario";
+
+function ScenarioPill({ scenario }) {
+  if (!scenario || scenario.id === "S6") return null;
+  const pill = SCENARIO_PILL[scenario.id];
+  const text = tagText(scenario);
+  const isBlue = scenario.id === "S4" || scenario.id === "S5c";
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: isBlue ? 5 : 10, background: pill.bg, color: pill.color, borderRadius: 4, padding: "6px 10px", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", lineHeight: "120%" }}>
+      {isBlue && <svg width="10" height="10" viewBox="0 0 8 8" fill="none" style={{ flexShrink: 0 }}><path d="M4 0C4 2.2 5.8 4 8 4C5.8 4 4 5.8 4 8C4 5.8 2.2 4 0 4C2.2 4 4 2.2 4 0Z" fill="#0862CF"/></svg>}
+      <span>{text}</span>
+    </div>
+  );
+}
+
 function InlineCTA({ variant, text }) {
   const v = ctaVariants[variant];
   return (
@@ -613,7 +628,8 @@ function InlineCTA({ variant, text }) {
   );
 }
 
-export function TransactionRow({ brand, merchant, cardLine, amount, saved, savedColor, cta, onClick }) {
+export function TransactionRow({ brand, merchant, cardLine, amount, saved, savedColor, cta, scenario, onClick }) {
+  const savedColorFinal = scenario ? SCENARIO_SAVED_COLOR[scenario.id] : (saved === "₹0" ? "#B56D3C" : savedColor);
   return (
     <div className="legacy-tap" onClick={onClick} style={{ background: "#fff", borderRadius: 8, boxShadow: "0px 0.62px 4.35px rgba(63,66,70,0.11)", padding: "12px 12px 14px 12px" }}>
       <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
@@ -624,12 +640,12 @@ export function TransactionRow({ brand, merchant, cardLine, amount, saved, saved
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: "#242d4a" }}>{amount}</div>
-          {saved && <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", lineHeight: "120%", color: saved === "₹0" ? "#B56D3C" : savedColor, marginTop: 6 }}>Saved {saved}</div>}
+          {saved && <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", lineHeight: "120%", color: savedColorFinal, marginTop: 6 }}>Saved {saved}</div>}
         </div>
         <ChevronRight size={6} color="#6b7489" strokeWidth={2} />
       </div>
       <DashedDivider />
-      <InlineCTA {...cta} />
+      {scenario ? <ScenarioPill scenario={scenario} /> : (cta && <InlineCTA {...cta} />)}
     </div>
   );
 }
