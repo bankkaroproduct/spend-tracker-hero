@@ -94,6 +94,8 @@ The app uses **real URLs** powered by React Router. Every screen has its own pat
 | `/redeem` | Redemption marketplace |
 | `/cards` | Best Cards marketplace |
 | `/cards/:id` | Per-card deep-dive |
+| `/portfolio/create` | Card portfolio builder |
+| `/portfolio/results` | Portfolio savings results |
 | `/profile` | Card management & settings |
 | `/gmail` | Gmail consent mock flow |
 
@@ -138,50 +140,64 @@ bun run lint       # eslint
 ## Architecture
 
 ```
-src/
-├── App.tsx                 # Router definition
-├── pages/
-│   ├── Index.tsx           # Orchestrator: all state, URL ↔ screen sync, sheets
-│   └── NotFound.tsx
-├── store/
-│   └── AppContext.ts       # Hybrid React Context (module-level + Provider)
-├── features/
-│   ├── onboard/            # Phone + OTP + SMS/Gmail consent
-│   ├── building/           # 8-second progress loader
-│   ├── new/                # Active home / optimize / transactions (re-exports legacy/)
-│   ├── legacy/             # Pixel-perfect implementations
-│   │   ├── LegacyHomeScreen.tsx
-│   │   ├── LegacyTransactionsScreen.tsx
-│   │   ├── LegacyOptimiseScreen.tsx
-│   │   └── LegacyShared.tsx      # MerchantLogo, ActionBar, TransactionRow, groupByDate, HeroSection, SpendAnalysis, etc.
-│   ├── actions/            # Action feed
-│   ├── bestcards/          # Marketplace
-│   ├── cardDetail/         # Per-card analytics (4 tabs: Analysis, Transactions, Benefits, Fees)
-│   ├── calc/               # Reward calculator
-│   ├── redeem/             # Redemption finder
-│   ├── profile/            # Settings
-│   ├── gmail/              # OAuth mock
-│   └── redundant/          # Archived parallel implementations (do not import)
-├── components/
-│   ├── shared/             # NavBar, TxnRow, Tag, Icon, FontLoader, SortFilter, Circles, Primitives
-│   ├── sheets/             # BottomSheets.tsx — all overlay sheets
-│   │   └── BottomSheets.tsx  # TxnSheet (4 flows), CatBS (3 steps), FilterSheet, ActSheet, InfoBS, Toast, Gmail nudges, Voice flow
-│   └── ui/                 # shadcn primitives (40+ components)
-├── data/
-│   ├── transactions.ts     # ALL_TXNS (100 mock transactions), brand/icon arrays
-│   ├── cards.ts            # CARDS, SEMI_CARDS (user's 3 cards)
-│   ├── bestCards.ts        # CARD_CATALOGUE (60+ market cards)
-│   ├── cardDetail.ts       # CD array (per-card analytics data)
-│   ├── calculator.ts       # CALC_BRANDS, CALC_CATS, CALC_CARDS, CAT_OPTIONS, BRAND_MAP
-│   ├── actions.ts          # ACTIONS, ALL_ACTIONS, SMS_ACTIONS
-│   └── spend.ts            # SPEND_BRANDS, SPEND_CATS, TOTAL_ACC
-├── hooks/
-│   ├── use-mobile.tsx      # Mobile viewport detection
-│   └── use-toast.ts        # Toast notification hook
-└── lib/
-    ├── theme.ts            # C (color tokens), FN (font family)
-    ├── format.ts           # f() — Indian number formatting
-    └── utils.ts            # cn() class merge
+.
+├── data/                         # CardGenius fixtures, API request/response audit inputs
+│   ├── api request.json
+│   ├── api response pretty.json
+│   ├── DATA_AUDIT.md
+│   └── SIMULATION_TASK.md
+├── docs/
+│   └── transaction-scenarios.md   # S1–S6 transaction routing + sheet visibility spec
+├── public/                        # Static assets served by URL
+│   ├── brands/                    # Merchant logos used in transaction rows/sheets
+│   ├── categories/                # Legacy 3D category PNG icons
+│   ├── cdn/                       # New WebP category/tool assets
+│   ├── legacy-assets/             # Card art, opt assets, fonts, badges
+│   ├── onboard/                   # Onboarding carousel images
+│   ├── tools/                     # Tool tile artwork
+│   └── ui/                        # Shared UI images: lock, market badge, coins, status bar
+├── src/
+│   ├── App.tsx                    # React Router route definitions
+│   ├── main.tsx                   # App entry point
+│   ├── pages/
+│   │   ├── Index.tsx              # Master orchestrator: URL ↔ screen, app state, sheets
+│   │   └── NotFound.tsx
+│   ├── store/
+│   │   └── AppContext.ts          # Hybrid Context: Provider + module-level fallback store
+│   ├── components/
+│   │   ├── MobileMock.tsx         # Optional mobile chrome wrapper
+│   │   ├── shared/                # NavBar, TxnRow, FontLoader, icons, tags, filters
+│   │   ├── sheets/                # BottomSheets.tsx: Txn, category, filters, nudges, overlays
+│   │   └── ui/                    # shadcn/Radix primitives
+│   ├── data/
+│   │   ├── simulation/            # First-principles rewards engine + scenario classifier
+│   │   │   ├── inputs.ts
+│   │   │   ├── mockApi.ts
+│   │   │   ├── compute.ts
+│   │   │   ├── legacy.ts
+│   │   │   ├── recommendData.ts
+│   │   │   └── txnScenario.ts
+│   │   ├── actions.ts / actionsConsider.ts
+│   │   ├── bestCards.ts / cardDetail.ts / cards.ts
+│   │   ├── calculator.ts / optimize.ts / spend.ts
+│   │   └── transactions.ts
+│   ├── features/
+│   │   ├── onboard/               # Phone, OTP, SMS/Gmail, card identification flows
+│   │   ├── building/              # Data-processing loader
+│   │   ├── new/                   # Active Home/Optimize/Transactions re-export layer
+│   │   ├── legacy/                # Pixel-perfect active implementations
+│   │   ├── actions/               # Action feed + consider flow
+│   │   ├── bestcards/             # Marketplace + CardDetailV2
+│   │   ├── portfolio/             # Portfolio create/results flow
+│   │   ├── cardDetail/            # Owned-card analytics tabs
+│   │   ├── calc/                  # Reward calculator
+│   │   ├── redeem/                # Redemption flow
+│   │   ├── profile/               # Card/settings profile
+│   │   ├── gmail/                 # Gmail OAuth mock flow
+│   │   └── redundant/             # Archived implementations; do not import
+│   ├── hooks/                     # use-mobile, use-toast
+│   └── lib/                       # theme tokens, Indian formatting, class utilities
+└── tests/e2e/                     # Playwright onboarding regression tests
 ```
 
 ### State Flow
@@ -243,14 +259,20 @@ All mounted by `<BottomSheets/>` component:
 
 ## Recent Changes (April 2026)
 
-- **3-State Enforcement** — Full progressive unlock system across all screens: SMS Only → Manually Mapped → Gmail Connected. Each state controls card name display, savings visibility, action filtering, feature gating, and contextual Gmail nudges
-- **Transaction Bottom Sheet** — 4 distinct flows (best card, switch, no reward, UPI) with staggered animations and frosted glass "You Spent" badge
-- **Category Bottom Sheet** — 3-step unaccounted transaction flow with 3D category images, brand logo grids, and "Not a spend" reasons
-- **Card Detail Transactions** — Now uses real `ALL_TXNS` filtered by card instead of locally generated data
-- **Brand images** — TxnRow and Card Detail now show brand logo PNGs (Flipkart, Amazon, Swiggy, etc.) instead of emoji
+- **Simulation data layer** — Added `src/data/simulation/*` to compute savings, transactions, card details, spend distribution, and action hooks from spend/profile inputs instead of scattering hardcoded values.
+- **CardGenius alignment** — Documented spend buckets, `/calculate` and `/recommend_cards` response shape, cap behavior, lounge handling, market-card priority, and data provenance in `data/` docs and README.
+- **Transaction scenario system** — Added `src/data/simulation/txnScenario.ts` plus `docs/transaction-scenarios.md`; every transaction now maps to S1/S2/S3/S4/S5a/S5b/S5c/S6 for tag text and bottom-sheet block visibility.
+- **TxnSheet logic fixes** — Worth Adding is hidden when the used card is already the best owned card; owned cards are never recommended as market cards; HSBC/owned-card tags route to the right wallet-vs-market treatment.
+- **3-State Enforcement** — Full progressive unlock system across all screens: SMS Only → Manually Mapped → Gmail Connected. Each state controls card name display, savings visibility, action filtering, feature gating, and contextual Gmail nudges.
+- **Transaction Bottom Sheet** — Distinct flows for best card, switch, no reward, UPI, and market-card opportunities with staggered animations and frosted glass "You Spent" badge.
+- **Category Bottom Sheet** — 3-step unaccounted transaction flow with 3D category images, brand logo grids, and "Not a spend" reasons.
+- **Card Detail Transactions** — Uses transaction data filtered by card instead of locally generated placeholder rows.
+- **Brand and category assets** — Transaction rows, sheets, spend analysis, onboarding, and tools use PNG/WebP assets from `public/brands`, `public/categories`, `public/cdn`, and `public/ui`.
+- **Best Cards + Portfolio** — Added enhanced marketplace details, `CardDetailV2`, floating portfolio entry, and `/portfolio/create` + `/portfolio/results` flows.
 - **Date grouping** — Transaction list grouped by descending month: "1 APR - TODAY", "1 MAR - 1 APR", etc.
-- **URL-based routing** — every screen has a real path; refresh and back/forward work everywhere
-- **AppContext rewritten** — hybrid module-level + Provider, eliminating render-time race conditions
+- **URL-based routing** — Every screen has a real path; refresh and browser back/forward work across the app.
+- **AppContext rewritten** — Hybrid module-level + Provider store to keep legacy `useAppContext()` callers stable across render paths.
+- **Build stability** — Fixed TypeScript regressions in Best Cards comparison typing and Important Actions card props so the preview/publish build renders correctly.
 
 ## Deletion Candidates
 
