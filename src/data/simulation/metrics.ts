@@ -175,13 +175,24 @@ export function selectTransactionMetrics() {
   return { unit: "transaction", transactions };
 }
 
+function roundPcts<T>(items: T[], key: string, total: number): T[] {
+  if (!total) return items.map(i => ({ ...i, pct: 0 }));
+  const raw = items.map(i => (i as any)[key] / total * 100);
+  const floored = raw.map(Math.floor);
+  let remainder = 100 - floored.reduce((a, b) => a + b, 0);
+  const remainders = raw.map((r, i) => ({ i, r: r - floored[i] })).sort((a, b) => b.r - a.r);
+  for (const { i } of remainders) { if (remainder <= 0) break; floored[i]++; remainder--; }
+  return items.map((item, i) => ({ ...item, pct: floored[i] }));
+}
+
 export function selectSpendAnalysisMetrics() {
-  const categories = reconcileNumberParts(
+  const cats = reconcileNumberParts(
     TOTAL_ANNUAL_SPEND,
     computeSpendCategories().map((c) => ({ ...c, value: c.amt })),
     "value",
-  ).map((c) => ({ ...c, amt: c.value, pct: Math.round((c.value / TOTAL_ANNUAL_SPEND) * 100) }));
-  const brands = computeSpendBrands().map((b) => ({ ...b, pct: Math.round((b.amt / TOTAL_ANNUAL_SPEND) * 100) }));
+  ).map((c) => ({ ...c, amt: c.value }));
+  const categories = roundPcts(cats, "amt", TOTAL_ANNUAL_SPEND);
+  const brands = roundPcts(computeSpendBrands(), "amt", TOTAL_ANNUAL_SPEND);
   return { unit: UNITS.YEARLY, totalSpend: TOTAL_ANNUAL_SPEND, categories, brands };
 }
 
