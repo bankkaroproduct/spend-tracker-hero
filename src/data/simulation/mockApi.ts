@@ -12,7 +12,20 @@ function getMonthlySpend(bucket: string): number {
   return SPEND_PROFILE[bucket] || 0;
 }
 
-function getRewardRate(card: any, bucket: string): number {
+function rateKey(value: string): string {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function merchantKeys(merchant?: string): string[] {
+  const key = rateKey(merchant || "");
+  if (!key) return [];
+  return [key, key.replace(/_/g, ""), key.replace(/_/g, "-")];
+}
+
+export function getRewardRate(card: any, bucket: string, merchant?: string): number {
   if (card.zero_buckets?.includes(bucket)) return 0;
   if (LOUNGE_BUCKETS.includes(bucket)) return 0;
   if (SPEND_PROFILE[bucket] === 0 && !ANNUAL_BUCKETS.includes(bucket)) return 0;
@@ -26,6 +39,9 @@ function getRewardRate(card: any, bucket: string): number {
   }
 
   if (card.index === 1) {
+    for (const key of merchantKeys(merchant)) {
+      if (typeof card.reward_rates?.[key] === "number") return card.reward_rates[key];
+    }
     if (typeof card.reward_rates?.[bucket] === "number") return card.reward_rates[bucket];
     return card.reward_rates.default;
   }
@@ -37,6 +53,62 @@ function getRewardRate(card: any, bucket: string): number {
   }
 
   return 0;
+}
+
+function getRewardCap(card: any, bucket: string, merchant?: string): number | string {
+  for (const key of merchantKeys(merchant)) {
+    if (typeof card.bucket_caps?.[key] === "number") return card.bucket_caps[key];
+  }
+  if (typeof card.bucket_caps?.[bucket] === "number") return card.bucket_caps[bucket];
+  if (card.savings_type === "points" && typeof card.travel_rp_cap_monthly === "number" && (bucket === "flights_annual" || bucket === "hotels_annual")) {
+    return r2(card.travel_rp_cap_monthly * card.conv_rate);
+  }
+  if (card.shared_cap?.buckets?.includes(bucket)) return card.shared_cap.amount;
+  return "Unlimited";
+}
+
+export function getCardRewardForSpend(cardIndex: number, amount: number, bucket: string, merchant?: string) {
+  const card = USER_CARDS[cardIndex];
+  if (!card || !bucket || amount <= 0) {
+    return { savings: 0, points_earned: 0, rate: 0, maxCap: "Unlimited", maxCapReached: false };
+  }
+
+  const rate = getRewardRate(card, bucket, merchant);
+  let savings = amount * rate;
+  let pointsEarned = 0;
+  let maxCap = getRewardCap(card, bucket, merchant);
+  let maxCapReached = false;
+
+  if (card.savings_type === "points" && rate > 0) {
+    const rpPer = (card.rp_per_100 && typeof card.rp_per_100[bucket] === "number")
+      ? card.rp_per_100[bucket]
+      : card.rp_per_100.default;
+    pointsEarned = (amount / card.spend_conversion) * rpPer;
+    savings = pointsEarned * card.conv_rate;
+  }
+
+  if (typeof maxCap === "number" && savings > maxCap) {
+    savings = maxCap;
+    maxCapReached = true;
+    if (card.savings_type === "points") pointsEarned = savings / card.conv_rate;
+  }
+
+  return {
+    savings: r2(savings),
+    points_earned: r2(pointsEarned),
+    rate: amount > 0 ? r2((savings / amount) * 100) : 0,
+    maxCap,
+    maxCapReached,
+  };
+}
+
+export function getBestCardForSpend(amount: number, bucket: string, merchant?: string): { cardIndex: number; savings: number } {
+  let best = { cardIndex: 0, savings: 0 };
+  for (let i = 0; i < USER_CARDS.length; i++) {
+    const s = getCardRewardForSpend(i, amount, bucket, merchant).savings;
+    if (s > best.savings) best = { cardIndex: i, savings: s };
+  }
+  return best;
 }
 
 function r2(n: number): number { return Math.round(n * 100) / 100; }
@@ -335,7 +407,7 @@ export function getEligibleMarketCards() {
   const eligible = all
     .filter(c => !isInviteOnlyMarketCard(c))
     .filter(c => !isAlreadyOwnedMarketCard(c));
-  if (typeof window !== "undefined") {
+  if (typeof window !== "undefined" && import.meta.env?.DEV && window.localStorage?.getItem("sa:debugMockApi") === "true") {
     console.log("[mockApi] Total cards:", all.length, "| Eligible:", eligible.length, "| First eligible:", eligible[0]?.card_name);
   }
   return eligible;

@@ -5,34 +5,12 @@ import { C, FN } from "@/lib/theme";
 import { f } from "@/lib/format";
 import { FL } from "@/components/shared/FontLoader";
 import { NavBar } from "@/components/shared/NavBar";
-import { CARDS } from "@/data/simulation/legacy";
+import { CARDS, MARKET_REDEEM_CARDS, REDEEM_DATA } from "@/data/simulation/legacy";
 
 import { useAppContext } from "@/store/AppContext";
 import { Toast, InfoBS, TxnSheet, ActSheet, GmailNudgePopup, GmailNudgeSheet, RetroOverlay, VoiceFlowOverlay, CatBS, FilterSheet } from "@/components/sheets/BottomSheets";
 
-const REDEEM_DATA = {
-  "HSBC Travel One": { pointName: "Reward Points", perPt: 0.30, checkUrl: "HSBC India App → Credit Cards → Reward Points Balance", options: [
-    { partner: "Air Miles", method: "Flights", rate: 0.50, minPts: 500, recommended: true, portal: "HSBC Rewards Hub", steps: "Login to HSBC Online → Cards → Rewards → Travel → Air Miles transfer → Confirm. Miles credited in 3-5 days.", icon: "✈️" },
-    { partner: "Amazon", method: "Shopping", rate: 0.30, minPts: 200, portal: "HSBC Rewards Hub", steps: "HSBC Online → Cards → Rewards → Gift Cards → Amazon → Select denomination → Confirm", icon: "📦" },
-    { partner: "Cleartrip", method: "Flights", rate: 0.40, minPts: 500, portal: "HSBC Rewards Hub", steps: "HSBC Online → Rewards → Travel → Cleartrip voucher → Confirm", icon: "🔵" },
-    { partner: "Flipkart", method: "Shopping", rate: 0.25, minPts: 200, portal: "HSBC Rewards Hub", steps: "HSBC Online → Rewards → Gift Cards → Flipkart → Select amount → Confirm", icon: "🛒" },
-    { partner: "Statement Credit", method: "Cashback", rate: 0.20, minPts: 500, portal: "HSBC India App", steps: "HSBC App → Credit Cards → Rewards → Redeem as Statement Credit → Confirm amount", icon: "💰" },
-  ]},
-  "Axis Flipkart": { pointName: "Cashback", perPt: 1, checkUrl: "Axis Mobile App → Cards → View Statement → Cashback Summary", options: [
-    { partner: "Statement Cashback", method: "Cashback", rate: 1.0, minPts: 1, recommended: true, portal: "Auto-credited", steps: "Cashback is automatically credited to your next billing statement. No action needed — it appears as a line item credit 3 days before statement generation.", icon: "💰" },
-  ]},
-  "HSBC Live+": { pointName: "Cashback", perPt: 1, checkUrl: "HSBC India App → Credit Cards → Cashback Summary", options: [
-    { partner: "Statement Cashback", method: "Cashback", rate: 1.0, minPts: 1, recommended: true, portal: "Auto-credited", steps: "Cashback is automatically credited to your statement each cycle. HSBC Live+ credits 1.5% on all spends directly — no manual redemption needed.", icon: "💰" },
-  ]},
-};
-
-const MARKET_CARDS = [
-  { name: "HDFC Infinia", color: "#1a1a2e", accent: "#333", last4: "—", pointName: "Reward Points", bestRate: "₹0.50/PT", img: "hdfc-infinia.png" },
-  { name: "Amex Travel Platinum", color: "#006fcf", accent: "#4a9ee5", last4: "—", pointName: "MR Points", bestRate: "₹0.50/PT", img: "amex-platinum-travel.png" },
-  { name: "ICICI Emeralde", color: "#1a3c34", accent: "#2d5a4e", last4: "—", pointName: "Reward Points", bestRate: "₹0.50/PT", img: "icici-emeralde.png" },
-  { name: "AU Zenith Plus", color: "#3d5a1e", accent: "#5a7d2e", last4: "—", pointName: "Reward Points", bestRate: "₹0.50/PT", img: "AU-Zenith.png" },
-  { name: "SBI Miles", color: "#b8860b", accent: "#d4a843", last4: "—", pointName: "Reward Points", bestRate: "₹0.50/PT", img: "sbi-miles.png" },
-];
+const MARKET_CARDS = MARKET_REDEEM_CARDS;
 
 const cardClrs = {
   "HSBC Travel One": ["#0c2340", "#1a5276"],
@@ -122,41 +100,24 @@ export const RedeemScreen = () => {
         <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:4,marginBottom:28}}>
           {[{l:"Flights",v:"Flights",Ic:Plane},{l:"Hotels",v:"Hotels",Ic:Home},{l:"Shopping",v:"Shopping",Ic:ShoppingBag},{l:"Dining",v:"Dining",Ic:UtensilsCrossed},{l:"Cashback",v:"Cashback",Ic:CircleDollarSign}].map(p=>(<div key={p.v} onClick={()=>setRedeemPref(redeemPref===p.v?null:p.v)} style={{display:"flex",alignItems:"center",gap:6,padding:"10px 16px",borderRadius:20,background:redeemPref===p.v?"#111827":C.white,color:redeemPref===p.v?"#fff":C.sub,fontSize:12,fontWeight:600,border:"1.5px solid "+(redeemPref===p.v?"#111827":C.brd),cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}><p.Ic size={14} strokeWidth={1.5} color={redeemPref===p.v?"#fff":C.dim}/>{p.l}</div>))}
         </div>
-        <button onClick={()=>{if(pts<1)return;const opts=[...REDEEM_DATA[redeemCard.name].options].sort((a,b)=>{if(redeemPref){const am=a.method===redeemPref?1:0,bm=b.method===redeemPref?1:0;if(am!==bm)return bm-am;}if(a.recommended!==b.recommended)return(b.recommended?1:0)-(a.recommended?1:0);return b.rate-a.rate;});setRedeemResult({card:redeemCard.name,pts,options:opts});setRedeemTab(opts[0]?.method||"Flights");setHowExpanded(null);}} disabled={pts<1} style={{width:"100%",padding:18,background:pts>0?"linear-gradient(90deg, #222941 0%, #101C43 100%)":"#d1d5db",color:"#fff",border:"none",borderRadius:16,fontSize:15,fontWeight:700,cursor:pts>0?"pointer":"not-allowed",fontFamily:FN}}>Find best redemption options  ›</button>
+        <button onClick={()=>{if(pts<1)return;const opts=[...(REDEEM_DATA[redeemCard.name]?.options||[])].sort((a,b)=>{if(redeemPref){const am=a.method===redeemPref?1:0,bm=b.method===redeemPref?1:0;if(am!==bm)return bm-am;}if(a.recommended!==b.recommended)return(b.recommended?1:0)-(a.recommended?1:0);return b.rate-a.rate;});setRedeemResult({card:redeemCard.name,pts,options:opts});setRedeemTab(opts[0]?.method||"Rewards");setHowExpanded(null);}} disabled={pts<1} style={{width:"100%",padding:18,background:pts>0?"linear-gradient(90deg, #222941 0%, #101C43 100%)":"#d1d5db",color:"#fff",border:"none",borderRadius:16,fontSize:15,fontWeight:700,cursor:pts>0?"pointer":"not-allowed",fontFamily:FN}}>Find best redemption options  ›</button>
       </div>
     </div>
   </div>);
 
   if (redeemResult) {
-    const bestVal = Math.round(redeemResult.pts * 1);
-    const ratePerPt = 1;
-    const bestPartner = "Cathay Pacific";
+    const sortedOptions = [...(redeemResult.options || [])].sort((a,b)=>(b.rate||0)-(a.rate||0));
+    const bestOpt = sortedOptions[0] || { partner: "data unavailable", method: "Rewards", rate: 0, steps: "data unavailable" };
+    const bestVal = Math.round(redeemResult.pts * (bestOpt.rate || 0));
+    const ratePerPt = bestOpt.rate || 0;
+    const bestPartner = bestOpt.partner || bestOpt.name || "data unavailable";
     const cardDisplay = redeemResult.card;
-    const tabOptions = {
-      "Air Miles": [
-        { partner: "Emirates Skywards", rate: 0.67 },
-        { partner: "Qatar Airways Privilege Club", rate: 0.6 },
-        { partner: "Etihad Airways - Guest", rate: 0.57 },
-        { partner: "British Airways - Avios", rate: 0.55 },
-      ],
-      "Hotels": [
-        { partner: "Marriott Bonvoy", rate: 0.55 },
-        { partner: "Hilton Honors", rate: 0.5 },
-        { partner: "IHG One Rewards", rate: 0.48 },
-        { partner: "Accor Live Limitless", rate: 0.42 },
-      ],
-      "Vouchers": [
-        { partner: "Amazon Voucher", rate: 0.5 },
-        { partner: "Flipkart Voucher", rate: 0.45 },
-        { partner: "Myntra Voucher", rate: 0.4 },
-        { partner: "BookMyShow Voucher", rate: 0.35 },
-      ],
-    };
-    const tabLabels = ["Air Miles", "Hotels", "Vouchers"];
-    const colHeaders = { "Air Miles": "AIRLINE", "Hotels": "HOTEL", "Vouchers": "PARTNER" };
-    const activeTab = tabLabels.includes(redeemTab) ? redeemTab : "Air Miles";
-    const activeRows = tabOptions[activeTab];
-    const stepsArr = ["Login to the HDFC Smartbuy Portal", "Select Merchant (Cathay Pacific)", "Select your Routes", "Pay with Infinia Points"];
+    const tabOptions = sortedOptions.reduce((acc:any,opt:any)=>{const k=opt.method||"Rewards";(acc[k]||(acc[k]=[])).push(opt);return acc;},{});
+    const tabLabels = Object.keys(tabOptions).length ? Object.keys(tabOptions) : ["Rewards"];
+    const colHeaders = Object.fromEntries(tabLabels.map((t:string)=>[t,t.toUpperCase()]));
+    const activeTab = tabLabels.includes(redeemTab) ? redeemTab : tabLabels[0];
+    const activeRows = tabOptions[activeTab] || [];
+    const stepsArr = String(bestOpt.steps || "data unavailable").split("→").map((s:string)=>s.trim()).filter(Boolean);
 
     return (<div key="redeem-result" className="slide-in" style={{fontFamily:FN,maxWidth:400,margin:"0 auto",background:"#f5f9fa",minHeight:"100vh"}}><FL/>
       {/* ── HEADER ── */}

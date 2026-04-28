@@ -5,6 +5,7 @@ import { FN } from "@/lib/theme";
 import { f } from "@/lib/format";
 import { FL } from "@/components/shared/FontLoader";
 import { SavingsInfoIcon, SavingsBreakdownSheet } from "@/features/legacy/LegacyShared";
+import { selectPortfolioMetrics } from "@/data/simulation/legacy";
 
 /* Image map for known cards (falls back to gradient placeholder otherwise) */
 const IMG: Record<string,string> = {
@@ -18,127 +19,24 @@ const IMG: Record<string,string> = {
   "Amex Travel Platinum":"/legacy-assets/cards/amex-platinum-travel.png",
 };
 
-/* Wallet (existing user cards) — single source of truth.
-   Per-card spend & save are calibrated so the four rows tally to the
-   stacked-bar segments and the headline "Save Upto" exactly. */
-const WALLET = [
-  // Each card carries a `breakdown` whose tally always satisfies:
-  //   save = savingsOnSpends + milestoneBenefits − annualFee
-  // The (i) tooltip in the spends-distribution rows opens a sheet that shows
-  // this tally per card.
-  {name:"Amex Travel Platinum", spend:800000, save:50000, pct:50, c1:"#583598", c2:"#9359FE", tags:["Bills","Food Ordering","Dining Out","Flights"],
-    last4:"NEW CARD", newCard:true, breakdown:{savingsOnSpends:43000, milestoneBenefits:8000, annualFee:1000}},
-  {name:"Axis Flipkart",        spend:400000, save:20000, pct:25, c1:"#117E47", c2:"#0AA759", tags:["Shopping"],
-    last4:"XXXX 2355", breakdown:{savingsOnSpends:18000, milestoneBenefits:3000, annualFee:1000}},
-  {name:"HSBC Live+",           spend:200000, save:10000, pct:13, c1:"#4C98F4", c2:"#0862CF", tags:["Groceries","Hotels"],
-    last4:"XXXX 9945", breakdown:{savingsOnSpends:8500, milestoneBenefits:2000, annualFee:500}},
-  {name:"HSBC Travel One",      spend:200000, save:10000, pct:12, c1:"#EB8807", c2:"#FCAA3F", tags:["Flights","Hotels"],
-    last4:"XXXX 7891", breakdown:{savingsOnSpends:8500, milestoneBenefits:3000, annualFee:1500}},
-];
-const TOTAL_SPEND = WALLET.reduce((s,w)=>s+w.spend,0);              // 16,00,000
-const TOTAL_SAVE  = WALLET.reduce((s,w)=>s+w.save,0);               // 90,000
+const WALLET = [];
+const TOTAL_SPEND = 0;
+const TOTAL_SAVE = 0;
 
-/* Per-category breakdown for the "Cards Usage" section.
-   `share` percentages within each category MUST sum to 100. */
-// 11 card-usable categories + Milestones. Friends and Family is excluded —
-// no card maps to it. Per-category `share` percentages within each category MUST
-// sum to 100. Σ spend ≈ ₹16,00,000 / Σ save ≈ ₹85,500 (matches WALLET sums).
-const CATEGORIES = [
-  {key:"Milestones", icon:"⭐", color:"#FFD82C"},
-  {key:"Shopping",   icon:"/cdn/categories/Shopping.webp", color:"#3B82F6", spend:400000, save:20000, cards:[
-    {name:"Axis Flipkart", spend:340000, share:85, caption:"Gives 5% Cashback",              c1:"#117E47", c2:"#0AA759"},
-    {name:"HSBC Live+",    spend: 60000, share:15, caption:"4 Reward points per ₹100 spent", c1:"#4C98F4", c2:"#0862CF"},
-  ]},
-  {key:"Groceries",  icon:"/cdn/categories/Groceries.webp", color:"#16A34A", spend:200000, save:10000, cards:[
-    {name:"HSBC Live+",    spend:140000, share:70, caption:"3% Cashback on groceries",     c1:"#4C98F4", c2:"#0862CF"},
-    {name:"Axis Flipkart", spend: 60000, share:30, caption:"4% on Big Basket",              c1:"#117E47", c2:"#0AA759"},
-  ]},
-  {key:"Dining Out", icon:"/cdn/categories/Dining Out.webp", color:"#F472B6", spend:140000, save:9000, cards:[
-    {name:"Amex Travel Platinum", spend:140000, share:100, caption:"5X MR on dining",        c1:"#583598", c2:"#9359FE"},
-  ]},
-  {key:"Food Ordering", icon:"/cdn/categories/Food Ordering.webp", color:"#F97316", spend:120000, save:5400, cards:[
-    {name:"Amex Travel Platinum", spend:120000, share:100, caption:"3X MR on food apps",    c1:"#583598", c2:"#9359FE"},
-  ]},
-  {key:"Bills",      icon:"/cdn/categories/Bills.webp",     color:"#F59E0B", spend:180000, save:7200, cards:[
-    {name:"Amex Travel Platinum", spend:180000, share:100, caption:"2X MR points on bills", c1:"#583598", c2:"#9359FE"},
-  ]},
-  {key:"Fuel",       icon:"/cdn/categories/Fuel.webp",      color:"#EF4444", spend:96000, save:3800, cards:[
-    {name:"Amex Travel Platinum", spend:96000,  share:100, caption:"Fuel surcharge waiver", c1:"#583598", c2:"#9359FE"},
-  ]},
-  {key:"Flights",    icon:"/cdn/categories/Flights.webp",   color:"#06B6D4", spend:180000, save:14400, cards:[
-    {name:"HSBC Travel One", spend:120000, share:67, caption:"4X on flights via SmartBuy",  c1:"#EB8807", c2:"#FCAA3F"},
-    {name:"Amex Travel Platinum", spend: 60000, share:33, caption:"Lounge + 5X on travel",  c1:"#583598", c2:"#9359FE"},
-  ]},
-  {key:"Hotels",     icon:"/cdn/categories/Hotels.webp",    color:"#0EA5E9", spend:130000, save:6500, cards:[
-    {name:"HSBC Travel One", spend: 80000, share:62, caption:"3X on hotels via SmartBuy",   c1:"#EB8807", c2:"#FCAA3F"},
-    {name:"HSBC Live+",      spend: 50000, share:38, caption:"Lounge access at ₹1.5K trip", c1:"#4C98F4", c2:"#0862CF"},
-  ]},
-  {key:"Entertainment", icon:"/cdn/categories/Entertainment.webp", color:"#A855F7", spend:60000, save:3000, cards:[
-    {name:"Axis Flipkart", spend: 60000, share:100, caption:"4% on PVR/Bookmyshow",          c1:"#117E47", c2:"#0AA759"},
-  ]},
-  {key:"Rent",       icon:"/cdn/categories/Rent.webp",      color:"#94A3B8", spend:140000, save:0, cards:[
-    {name:"—",          spend:0,    share:100, caption:"No card rewards rent",                c1:"#94A3B8", c2:"#475569"},
-  ]},
-  {key:"Insurance",  icon:"/cdn/categories/Insurance.webp", color:"#6366F1", spend:154000, save:6200, cards:[
-    {name:"HSBC Travel One", spend:154000, share:100, caption:"0.67% base earn",            c1:"#EB8807", c2:"#FCAA3F"},
-  ]},
-];
+const CATEGORIES = [];
 
-/* Milestone benefits — green-bordered cards with claimable badge or lock state */
-const MILESTONES = [
-  {points:"7500 reward points",  spend:"Spend ₹1,90,000 in 365 days", status:"claimable"},
-  {points:"10000 reward points", spend:"Spend ₹4,00,000 in 365 days", status:"claimable"},
-  {points:"22500 reward points", spend:"Spend ₹7,00,000 in 365 days", status:"claimable"},
-  {points:"Taj Experiences (Worth ~ ₹10,000)", spend:"Spend ₹2,00,000 on this card in 120 Days", status:"locked", lockText:"spend ₹32,750/yr more to unlock"},
-];
+const MILESTONES = [];
 
-/* Lounge & additional benefits — white cards with subtle gradient */
-const LOUNGE = [
-  {t:"1 free airport lounge visit/quarter",   d:"Spend ₹75,000 in the previous quarter to unlock"},
-  {t:"1 free railway lounge visit/quarter",   d:"No minimum spend required"},
-  {t:"25% off movie tickets, 2x a month",     d:"Min. 2 tickets on BookMyShow or INOX, up to ₹100 off per booking"},
-  {t:"No International Lounge benefit availble on this card", d:"", muted:true},
-];
+const LOUNGE = [];
 
-/* Welcome benefit — single card */
-const WELCOME = [
-  {t:"Bookmyshow Voucher", d:"Bonus reward points awarded your first spend with this card"},
-];
+const WELCOME = [];
 
-/* Fees & Waivers — lounge-style cards */
-const FEES_WAIVERS = [
-  {t:"Annual Fee (₹500 + GST)",  d:"Spend ₹1,50,000 or more to waive the next year's annual fee", badge:"Can waive on existing spends"},
-  {t:"Joining Fee (₹500 + GST)", d:"Fee is mandatory and non-waivable"},
-];
+const FEES_WAIVERS = [];
 
-/* Two-column fee tables */
-const ADDITIONAL_BANK_FEES: [string,string][] = [
-  ["Forex Markups",            "3.50%"],
-  ["APR Fees",                 "3.75%"],
-  ["ATM Withdrawl",            "2.50%"],
-  ["Reward Redemption Fees",   "Not Applicable"],
-  ["Link for all T&Cs",        "0.054 g"],
-  ["Railway Surcharge",        "1%"],
-  ["Rent Payment Fee",         "1%"],
-  ["Cheque Payment Fee",       "N/A"],
-  ["Cash Payment Fees",        "₹100"],
-];
-const LATE_PAYMENT_FEES: [string,string][] = [
-  ["Amount Due",        "Late Payment Fee"], // header row
-  ["₹0 - ₹100",         "₹0"],
-  ["₹101 - ₹500",       "₹100"],
-  ["₹501 - ₹5000",      "₹500"],
-  ["₹5001 - ₹10000",    "₹700"],
-  ["₹10001 - ₹25000",   "₹800"],
-  ["₹25001 And Above",  "₹1200"],
-];
+const ADDITIONAL_BANK_FEES: [string,string][] = [];
+const LATE_PAYMENT_FEES: [string,string][] = [];
 
-/* Step-by-step "how to spend" timeline for the active category */
-const TIMELINE = [
-  {kind:"card",  card:"Axis Flipkart", c1:"#117E47", c2:"#0AA759", title:"Spend ₹20,000/month on Axis Flipkart Card", caption:"via the Flipkart App", monthly:2200, yearly:26400},
-  {kind:"lock",  title:"Reward points cap reached on Axis Flipkart", caption:"Cap at 2,000 RP per month"},
-  {kind:"card",  card:"HSBC Live+",    c1:"#4C98F4", c2:"#0862CF", title:"Rest of ₹10,000/month on HSBC Live+",         caption:"via the Flipkart App", monthly:1200, yearly:14400},
-];
+const TIMELINE = [];
 
 const SECTION_TITLE = {fontFamily:"'Blacklist','Google Sans',serif", fontSize:20, fontWeight:700, lineHeight:"140%", color:"rgba(54,64,96,0.9)"};
 const TINY_LABEL = {fontFamily:FN, fontSize:10, fontWeight:500, lineHeight:"12px", letterSpacing:"0.1em", textTransform:"uppercase" as const};
@@ -156,6 +54,18 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
   const [eligPin, setEligPin] = useState("");
   const [eligIncome, setEligIncome] = useState("");
   const [activeCat, setActiveCat] = useState("Shopping");
+  const portfolioMetrics = selectPortfolioMetrics([card?.name].filter(Boolean));
+  const WALLET = portfolioMetrics.cards;
+  const TOTAL_SPEND = portfolioMetrics.totalSpend;
+  const TOTAL_SAVE = portfolioMetrics.totalSavings;
+  const CATEGORIES = portfolioMetrics.categories;
+  const TIMELINE = portfolioMetrics.timeline;
+  const MILESTONES = (card?.milestone_benefits_str ? [{points:card.milestone_benefits_str, spend:"data unavailable", status:"locked"}] : []);
+  const LOUNGE = card?.lounge_value ? [{t:`₹${f(card.lounge_value)} lounge value`, d:""}] : [{t:"data unavailable", d:"", muted:true}];
+  const WELCOME = Array.isArray(card?.welcome_benefits_raw) ? card.welcome_benefits_raw.map((w:any)=>({t:w.header||w.name||"Welcome benefit", d:w.description||"data unavailable"})) : [];
+  const FEES_WAIVERS = [{t:card?.annualFee ? `Annual Fee (₹${f(card.annualFee)})` : "Annual Fee", d:card?.fee_waiver||"data unavailable", badge:card?.annualFee ? undefined : "data unavailable"}];
+  const ADDITIONAL_BANK_FEES: [string,string][] = [["Bank fee data","data unavailable"]];
+  const LATE_PAYMENT_FEES: [string,string][] = [["Late payment fee","data unavailable"]];
   // Anchor for the CardsUsage section — used by tag taps in SpendsDistribution
   // to scroll down + switch the active category tab.
   const cardsUsageRef = useRef<HTMLDivElement | null>(null);
@@ -202,7 +112,7 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
   const headlineSave = card.savings || 40000;
   /* Scale per-card saves so the row totals tally to headline exactly.
      Last row absorbs any rounding drift so Σ saves === headlineSave. */
-  const SAVE_BASE = 90000; // base sum of WALLET[*].save
+  const SAVE_BASE = TOTAL_SAVE || headlineSave;
   const scaledSaves = WALLET.map((w,i)=>i===WALLET.length-1?0:Math.round(w.save*headlineSave/SAVE_BASE));
   scaledSaves[WALLET.length-1] = headlineSave - scaledSaves.reduce((s,v)=>s+v,0);
 

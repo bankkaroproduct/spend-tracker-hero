@@ -4,7 +4,7 @@ import { X, Clock, Gift, Mail, CreditCard, FileText, Sparkles, Lock, AlertTriang
 import { C, FN } from "@/lib/theme";
 import { f } from "@/lib/format";
 import { useAppContext } from "@/store/AppContext";
-import { SEMI_CARDS, ALL_TXNS, CAT_OPTIONS, BRAND_MAP, SIM_CARD_RATE, SIM_CARD_BASE_RATE, SIM_BEST_FOR, SIM_MARKET_BEST, computeTxnMissed, computeTxnMarketDelta, CD, CARDS } from "@/data/simulation/legacy";
+import { SEMI_CARDS, ALL_TXNS, CAT_OPTIONS, BRAND_MAP, SIM_CARD_RATE, SIM_CARD_BASE_RATE, SIM_BEST_FOR, SIM_MARKET_BEST, computeTxnMissed, computeTxnMarketDelta, CD, CARDS, REDEEM_DATA, calculateRewardsForInput } from "@/data/simulation/legacy";
 import { USER_CARDS } from "@/data/simulation/inputs";
 import { SCENARIO_SAVED_COLOR, getTransactionScenario } from "@/data/simulation/txnScenario";
 
@@ -288,10 +288,15 @@ export function ActSheet(){
 
   const ci=actSheet._ci??cardIndex;
   const pointsFromTitle=(()=>{const m=(actSheet.title||"").match(/([\d,]+)\s*points/i);if(!m)return null;return parseInt(m[1].replace(/,/g,""),10);})();
-  const baseConvRate=USER_CARDS[ci>=0?ci:0]?.conv_rate||0.20;
+  const baseConvRate=USER_CARDS[ci>=0?ci:0]?.conv_rate??0;
   const worthFromDesc=(()=>{const m=(actSheet.desc||"").match(/Worth\s*₹\s*([\d,]+)/i);if(!m)return null;return parseInt(m[1].replace(/,/g,""),10);})();
-  const pointsWorth=worthFromDesc??Math.round((pointsFromTitle??5000)*baseConvRate);
+  const pointsAvailable=pointsFromTitle??USER_CARDS[ci>=0?ci:0]?.points_expiring?.points??USER_CARDS[ci>=0?ci:0]?.availPts??0;
+  const pointsWorth=worthFromDesc??Math.round(pointsAvailable*baseConvRate);
   const capLimitFromDesc=(()=>{const m=(actSheet.desc||"").match(/₹\s*([\d,]+)\/mo/i);if(!m)return null;return parseInt(m[1].replace(/,/g,""),10);})();
+  const redemptionOptions=REDEEM_DATA[cardName]?.options||[];
+  const redemptionTabs=[...new Set(redemptionOptions.map((o:any)=>o.method||"Rewards"))];
+  const activeRedeemTab=redemptionTabs.includes(redeemTab)?redeemTab:(redemptionTabs[0]||"Rewards");
+  const activeRedeemRows=redemptionOptions.filter((o:any)=>(o.method||"Rewards")===activeRedeemTab);
 
   const handleCta=()=>{setActSheet(null);if(isPoints||isBenefit){setScreen("redeem");setRedeemCard(null);setRedeemPts("");setRedeemResult(null);setRedeemPref(null);}else if(isFee){openCard(0);}else if(isCreditLimit){openCard(1);}else{setScreen("calc");}};
   const ctaText=isCreditLimit?"Pay Bill Now →":isCap?"See alternatives on savings finder →":isPoints?"Find best redemption options →":isBenefit?"Find best redemption options →":isFee?"Find recommendations on savings finder →":actSheet.cta||"Take action →";
@@ -318,12 +323,12 @@ export function ActSheet(){
     {/* ══════════════════ FEE WAIVER ══════════════════ */}
     {isFee&&<>
       <div className="txn-stagger txn-s2" style={{margin:"20px 0"}}>
-        <ActCapBar label="Annual Fee Waiver" used={CD[actSheet._ci??cardIndex]?.totalSpend||0} total={USER_CARDS[actSheet._ci??cardIndex]?.fee_waiver_threshold||350000} unit="₹" resetDays={50} suffix="Spent"/>
+        <ActCapBar label="Annual Fee Waiver" used={CD[actSheet._ci??cardIndex]?.totalSpend||0} total={USER_CARDS[actSheet._ci??cardIndex]?.fee_waiver_threshold||0} unit="₹" resetDays={50} suffix="Spent"/>
       </div>
 
       <div className="txn-stagger txn-s3" style={{marginBottom:20}}>
         <div style={{fontSize:10,fontWeight:700,color:"#364060",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:14}}>Best Categories to Spend</div>
-        <ActCategoryCard icon="/categories/dining.png" name="Dining" rate="5%"/>
+        <ActCategoryCard icon={`/categories/${capCategory.toLowerCase()}.png`} name={capCategory} rate={altRateText}/>
         <div style={{height:0,borderBottom:"1px dashed rgba(0,0,0,0.06)"}}/>
         <ActCategoryCard icon="/categories/groceries.png" name="Groceries" rate="3%"/>
         <div style={{height:0,borderBottom:"1px dashed rgba(0,0,0,0.06)"}}/>
@@ -340,7 +345,7 @@ export function ActSheet(){
       <div className="txn-stagger txn-s2" style={{display:"flex",alignItems:"flex-start",gap:10,padding:"14px 16px",borderRadius:10,background:"#FFF7ED",border:"1px solid #FED7AA",margin:"16px 0"}}><AlertTriangle size={18} strokeWidth={1.5} color="#D97706" style={{flexShrink:0,marginTop:1}}/><div style={{fontSize:13,fontWeight:500,color:"#D97706"}}>Every {capCategory.toLowerCase()} spend on this card now earns 0%</div></div>
 
       <div className="txn-stagger txn-s3" style={{marginTop:8}}>
-        <ActCapBar label={capCategory+" Rewards Cap"} used={(()=>{const caps=CD[actSheet._ci??cardIndex]?.limits?.caps||[];const match=caps.find(c=>c.name.toLowerCase().includes(capCategory.toLowerCase()));return (match||caps[0])?.used||0;})()} total={(()=>{const caps=CD[actSheet._ci??cardIndex]?.limits?.caps||[];const match=caps.find(c=>c.name.toLowerCase().includes(capCategory.toLowerCase()));return (match||caps[0])?.total||30000;})()} unit="Points" resetDays={12} suffix="left"/>
+        <ActCapBar label={capCategory+" Rewards Cap"} used={(()=>{const caps=CD[actSheet._ci??cardIndex]?.limits?.caps||[];const match=caps.find(c=>c.name.toLowerCase().includes(capCategory.toLowerCase()));return (match||caps[0])?.used||0;})()} total={(()=>{const caps=CD[actSheet._ci??cardIndex]?.limits?.caps||[];const match=caps.find(c=>c.name.toLowerCase().includes(capCategory.toLowerCase()));return (match||caps[0])?.total||0;})()} unit="Points" resetDays={12} suffix="left"/>
       </div>
 
       <div className="txn-stagger txn-s4" style={{margin:"8px 0 16px"}}>
@@ -375,7 +380,7 @@ export function ActSheet(){
     {isPoints&&<>
       <div className="txn-stagger txn-s2" style={{borderRadius:12,border:"1px solid #E8F0F1",padding:20,margin:"20px 0",textAlign:"center"}}>
         <div style={{fontSize:12,fontWeight:400,color:"#808387"}}>Expiring in {actSheet.badge?.replace("In ","")?.replace("Days","days")||"6 days"}</div>
-        <div className="legacy-serif" style={{fontSize:28,fontWeight:700,color:"#222941",margin:"8px 0 4px"}}>{(pointsFromTitle??5000).toLocaleString("en-IN")} points</div>
+        <div className="legacy-serif" style={{fontSize:28,fontWeight:700,color:"#222941",margin:"8px 0 4px"}}>{pointsAvailable.toLocaleString("en-IN")} points</div>
         <div style={{fontSize:13,fontWeight:500,color:"#068846"}}>(worth {"₹"}{f(pointsWorth)})</div>
       </div>
 
@@ -384,33 +389,17 @@ export function ActSheet(){
 
         {/* Tab bar */}
         <div style={{display:"flex",borderBottom:"1px solid #E8F0F1",marginBottom:16}}>
-          {["Air Miles","Hotels","Vouchers"].map(tab=>(<div key={tab} onClick={()=>setRedeemTab(tab)} style={{flex:1,textAlign:"center",paddingBottom:10,cursor:"pointer",fontSize:13,fontWeight:tab===redeemTab?600:400,color:tab===redeemTab?"#1d4ed8":"#808387",borderBottom:tab===redeemTab?"2.5px solid #1d4ed8":"2.5px solid transparent",transition:"all 150ms ease"}}>{tab}</div>))}
+          {(redemptionTabs.length?redemptionTabs:["Rewards"]).map(tab=>(<div key={tab} onClick={()=>setRedeemTab(tab)} style={{flex:1,textAlign:"center",paddingBottom:10,cursor:"pointer",fontSize:13,fontWeight:tab===activeRedeemTab?600:400,color:tab===activeRedeemTab?"#1d4ed8":"#808387",borderBottom:tab===activeRedeemTab?"2.5px solid #1d4ed8":"2.5px solid transparent",transition:"all 150ms ease"}}>{tab}</div>))}
         </div>
 
         {/* Table */}
-        {redeemTab==="Air Miles"&&<div>
+        {<div>
           <div style={{display:"flex",padding:"8px 0",borderBottom:"1px solid #E8F0F1"}}>
-            <div style={{flex:2,fontSize:10,fontWeight:700,color:"#808387",textTransform:"uppercase"}}>Airline</div>
+            <div style={{flex:2,fontSize:10,fontWeight:700,color:"#808387",textTransform:"uppercase"}}>Option</div>
             <div style={{flex:1,fontSize:10,fontWeight:700,color:"#808387",textTransform:"uppercase",textAlign:"center"}}>Rate</div>
-            <div style={{flex:1,fontSize:10,fontWeight:700,color:"#808387",textTransform:"uppercase",textAlign:"right"}}>Your Value</div>
+            <div style={{flex:1,fontSize:10,fontWeight:700,color:"#808387",textTransform:"uppercase",textAlign:"right"}}>Value</div>
           </div>
-          {[{airline:"Air India",rate:"1:1",mult:1},{airline:"Vistara",rate:"1:1.2",mult:1.2},{airline:"Singapore Air",rate:"1:0.8",mult:0.8}].map((r,i)=>(<div key={i}><div style={{display:"flex",padding:"12px 0",alignItems:"center"}}><div style={{flex:2,fontSize:13,fontWeight:500,color:"#222941"}}>{r.airline}</div><div style={{flex:1,fontSize:13,fontWeight:500,color:"#364060",textAlign:"center"}}>{r.rate}</div><div style={{flex:1,fontSize:13,fontWeight:600,color:"#222941",textAlign:"right"}}>{"₹"}{f(Math.round((pointsWorth)*r.mult))}</div></div>{i<2&&<svg width="100%" height="1"><line x1="0" y1="0.5" x2="100%" y2="0.5" stroke="#E8F0F1" strokeWidth="1" strokeDasharray="2 2"/></svg>}</div>))}
-        </div>}
-        {redeemTab==="Hotels"&&<div>
-          <div style={{display:"flex",padding:"8px 0",borderBottom:"1px solid #E8F0F1"}}>
-            <div style={{flex:2,fontSize:10,fontWeight:700,color:"#808387",textTransform:"uppercase"}}>Program</div>
-            <div style={{flex:1,fontSize:10,fontWeight:700,color:"#808387",textTransform:"uppercase",textAlign:"center"}}>Rate</div>
-            <div style={{flex:1,fontSize:10,fontWeight:700,color:"#808387",textTransform:"uppercase",textAlign:"right"}}>Your Value</div>
-          </div>
-          {[{airline:"Marriott Bonvoy",rate:"1:0.3",mult:0.3},{airline:"IHG Rewards",rate:"1:0.5",mult:0.5},{airline:"Taj InnerCircle",rate:"1:0.4",mult:0.4}].map((r,i)=>(<div key={i}><div style={{display:"flex",padding:"12px 0",alignItems:"center"}}><div style={{flex:2,fontSize:13,fontWeight:500,color:"#222941"}}>{r.airline}</div><div style={{flex:1,fontSize:13,fontWeight:500,color:"#364060",textAlign:"center"}}>{r.rate}</div><div style={{flex:1,fontSize:13,fontWeight:600,color:"#222941",textAlign:"right"}}>{"₹"}{f(Math.round((pointsWorth)*r.mult))}</div></div>{i<2&&<svg width="100%" height="1"><line x1="0" y1="0.5" x2="100%" y2="0.5" stroke="#E8F0F1" strokeWidth="1" strokeDasharray="2 2"/></svg>}</div>))}
-        </div>}
-        {redeemTab==="Vouchers"&&<div>
-          <div style={{display:"flex",padding:"8px 0",borderBottom:"1px solid #E8F0F1"}}>
-            <div style={{flex:2,fontSize:10,fontWeight:700,color:"#808387",textTransform:"uppercase"}}>Brand</div>
-            <div style={{flex:1,fontSize:10,fontWeight:700,color:"#808387",textTransform:"uppercase",textAlign:"center"}}>Rate</div>
-            <div style={{flex:1,fontSize:10,fontWeight:700,color:"#808387",textTransform:"uppercase",textAlign:"right"}}>Your Value</div>
-          </div>
-          {[{airline:"Amazon",rate:"1:0.25",mult:0.25},{airline:"Flipkart",rate:"1:0.30",mult:0.3},{airline:"Tanishq",rate:"1:0.20",mult:0.2}].map((r,i)=>(<div key={i}><div style={{display:"flex",padding:"12px 0",alignItems:"center"}}><div style={{flex:2,fontSize:13,fontWeight:500,color:"#222941"}}>{r.airline}</div><div style={{flex:1,fontSize:13,fontWeight:500,color:"#364060",textAlign:"center"}}>{r.rate}</div><div style={{flex:1,fontSize:13,fontWeight:600,color:"#222941",textAlign:"right"}}>{"₹"}{f(Math.round((pointsWorth)*r.mult))}</div></div>{i<2&&<svg width="100%" height="1"><line x1="0" y1="0.5" x2="100%" y2="0.5" stroke="#E8F0F1" strokeWidth="1" strokeDasharray="2 2"/></svg>}</div>))}
+          {(activeRedeemRows.length?activeRedeemRows:[{partner:"data unavailable",rate:0}]).map((r:any,i:number)=>(<div key={i}><div style={{display:"flex",padding:"12px 0",alignItems:"center"}}><div style={{flex:2,fontSize:13,fontWeight:500,color:"#222941"}}>{r.partner||r.name}</div><div style={{flex:1,fontSize:13,fontWeight:500,color:"#364060",textAlign:"center"}}>₹{r.rate||0}/pt</div><div style={{flex:1,fontSize:13,fontWeight:600,color:"#222941",textAlign:"right"}}>{"₹"}{f(Math.round(pointsAvailable*(r.rate||0)))}</div></div>{i<activeRedeemRows.length-1&&<svg width="100%" height="1"><line x1="0" y1="0.5" x2="100%" y2="0.5" stroke="#E8F0F1" strokeWidth="1" strokeDasharray="2 2"/></svg>}</div>))}
         </div>}
       </div>
     </>}
@@ -661,13 +650,13 @@ export function CatBS(){
         </div>
         <input type="text" placeholder="Search Brand name" style={{width:"100%",padding:"12px 16px",borderRadius:8,border:"1px solid #D3E4FA",background:"#fff",fontSize:14,fontWeight:400,color:C.text,outline:"none",boxSizing:"border-box",marginBottom:16,fontFamily:"inherit",lineHeight:"145%",letterSpacing:"0.02em"}}/>
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"18px 12px"}}>
-          {(BRAND_MAP[selCat]||["Other"]).map(b=>{const brandImg={"Flipkart":"/brands/flipkart.png","Amazon":"/brands/amazon.png","Myntra":"/brands/myntra.png","Swiggy":"/brands/swiggy.png","Zomato":"/brands/zomato.png","BigBasket":"/brands/bb.png","Adidas":"/brands/adiddas.png","MuscleBlaze":"/brands/muscle-blaze.png"}[b];return(<div key={b} onClick={()=>{const idx=ALL_TXNS.indexOf(catSheet);applyOverride(idx,{brand:b,icon:"🏷️",unaccounted:false,manuallyTagged:true,tag:"Best card for this brand",tagColor:C.dkGreen,tagBg:"#EAF3DE",saved:Math.round(catSheet.amt*(SIM_CARD_RATE[SIM_BEST_FOR[b]]?.[b]||SIM_CARD_BASE_RATE[SIM_BEST_FOR[b]]||0)/100),missed:null,cat:selCat});close();setToast("✓ Tagged as "+b);}} style={{width:101,borderRadius:16,border:"1.31px solid #E2E8EF",background:"#FCFCFC",boxShadow:"0 2px 8px rgba(0,0,0,0.08)",padding:4,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+          {(BRAND_MAP[selCat]||["Other"]).map(b=>{const brandImg={"Flipkart":"/brands/flipkart.png","Amazon":"/brands/amazon.png","Myntra":"/brands/myntra.png","Swiggy":"/brands/swiggy.png","Zomato":"/brands/zomato.png","BigBasket":"/brands/bb.png","Adidas":"/brands/adiddas.png","MuscleBlaze":"/brands/muscle-blaze.png"}[b];return(<div key={b} onClick={()=>{const idx=ALL_TXNS.indexOf(catSheet);applyOverride(idx,{brand:b,icon:"🏷️",unaccounted:false,manuallyTagged:true,tag:"Best card for this brand",tagColor:C.dkGreen,tagBg:"#EAF3DE",saved:(calculateRewardsForInput(catSheet.amt,b,false)[0]?.saved||0),missed:null,cat:selCat});close();setToast("✓ Tagged as "+b);}} style={{width:101,borderRadius:16,border:"1.31px solid #E2E8EF",background:"#FCFCFC",boxShadow:"0 2px 8px rgba(0,0,0,0.08)",padding:4,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
               <div style={{width:93,height:69,borderRadius:14,background:"#F5F5F5",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
                 {brandImg?<img src={brandImg} alt={b} style={{width:55,height:55,objectFit:"contain"}}/>:<div style={{fontSize:24,fontWeight:700,color:"rgba(54,64,96,0.7)"}}>{b.charAt(0)}</div>}
               </div>
               <div style={{fontSize:12,fontWeight:500,color:"#001C3D",textAlign:"center",lineHeight:"18px",letterSpacing:"0.02em"}}>{b}</div>
             </div>);})}
-          <div onClick={()=>{const idx=ALL_TXNS.indexOf(catSheet);applyOverride(idx,{brand:selCat,icon:"🏷️",unaccounted:false,manuallyTagged:true,saved:Math.round(catSheet.amt*(SIM_CARD_BASE_RATE[SIM_BEST_FOR[selCat]]||0)/100),missed:null,tag:"Best card for this brand",tagColor:C.dkGreen,tagBg:"#EAF3DE",cat:selCat});close();setToast("✓ Tagged as Other in "+selCat);}} style={{width:101,borderRadius:16,border:"1.31px solid #E2E8EF",background:"#FCFCFC",boxShadow:"0 2px 8px rgba(0,0,0,0.08)",padding:4,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+          <div onClick={()=>{const idx=ALL_TXNS.indexOf(catSheet);applyOverride(idx,{brand:selCat,icon:"🏷️",unaccounted:false,manuallyTagged:true,saved:(calculateRewardsForInput(catSheet.amt,selCat,true)[0]?.saved||0),missed:null,tag:"Best card for this brand",tagColor:C.dkGreen,tagBg:"#EAF3DE",cat:selCat});close();setToast("✓ Tagged as Other in "+selCat);}} style={{width:101,borderRadius:16,border:"1.31px solid #E2E8EF",background:"#FCFCFC",boxShadow:"0 2px 8px rgba(0,0,0,0.08)",padding:4,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
             <div style={{width:93,height:69,borderRadius:14,background:"#F0F2F6",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{fontSize:20,color:"rgba(54,64,96,0.5)"}}>+</div></div>
             <div style={{fontSize:12,fontWeight:500,color:"#001C3D",textAlign:"center",lineHeight:"18px"}}>Other</div>
           </div>

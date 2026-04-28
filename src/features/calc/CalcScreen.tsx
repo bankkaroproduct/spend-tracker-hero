@@ -3,13 +3,13 @@ import { useState } from "react";
 import { C, FN } from "@/lib/theme";
 import { f } from "@/lib/format";
 import { FL } from "@/components/shared/FontLoader";
-import { CALC_BRANDS, CALC_CATS, CALC_CARDS, SPEND_BRANDS, CD } from "@/data/simulation/legacy";
+import { CALC_BRANDS, CALC_CATS, CALC_CARDS, SPEND_BRANDS, CD, calculateRewardsForInput } from "@/data/simulation/legacy";
 import { USER_CARDS } from "@/data/simulation/inputs";
 import { calculateResponses } from "@/data/simulation/mockApi";
 import { useAppContext } from "@/store/AppContext";
 
 const cardColors = { "HSBC Travel One": ["#0c2340", "#1a5276"], "Axis Flipkart": ["#5b2c8e", "#8b5cf6"], "HSBC Live+": ["#006d5b", "#00a086"] };
-const howToEarn = { "HSBC Travel One": { "default": "Use your HSBC Travel One card directly at checkout. Earns 1 point per ₹150 on domestic spends, 6x on international. Redeem on HSBC Rewards catalogue for travel vouchers.", "MakeMyTrip": "Pay on MakeMyTrip with HSBC Travel One. Earns 3x points on travel bookings. Points best redeemed for flights via HSBC SmartBuy.", "Uber": "Book rides on Uber. Earns 2x points as a dining/transport merchant on HSBC Travel One." }, "Axis Flipkart": { "default": "Use Axis Flipkart at checkout. Cashback auto-credited to your next statement. No manual redemption needed.", "Flipkart": "Pay on Flipkart app/website. 5% cashback auto-credited. Works on all Flipkart purchases except gift cards & EMI.", "Myntra": "Shop on Myntra app/website. 4% cashback as preferred merchant. Cashback credited next billing cycle.", "Swiggy": "Order on Swiggy app. 4% cashback as preferred merchant. Doesn't apply to Instamart.", "Uber": "Book rides on Uber app. 4% cashback as preferred merchant. Credited to statement." }, "HSBC Live+": { "default": "Use HSBC Live+ anywhere. Flat 1.5% unlimited cashback on all spends, auto-credited to statement. No categories, no caps, no hassle." } };
+const howToEarn = {};
 const CARD_IMG_MAP = {
   "Axis Flipkart": "/legacy-assets/cards/axis-flipkart.png",
   "HSBC Travel One": "/legacy-assets/cards/hsbc-travel-one.png",
@@ -17,7 +17,7 @@ const CARD_IMG_MAP = {
   "Amex Platinum": "/legacy-assets/cards/amex-platinum-travel.png",
 };
 const getHowTo = (cardName, brand) => howToEarn[cardName]?.[brand] || howToEarn[cardName]?.["default"] || "Use this card directly at the merchant checkout to earn rewards.";
-const catSpendGuide = { "Shopping": "Best on Flipkart (5%), Amazon (2.5%), Myntra (7.5%). Use Axis Flipkart for Flipkart/Myntra, HSBC Live+ for Amazon.", "Groceries": "BigBasket & Instamart earn 1-4%. Use Axis Flipkart for Instamart (4% preferred), others earn base rate.", "Food Delivery": "Swiggy earns 4% on Axis Flipkart. Zomato/Dominos earn 2.5% on HSBC Live+ as partner.", "Travel": "Cleartrip earns 5% on Axis Flipkart. MakeMyTrip/Yatra earn 2.5% on HSBC Live+.", "Bills & Recharges": "Utility payments earn only 0.25% (1 RP/₹100). HSBC Travel One earns on insurance & utility; others exclude.", "Fuel": "All cards offer 1% surcharge waiver (₹400-₹4000). No reward points on fuel transactions.", "Entertainment": "BookMyShow earns 2.5% on HSBC Live+. HSBC Travel One gives 25% off movie tickets.", "Health": "Apollo 24|7 & Netmeds earn 2.5% on HSBC Live+ as 10X partners.", "Cab Rides": "Uber earns 4% on Axis Flipkart as preferred merchant. Ola earns base rate only.", "Dining Out": "HSBC Travel One offers Culinary Treats dining discounts at 1500+ restaurants." };
+const catSpendGuide = {};
 
 const CASHKARO_CTA_SHADOW = "0.290071px 0.290071px 0.410222px -0.489341px rgba(0, 0, 0, 0.26), 0.789939px 0.789939px 1.11714px -0.978681px rgba(0, 0, 0, 0.247), 1.73442px 1.73442px 2.45284px -1.46802px rgba(0, 0, 0, 0.23), 3.85002px 3.85002px 5.44475px -1.95736px rgba(0, 0, 0, 0.192), 9.13436px 9.13436px 13.8406px -2.4467px rgba(0, 0, 0, 0.2), -0.326227px -0.326227px 0px rgba(0, 0, 0, 0.686), inset 0.652454px 0.652454px 0.652454px rgba(255, 255, 255, 0.7), inset -0.652454px -0.652454px 0.652454px rgba(0, 0, 0, 0.23)";
 
@@ -55,19 +55,7 @@ export const CalcScreen = () => {
     const a = parseInt(calcAmt.replace(/,/g, "")) || 0;
     if (!a) return;
     const isBrandMode = calcTab === "Brands";
-    const catName = isBrandMode ? null : selBrand?.name;
-    const r = CALC_CARDS.map((cc: any) => {
-      let rt: number;
-      if (isBrandMode) {
-        rt = cc.rates[selBrand?.name] ?? cc.rates.default;
-      } else {
-        // Category mode: best achievable rate within this category for this card.
-        const brands = (CALC_BRANDS[catName as string] || []) as any[];
-        const ratesInCat = brands.map(b => cc.rates[b.name] ?? cc.rates.default);
-        rt = ratesInCat.length ? Math.max(...ratesInCat, cc.rates.default) : cc.rates.default;
-      }
-      return { ...cc, rate: Math.round(rt * 100) / 100, saved: Math.round(a * rt / 100) };
-    }).sort((a: any, b: any) => b.saved - a.saved);
+    const r = calculateRewardsForInput(a, selBrand?.name, !isBrandMode);
     setCalcResult({ results: r, query: selBrand?.name || "this category", amount: a, brandName: selBrand?.name, isCategory: !isBrandMode });
     setCalcPopup(false);
     setHowExpanded(null);
@@ -81,43 +69,40 @@ export const CalcScreen = () => {
     const bestCardImg = CARD_IMG_MAP[best.name];
     const amountNum = calcResult.amount;
     const pickBrand = (name: string) => allB.find((b: { name: string }) => b.name === name);
-    const bAmazon = pickBrand("Amazon");
-    const bMyntra = pickBrand("Myntra");
-    const bSwiggy = pickBrand("Swiggy");
-    const bUber = pickBrand("Uber");
-    const altBrands = [
-      { name: "Amazon", icon: bAmazon?.icon ?? "📦", tileBg: "#FFE8DC", save: Math.round(amountNum * (bAmazon?.rate ?? 2.5) / 100) },
-      { name: "Myntra", icon: bMyntra?.icon ?? "👗", tileBg: "#FFDCF4", save: Math.round(amountNum * (bMyntra?.rate ?? 7.5) / 100) },
-      { name: "Shopclues", icon: "🧭", tileBg: "#D9FFF9", save: Math.round(amountNum * 4 / 100) },
-      { name: "Swiggy", icon: bSwiggy?.icon ?? "🍔", tileBg: "#FFEFD6", save: Math.round(amountNum * (bSwiggy?.rate ?? 4) / 100) },
-      { name: "Uber", icon: bUber?.icon ?? "🚗", tileBg: "#E8E5FF", save: Math.round(amountNum * (bUber?.rate ?? 4) / 100) },
-      { name: "Tata CLiQ", icon: "🛍️", tileBg: "#FFE0E0", save: Math.round(amountNum * 3 / 100) },
-    ];
+    const altBrandNames = ["Amazon", "Myntra", "Swiggy", "Uber"];
+    const altBrands = altBrandNames.map((name) => {
+      const brand = pickBrand(name);
+      const reward = calculateRewardsForInput(amountNum, name, false)[0];
+      return { name, icon: brand?.icon ?? "📦", tileBg: "#F5F9FA", save: reward?.saved || 0 };
+    });
     const bestRewardLabel = best.type?.toLowerCase().includes("point") ? `${best.rate}% REWARDS` : `${best.rate}% CASHBACK ON ${(calcResult.query || "").toUpperCase()}`;
 
-    const buildCard = (cfg: any) => {
-      const monthSpend = calcResult.amount;
-      const yearSpend = calcResult.amount * 12;
-      const ptsM = cfg.type === "Points" ? Math.floor(monthSpend / cfg.spendUnit) * cfg.pointsPer : 0;
-      const ptsY = cfg.type === "Points" ? Math.floor(yearSpend / cfg.spendUnit) * cfg.pointsPer : 0;
-      const saveM = cfg.type === "Points" ? ptsM * cfg.rpValue : Math.round(monthSpend * cfg.cashbackPct / 100);
-      const saveY = cfg.type === "Points" ? ptsY * cfg.rpValue : Math.round(yearSpend * cfg.cashbackPct / 100);
-      return { ...cfg, ptsM, ptsY, saveM, saveY };
-    };
-    const walletCards = [
-      buildCard({ name: "HSBC Travel One", type: "Points", spendUnit: 100, pointsPer: 2, rpValue: 1, rate: "₹100 → 2RP", img: CARD_IMG_MAP["HSBC Travel One"] }),
-      buildCard({ name: "HSBC Live+", type: "Cashback", cashbackPct: 1.5, rate: "1.5% CASHBACK", img: CARD_IMG_MAP["HSBC Live+"] }),
-    ];
-    const marketCards = [
-      buildCard({ name: "Amex Platinum", type: "Points", spendUnit: 100, pointsPer: 8, rpValue: 1, rate: "₹100 → 8RP", img: CARD_IMG_MAP["Amex Platinum"] }),
-      buildCard({ name: "IndusInd Tiger", type: "Cashback", cashbackPct: 7, rate: "7% CASHBACK", img: null }),
-      buildCard({ name: "IndusInd Rupay", type: "Cashback", cashbackPct: 6, rate: "6% CASHBACK", img: null }),
-    ];
-    // Only owned cards (wallet) have limits/caps/milestones — market cards aren't owned yet.
-    const cardLimitsMap: Record<string, any> = {
-      "HSBC Travel One":  { creditTotal: 250000, creditUsed: 95000, rewardTotal: 80000, rewardEarned: 22000, msName: "Domestic Lounge Access", msTarget: 100000, msSpent: 42000 },
-      "HSBC Live+":       { creditTotal: 100000, creditUsed: 38000, rewardTotal: 60000, rewardEarned: 14000, msName: "BookMyShow Voucher",     msTarget: 75000,  msSpent: 38000 },
-    };
+    const buildCard = (result: any) => ({
+      ...result,
+      img: CARD_IMG_MAP[result.name] || null,
+      rate: `${result.rate}% ${result.type === "Points" ? "REWARDS" : "CASHBACK"}`,
+      ptsM: result.type === "Points" ? result.saved : 0,
+      ptsY: result.type === "Points" ? result.saved * 12 : 0,
+      rpValue: result.type === "Points" ? 1 : 0,
+      cashbackPct: result.type === "Points" ? 0 : result.rate,
+      saveM: result.saved,
+      saveY: result.saved * 12,
+    });
+    const walletCards = calcResult.results.map(buildCard);
+    const marketCards = [];
+    const cardLimitsMap: Record<string, any> = Object.fromEntries(CD.map((cd: any, idx: number) => {
+      const cap = cd.limits?.caps?.[0] || {};
+      const milestone = cd.milestones?.[0] || {};
+      return [USER_CARDS[idx]?.name, {
+        creditTotal: cd.limits?.creditTotal || 0,
+        creditUsed: cd.limits?.creditUsed || 0,
+        rewardTotal: cap.total || 0,
+        rewardEarned: cap.used || 0,
+        msName: milestone.title || "data unavailable",
+        msTarget: milestone.remaining ? (milestone.remaining + (cd.totalSpend || 0)) : 0,
+        msSpent: cd.totalSpend || 0,
+      }];
+    }));
 
     const renderCardRow = (card: any) => {
       const isExpanded = expandedCard === card.name;
@@ -217,11 +202,11 @@ export const CalcScreen = () => {
 
               {/* Best Place to Shop (per-card) — only relevant in category flow */}
               {calcResult.isCategory && (() => {
-                const popCardRates = (CALC_CARDS.find((c: any) => c.name === card.name) as any)?.rates;
-                const fallbackRate = card.type === "Points" ? (card.pointsPer / card.spendUnit) * card.rpValue * 100 : (card.cashbackPct ?? 0);
-                const lookup = (brandName: string) => popCardRates ? (popCardRates[brandName] ?? popCardRates.default ?? fallbackRate) : fallbackRate;
                 const popTable = (categoryBrands as any[])
-                  .map(b => { const rate = lookup(b.name); return { name: b.name, icon: b.icon, rate, you: Math.round(calcResult.amount * rate / 100) }; })
+                  .map(b => {
+                    const reward = calculateRewardsForInput(calcResult.amount, b.name, false).find((r: any) => r.name === card.name);
+                    return { name: b.name, icon: b.icon, rate: reward?.rate ?? 0, you: reward?.saved ?? 0 };
+                  })
                   .sort((a, b) => b.rate - a.rate);
                 const top = popTable[0];
                 if (!top) return null;
@@ -318,7 +303,7 @@ export const CalcScreen = () => {
       );
     };
 
-    const cashkaroPct = 2;
+    const cashkaroPct = 0;
     const cashkaroAmt = Math.round(calcResult.amount * cashkaroPct / 100);
     const totalWithCashkaro = best.saved + cashkaroAmt;
 
@@ -335,13 +320,12 @@ export const CalcScreen = () => {
     const spendCategory = resolveCategory(calcResult.query);
     const categoryBrands = spendCategory ? CALC_BRANDS[spendCategory] : [];
     // Compute YOU-GET amount on the BEST card for every brand in this category
-    const bestCardRates = CALC_CARDS.find((c: any) => c.name === best.name)?.rates || {};
     const brandTable = categoryBrands.map((b: any) => {
-      const rt = bestCardRates[b.name] ?? bestCardRates.default ?? 0;
-      return { name: b.name, icon: b.icon, rate: rt, you: Math.round(calcResult.amount * rt / 100) };
+      const reward = calculateRewardsForInput(calcResult.amount, b.name, false).find((r: any) => r.name === best.name);
+      return { name: b.name, icon: b.icon, rate: reward?.rate ?? 0, you: reward?.saved ?? 0 };
     }).sort((a: any, b: any) => b.rate - a.rate);
-    const baseRate = bestCardRates.default ?? 0;
-    const baseAmt = Math.round(calcResult.amount * baseRate / 100);
+    const baseRate = best.rate ?? 0;
+    const baseAmt = best.saved ?? 0;
     const bestPlace = brandTable[0]; // highest YOU-GET brand for this card
     return (
       <div className="slide-in" style={{ fontFamily: FN, maxWidth: 400, margin: "0 auto", background: "#F5F9FA", height: "100vh", display: "flex", flexDirection: "column", position: "relative" }}>
@@ -651,16 +635,15 @@ export const CalcScreen = () => {
 
         {/* Best places to use this card popup (card-aware) */}
         {bestPlacesPopup && (() => {
-          const popCardRates = (CALC_CARDS.find((c: any) => c.name === bestPlacesPopup) as any)?.rates;
-          // Fallback to the card config's headline rate if the card isn't in CALC_CARDS (market cards).
-          const popCardCfg = [...walletCards, ...marketCards].find((c: any) => c.name === bestPlacesPopup);
-          const fallbackRate = popCardCfg ? (popCardCfg.type === "Points" ? (popCardCfg.pointsPer / popCardCfg.spendUnit) * popCardCfg.rpValue * 100 : (popCardCfg.cashbackPct ?? 0)) : 0;
-          const lookup = (brandName: string) => popCardRates ? (popCardRates[brandName] ?? popCardRates.default ?? fallbackRate) : fallbackRate;
           const popTable = (categoryBrands as any[])
-            .map(b => { const rate = lookup(b.name); return { name: b.name, icon: b.icon, rate, you: Math.round(calcResult.amount * rate / 100) }; })
+            .map(b => {
+              const reward = calculateRewardsForInput(calcResult.amount, b.name, false).find((r: any) => r.name === bestPlacesPopup);
+              return { name: b.name, icon: b.icon, rate: reward?.rate ?? 0, you: reward?.saved ?? 0 };
+            })
             .sort((a, b) => b.rate - a.rate);
-          const popBaseRate = popCardRates ? (popCardRates.default ?? fallbackRate) : fallbackRate;
-          const popBaseAmt = Math.round(calcResult.amount * popBaseRate / 100);
+          const popBase = calculateRewardsForInput(calcResult.amount, calcResult.query, !!calcResult.isCategory).find((r: any) => r.name === bestPlacesPopup);
+          const popBaseRate = popBase?.rate ?? 0;
+          const popBaseAmt = popBase?.saved ?? 0;
           return (
             <div onClick={() => setBestPlacesPopup(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 16 }}>
               <div onClick={(e) => e.stopPropagation()} className="fade-up" style={{ width: "100%", maxWidth: 360, background: "#FFFFFF", borderRadius: 16, boxShadow: "0px 20px 50px rgba(0,0,0,0.25)", padding: "20px 18px 18px", fontFamily: FN }}>

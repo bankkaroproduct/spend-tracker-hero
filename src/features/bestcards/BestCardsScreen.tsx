@@ -4,7 +4,7 @@ import { C, FN } from "@/lib/theme";
 import { f } from "@/lib/format";
 import { FL } from "@/components/shared/FontLoader";
 import { TOTAL_ACC } from "@/data/simulation/legacy";
-import { BEST_CARDS as LEGACY_BEST_CARDS, BEST_CARDS_COMB_SAVINGS, getBestCardDetail, USER_CARD_YEARLY_SAVINGS } from "@/data/simulation/legacy";
+import { BEST_CARDS as LEGACY_BEST_CARDS, BEST_CARDS_COMB_SAVINGS, getBestCardDetail, selectBestCardBreakdownMetrics, USER_CARD_YEARLY_SAVINGS } from "@/data/simulation/legacy";
 import { NavBar } from "@/components/shared/NavBar";
 import { useAppContext } from "@/store/AppContext";
 import { Toast, InfoBS, TxnSheet, ActSheet, GmailNudgePopup, GmailNudgeSheet, RetroOverlay, VoiceFlowOverlay, CatBS, FilterSheet } from "@/components/sheets/BottomSheets";
@@ -76,31 +76,7 @@ export const BestCardsScreen = () => {
       rent:"rent",
       insurance_health_annual:"bills",insurance_car_or_bike_annual:"bills",life_insurance:"bills",school_fees:"bills",
     };
-    const getBC=(card:any)=>{
-      const bd=card.spending_breakdown;
-      if(!bd){
-        const base=card.savings||0;
-        return {milestone:0,shopping:Math.round(base*0.3),groceries:Math.round(base*0.1),food:Math.round(base*0.08),dining:Math.round(base*0.12),fuel:Math.round(base*0.05),flights:Math.round(base*0.15),hotels:Math.round(base*0.1),bills:Math.round(base*0.05),rent:Math.round(base*0.05),thisCard:base,onAxisFlipkart:0,onHSBCTravelOne:0,onHSBCLivePlus:0,combined:base};
-      }
-      const catMap:Record<string,number>={};
-      let thisCardTotal=0;
-      for(const [bucket,data] of Object.entries(bd)){
-        const savings=(data as any).savings||0;
-        const cat=BUCKET_TO_CAT[bucket]||"other";
-        catMap[cat]=(catMap[cat]||0)+Math.round(savings*12);
-        thisCardTotal+=Math.round(savings*12);
-      }
-      const idx=BEST_CARDS.indexOf(card);
-      const detail=idx>=0?getBestCardDetail(idx):null;
-      const milestone=(detail?.milestones||[]).reduce((s:number,m:any)=>s+(m.amt||0),0);
-      thisCardTotal+=milestone;
-      const userSavings=USER_CARD_YEARLY_SAVINGS;
-      const onCard0=userSavings[0]?.savings||0;
-      const onCard1=userSavings[1]?.savings||0;
-      const onCard2=userSavings[2]?.savings||0;
-      const combined=thisCardTotal+onCard0+onCard1+onCard2;
-      return {milestone,shopping:catMap.shopping||0,groceries:catMap.groceries||0,food:catMap.food||0,dining:catMap.dining||0,fuel:catMap.fuel||0,flights:catMap.flights||0,hotels:catMap.hotels||0,bills:catMap.bills||0,rent:catMap.rent||0,thisCard:thisCardTotal,onAxisFlipkart:onCard1,onHSBCTravelOne:onCard0,onHSBCLivePlus:onCard2,combined};
-    };
+    const getBC=(card:any)=>selectBestCardBreakdownMetrics(card);
 
     /* ═══ BEST CARD DETAIL PAGE ═══ */
     const getCD=(name:any)=>{
@@ -196,7 +172,7 @@ export const BestCardsScreen = () => {
         <div style={{display:"flex",borderRadius:10,background:C.bg,padding:3,marginBottom:16}}>{["On Brands","On Categories"].map(t=>(<div key={t} onClick={()=>setBcViewMode(t)} style={{flex:1,textAlign:"center",padding:"9px 0",borderRadius:8,cursor:"pointer",background:bcViewMode===t?C.blue:"transparent",color:bcViewMode===t?"#fff":C.sub,fontSize:12,fontWeight:700}}>{t}</div>))}</div>
         {(()=>{
           const catMap={"Amazon":"Shopping","Flipkart":"Shopping","Myntra":"Shopping","Swiggy":"Food & Dining","Zomato":"Food & Dining","MakeMyTrip":"Travel","BigBasket":"Groceries"};
-          const brandItems=card.brandFit.map(b=>{const potential=Math.round(b.spend*b.rate/100);const saved=Math.round(potential*0.35);return{...b,potential,saved,cat:catMap[b.name]||"Others"};});
+          const brandItems=card.brandFit.map(b=>{const potential=b.savings||0;const saved=0;return{...b,potential,saved,cat:catMap[b.name]||"Others"};});
           const totalPotential=brandItems.reduce((s,b)=>s+b.potential,0);
           const totalSaved=brandItems.reduce((s,b)=>s+b.saved,0);
           /* Build category items by grouping brands */
@@ -238,7 +214,7 @@ export const BestCardsScreen = () => {
               <div style={{height:1,background:C.brd,marginBottom:14}}/>
               <div style={{display:"flex"}}>{[{l:"Spent",v:"₹"+f(b.spend),c:C.text},{l:"Saved",v:"₹"+f(b.saved),c:C.green},{l:"Could save",v:"₹"+f(b.potential),c:C.green}].map((s,si)=>(<div key={si} style={{flex:1,textAlign:"center"}}><div style={{fontSize:10,fontWeight:600,color:C.sub}}>{s.l}</div><div style={{fontSize:15,fontWeight:700,color:s.c,marginTop:4}}>{s.v}</div></div>))}</div>
               <div style={{marginTop:14,padding:"14px 16px",borderRadius:12,background:C.bg,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontSize:10,fontWeight:600,color:C.sub}}>Benefit on this card</div><div style={{fontSize:14,fontWeight:700,color:C.text,marginTop:3}}>{b.rate?b.rate+"% cashback":"Up to "+Math.max(...(b.brands||[]).map(br=>{const found=brandItems.find(x=>x.name===br);return found?found.rate:0;}))+"%"}</div></div>
-              <div onClick={()=>{const userCards=["HSBC Travel One","Axis Flipkart Card","HSBC Live+"];const currentCard=userCards[0];const capAmt=b.rate>3?Math.round(b.spend*0.03):Math.round(b.spend*b.rate/100*1.5);const brandItem={name:b.name||b.cat,icon:b.icon||"📦",cat:b.cat||"Shopping",totalSpend:b.spend,saved:b.saved,bestSaved:b.potential,bestCard:card.name,bestRate:b.rate||3,altCard:currentCard,altRate:1,breakdown:[{card:card.name,pct:100,spend:b.spend,saved:b.potential}],txnCount:Math.round(b.spend/800),capInfo:"Reward cap on "+(b.name||b.cat)+": ₹"+f(capAmt)+"/month. Switch to "+currentCard+" after cap is reached.",howToUse:["Use "+card.name+" for all "+(b.name||b.cat)+" purchases to earn "+(b.rate||3)+"% back","Maximum reward on this category: ₹"+f(capAmt)+"/month — switch card after cap"]};setOptSheetFrom("bestcards");setOptSheet(brandItem);setScreen("optimize");}} style={{padding:"8px 14px",borderRadius:10,background:"#111827",cursor:"pointer"}}><span style={{fontSize:12,fontWeight:600,color:"#fff"}}>How to use</span></div></div>
+              <div onClick={()=>{const brandItem={name:b.name||b.cat,icon:b.icon||"📦",cat:b.cat||"Shopping",totalSpend:b.spend,saved:b.saved,bestSaved:b.potential,bestCard:card.name,bestRate:b.rate||0,altCard:"data unavailable",altRate:0,breakdown:[{card:card.name,pct:100,spend:b.spend,saved:b.potential}],txnCount:0,capInfo:"data unavailable",howToUse:["Use "+card.name+" for "+(b.name||b.cat)+" spends where eligible"]};setOptSheetFrom("bestcards");setOptSheet(brandItem);setScreen("optimize");}} style={{padding:"8px 14px",borderRadius:10,background:"#111827",cursor:"pointer"}}><span style={{fontSize:12,fontWeight:600,color:"#fff"}}>How to use</span></div></div>
             </div>}
           </div>);})}
         </div>
