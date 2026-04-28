@@ -804,7 +804,8 @@ export const BestCardsScreen = () => {
               <div key={ci} style={{minWidth:76}}>
                 <div style={{padding:"8px 12px",height:43,display:"flex",alignItems:"center",justifyContent:"center",background:"#F0F0F7",border:"0.95px solid #EBEBF4",boxSizing:"border-box"}}><span style={{fontSize:11,fontWeight:600,color:"#374151",textAlign:"center"}}>{col}</span></div>
                 {filteredCards.map((card,i)=>{
-                  const val=ci===0?"₹"+f(Math.round(card.savings*0.66)):ci===1?"₹"+f(Math.round(card.savings*0.75)):"₹"+f(Math.round(card.savings*0.75));
+                  const isInviteOnly=(card.tags||[]).includes("Invite Only");
+                  const val=isInviteOnly?"Invite only":ci===0?"₹"+f(Math.round(card.savings*0.66)):ci===1?"₹"+f(Math.round(card.savings*0.75)):"₹"+f(Math.round(card.savings*0.75));
                   return(<div key={i} style={{display:"flex",alignItems:"center",justifyContent:"center",height:134,boxSizing:"border-box",borderWidth:"0 1px 1px 0",borderStyle:"solid",borderColor:"rgba(0,0,0,0.08)",background:"#fff",padding:"0 8px"}}><span style={{fontSize:14,fontWeight:600,color:"#1C2A33"}}>{val}</span></div>);
                 })}
               </div>))}
@@ -845,9 +846,9 @@ export const BestCardsScreen = () => {
             </div>
 
             {/* Combine banner */}
-            <div style={{margin:"0 12px 12px",padding:"16px 12px",borderRadius:8,border:"1px solid #E2FAEF",background:"linear-gradient(90deg, #E1FAEF 0%, #F4FDF9 100%)",display:"flex",alignItems:"center",gap:10}}>
+            <div style={{margin:"0 12px 12px",padding:"16px 12px",borderRadius:8,border:isInviteOnly?"1px solid #FDE68A":"1px solid #E2FAEF",background:isInviteOnly?"linear-gradient(90deg, #FEF3C7 0%, #FFFBEB 100%)":"linear-gradient(90deg, #E1FAEF 0%, #F4FDF9 100%)",display:"flex",alignItems:"center",gap:10}}>
               <img src="/legacy-assets/save star.png" alt="" style={{width:36,height:36,objectFit:"contain",flexShrink:0}}/>
-              <div><div style={{fontSize:11,fontWeight:400,color:"#6B7280"}}>Combine with your cards &</div><div style={{fontSize:18,fontWeight:700,color:"#059669",marginTop:1}}>Save ₹{f(card.savings)}/yr</div></div>
+              <div><div style={{fontSize:11,fontWeight:400,color:"#6B7280"}}>{isInviteOnly?"Not included in optimisation":"Combine with your cards &"}</div><div style={{fontSize:18,fontWeight:700,color:isInviteOnly?"#92400E":"#059669",marginTop:1}}>{isInviteOnly?"Invite only":"Save ₹"+f(card.savings)+"/yr"}</div></div>
             </div>
 
             {/* CTAs */}
