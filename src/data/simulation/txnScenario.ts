@@ -2,7 +2,7 @@
 // Single source of truth for transaction tag scenarios.
 // Returns one of S1, S2, S3, S4, S5a, S5b, S5c, or S6.
 
-import { USER_CARDS, BUCKET_TO_MERCHANT, MERCHANT_TO_BUCKET } from "./inputs";
+import { USER_CARDS, BUCKET_TO_MERCHANT } from "./inputs";
 import {
   calculateResponses,
   getBestCardForBucket,
