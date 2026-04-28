@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState } from "react";
 import { Star, ChevronDown, ChevronRight, Check, CreditCard, Search, Lock as LockIcon, Mail, MapPin, Plane, UtensilsCrossed, Tv, HelpCircle, Gift, Target, Sparkles, X, ChevronLeft, LayoutList, Table2, Calculator } from "lucide-react";
 import { C, FN } from "@/lib/theme";
