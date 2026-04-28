@@ -22,7 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-spend-analyser-main/
+spend-analyser-handoff/
 spend-tracker-hero/
 apr_14.jsx
 .cursor/

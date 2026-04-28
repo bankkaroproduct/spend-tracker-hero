@@ -15,6 +15,8 @@ import { AppContext, setAppContext } from "@/store/AppContext";
 import { ActionsScreen } from "@/features/actions/ActionsScreen";
 import { ProfileScreen } from "@/features/profile/ProfileScreen";
 import { BestCardsScreen } from "@/features/bestcards/BestCardsScreen";
+import { PortfolioCreateScreen } from "@/features/portfolio/PortfolioCreateScreen";
+import { PortfolioResultsScreen } from "@/features/portfolio/PortfolioResultsScreen";
 import { RedeemScreen } from "@/features/redeem/RedeemScreen";
 import { CalcScreen } from "@/features/calc/CalcScreen";
 import { CardDetailScreen } from "@/features/cardDetail/CardDetailScreen";
@@ -68,6 +70,8 @@ export default function App(){
     setScreenState(next);
   };
   const [bestCardDetail,setBestCardDetail]=useState(null);
+  const [portfolioNew,setPortfolioNew]=useState<string[]>([]);
+  const [portfolioEntryCard,setPortfolioEntryCard]=useState<string|null>(null);
   const [bcFilter,setBcFilter]=useState([]);
   const [bcSearch,setBcSearch]=useState("");
   const [bcSearchOpen,setBcSearchOpen]=useState(false);
@@ -292,6 +296,8 @@ export default function App(){
     if(s==="transactions")return "/transactions";
     if(s==="profile")return "/profile";
     if(s==="bestcards")return "/cards";
+    if(s==="portfolio-create")return "/portfolio/create";
+    if(s==="portfolio-results")return "/portfolio/results";
     if(s==="detail")return `/cards/${cardIdx ?? 0}`;
     if(s==="gmail")return "/gmail";
     if(s==="building")return "/building";
@@ -323,6 +329,8 @@ export default function App(){
     if(p==="/transactions")return {screen:"transactions"};
     if(p==="/profile")return {screen:"profile"};
     if(p==="/cards")return {screen:"bestcards"};
+    if(p==="/portfolio/create")return {screen:"portfolio-create"};
+    if(p==="/portfolio/results")return {screen:"portfolio-results"};
     if(p==="/gmail")return {screen:"gmail"};
     const m=matchPath("/cards/:id",p);
     if(m){const id=parseInt(m.params.id,10);return {screen:"detail",ci:isNaN(id)?0:id};}
@@ -392,7 +400,7 @@ export default function App(){
   useEffect(()=>{if(screen==="building"&&buildRef.current&&buildPhase===9){setTimeout(()=>buildRef.current.scrollTo({top:0,behavior:"smooth"}),100);}},[buildSub]);
   useEffect(()=>{if(buildPhase===1){setBuildCardReveal(-1);setCarouselIdx(0);const t0=setTimeout(()=>setBuildCardReveal(0),400);const t1=setTimeout(()=>{setBuildCardReveal(1);setCarouselIdx(1);},1400);const t2=setTimeout(()=>{setBuildCardReveal(2);setCarouselIdx(2);},2400);const t3=setTimeout(()=>setCarouselIdx(0),3200);return()=>{clearTimeout(t0);clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);};}if(buildPhase>1&&buildCardReveal<2)setBuildCardReveal(2);},[buildPhase]);
 
-  const ctxValue={toast,setToast,infoSheet,setInfoSheet,txnSheet,setTxnSheet,actSheet,setActSheet,setScreen,redeemCard,setRedeemCard,redeemPts,setRedeemPts,redeemResult,setRedeemResult,redeemPref,setRedeemPref,redeemTab,setRedeemTab,howExpanded,setHowExpanded,openCard,hasGmail,setHasGmail,nudgePermanentlyDismissed,nudgeDismissals,setShowGmailNudgeSheet,showGmailNudge,setShowGmailNudge,retroEnrichFromGmail,dismissNudge,setNudgePermanentlyDismissed,showGmailNudgeSheet,relinkingGmail,showVoiceFlow,setShowVoiceFlow,setVoiceTranscript,setVoiceMatch,setIsListening,recognitionRef,voiceCardIndex,setVoiceCardIndex,isListening,beginListening,voiceTranscript,voiceMatch,confirmVoiceMatch,showCardMappingUI,setShowCardMappingUI,mappingStep,setMappingStep,mappingSearchQ,setMappingSearchQ,showSkipConfirm,setShowSkipConfirm,showResolutionSummary,setShowResolutionSummary,capSheet,setCapSheet,catSheet,setCatSheet,catStep,setCatStep,selCat,setSelCat,setRemovedTxns,removedTxns,filterSheet,setFilterSheet,filterTab,setFilterTab,setFilters,setSortBy,sortBy,filters,toggleFilter,multiToggle,isState1,isState2,isState3,cardMapping,setCardMapping,screen,ci,setCi,actFilter,setActFilter,getFilteredActions,selBrand,setSelBrand,calcAmt,setCalcAmt,calcPopup,setCalcPopup,calcResult,setCalcResult,searchQ,setSearchQ,calcTab,setCalcTab,calcFilter,setCalcFilter,optTab,setOptTab,optSheet,setOptSheet,optSheetFrom,setOptSheetFrom,optExpanded,setOptExpanded,bestCardDetail,setBestCardDetail,bcFilter,setBcFilter,bcSearch,setBcSearch,bcSearchOpen,setBcSearchOpen,bcDetTab,setBcDetTab,bcViewMode,setBcViewMode,bcSection,setBcSection,bcFavs,setBcFavs,bcSort,setBcSort,bcShowSort,setBcShowSort,bcListView,setBcListView,bcEligSheet,setBcEligSheet,bcFromScreen,getCardDisplayName,isCardMapped,detailTab,setDetailTab,txnPage,setTxnPage,usageCat,setUsageCat,usageMode,setUsageMode,timePeriod,setTimePeriod,timePeriodOpen,setTimePeriodOpen,chartPage,setChartPage,dRef,sentRef,tabSticky,spendTab,setSpendTab,showAllBrands,setShowAllBrands,activeTxnList,filtered,goTxns,gmailStep,setGmailStep,gmailReturnTo,completeGmailLink,gmailFirstName,setGmailFirstName,gmailLastName,setGmailLastName,gmailDob,setGmailDob,hsbcDigits1,setHsbcDigits1,hsbcDigits2,setHsbcDigits2,buildPhase,setBuildPhase,buildSub,buildCardReveal,savePhase,setSavePhase,toolStep,reminderStep,finalLoad,buildRef,setMappingCompleted,mappingCompleted,setUserFlag,userFlag,startGmailFlow,onStep,setOnStep,vpSlide,setVpSlide,phone,setPhone,otp,setOtp,otpTimer,setOtpTimer,smsStatus,setSmsStatus,welcomeTyped,touchStartX,txnCatOverrides,setTxnCatOverride};
+  const ctxValue={toast,setToast,infoSheet,setInfoSheet,txnSheet,setTxnSheet,actSheet,setActSheet,setScreen,redeemCard,setRedeemCard,redeemPts,setRedeemPts,redeemResult,setRedeemResult,redeemPref,setRedeemPref,redeemTab,setRedeemTab,howExpanded,setHowExpanded,openCard,hasGmail,setHasGmail,nudgePermanentlyDismissed,nudgeDismissals,setShowGmailNudgeSheet,showGmailNudge,setShowGmailNudge,retroEnrichFromGmail,dismissNudge,setNudgePermanentlyDismissed,showGmailNudgeSheet,relinkingGmail,showVoiceFlow,setShowVoiceFlow,setVoiceTranscript,setVoiceMatch,setIsListening,recognitionRef,voiceCardIndex,setVoiceCardIndex,isListening,beginListening,voiceTranscript,voiceMatch,confirmVoiceMatch,showCardMappingUI,setShowCardMappingUI,mappingStep,setMappingStep,mappingSearchQ,setMappingSearchQ,showSkipConfirm,setShowSkipConfirm,showResolutionSummary,setShowResolutionSummary,capSheet,setCapSheet,catSheet,setCatSheet,catStep,setCatStep,selCat,setSelCat,setRemovedTxns,removedTxns,filterSheet,setFilterSheet,filterTab,setFilterTab,setFilters,setSortBy,sortBy,filters,toggleFilter,multiToggle,isState1,isState2,isState3,cardMapping,setCardMapping,screen,ci,setCi,actFilter,setActFilter,getFilteredActions,selBrand,setSelBrand,calcAmt,setCalcAmt,calcPopup,setCalcPopup,calcResult,setCalcResult,searchQ,setSearchQ,calcTab,setCalcTab,calcFilter,setCalcFilter,optTab,setOptTab,optSheet,setOptSheet,optSheetFrom,setOptSheetFrom,optExpanded,setOptExpanded,bestCardDetail,setBestCardDetail,portfolioNew,setPortfolioNew,portfolioEntryCard,setPortfolioEntryCard,bcFilter,setBcFilter,bcSearch,setBcSearch,bcSearchOpen,setBcSearchOpen,bcDetTab,setBcDetTab,bcViewMode,setBcViewMode,bcSection,setBcSection,bcFavs,setBcFavs,bcSort,setBcSort,bcShowSort,setBcShowSort,bcListView,setBcListView,bcEligSheet,setBcEligSheet,bcFromScreen,getCardDisplayName,isCardMapped,detailTab,setDetailTab,txnPage,setTxnPage,usageCat,setUsageCat,usageMode,setUsageMode,timePeriod,setTimePeriod,timePeriodOpen,setTimePeriodOpen,chartPage,setChartPage,dRef,sentRef,tabSticky,spendTab,setSpendTab,showAllBrands,setShowAllBrands,activeTxnList,filtered,goTxns,gmailStep,setGmailStep,gmailReturnTo,completeGmailLink,gmailFirstName,setGmailFirstName,gmailLastName,setGmailLastName,gmailDob,setGmailDob,hsbcDigits1,setHsbcDigits1,hsbcDigits2,setHsbcDigits2,buildPhase,setBuildPhase,buildSub,buildCardReveal,savePhase,setSavePhase,toolStep,reminderStep,finalLoad,buildRef,setMappingCompleted,mappingCompleted,setUserFlag,userFlag,startGmailFlow,onStep,setOnStep,vpSlide,setVpSlide,phone,setPhone,otp,setOtp,otpTimer,setOtpTimer,smsStatus,setSmsStatus,welcomeTyped,touchStartX,txnCatOverrides,setTxnCatOverride};
   /* Mirror to module store as a fallback for any consumer outside the Provider tree. */
   setAppContext(ctxValue);
 
@@ -415,6 +423,8 @@ export default function App(){
   else if(screen==="redeem")body=<RedeemScreen/>;
   else if(screen==="profile")body=<ProfileScreen/>;
   else if(screen==="bestcards")body=<BestCardsScreen/>;
+  else if(screen==="portfolio-create")body=<PortfolioCreateScreen/>;
+  else if(screen==="portfolio-results")body=<PortfolioResultsScreen/>;
   else if(screen==="home")body=<HomeScreen/>;
 
   useEffect(()=>{

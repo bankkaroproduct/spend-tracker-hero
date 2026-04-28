@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { SAVINGS_BARS, SPEND_CATS, SPEND_BRANDS, TOTAL_ACC, CARD_PROMO } from "@/data/simulation/legacy";
-import { f } from "@/lib/format";
+import { CreditCard, Gauge, Receipt, Trophy, Plane, Sparkles } from "lucide-react";
+
+// Map a CONSIDER_HOOKS `cat` to a rounded-line icon + warm-toned stroke color.
+// Muted/desaturated tones so they sit gently against the soft pastel bgs.
+export const HOOK_CAT_ICON: Record<string, { Icon: any; color: string }> = {
+  credit:    { Icon: CreditCard, color: "#B56A6A" }, // muted rose
+  cap:       { Icon: Gauge,      color: "#B68A55" }, // muted amber
+  fee:       { Icon: Receipt,    color: "#9B7A52" }, // muted bronze
+  milestone: { Icon: Trophy,     color: "#A87858" }, // muted terracotta
+  benefit:   { Icon: Plane,      color: "#A56B6B" }, // muted brick
+  points:    { Icon: Sparkles,   color: "#B5825F" }, // muted orange
+};
 
 export const ASSET_BASE = "/legacy-assets";
 
@@ -225,26 +235,88 @@ export function LegacySectionHeader({ label, action = "View All", onAction = und
   );
 }
 
-export function TimeFilter({ label }) {
+export function TimeFilter({ label, options, value, onSelect }) {
+  const [open, setOpen] = useState(false);
+  const interactive = Array.isArray(options) && typeof onSelect === "function";
   return (
-    <div className="legacy-tap" style={{ height: 31, borderRadius: 6, background: "rgb(244,248,255)", boxShadow: "10px 10px 21px -3.75px rgba(0,0,0,0.055), 2.6px 2.6px 3.8px -2.25px rgba(0,0,0,0.23), 1.2px 1.2px 1.7px -1.5px rgba(0,0,0,0.247), inset -1px -1px 0 0 rgba(0,0,0,0.1), inset 1px 1px 1px 0 rgba(255,255,255,1)", padding: "0 14px", display: "flex", alignItems: "center", gap: 8, fontSize: 10, fontWeight: 700, color: "rgb(34,41,65)" }}>
-      {label}
-      <ChevronDown size={6} color="rgb(34,41,65)" />
+    <div style={{ position: "relative" }}>
+      <div
+        className="legacy-tap"
+        onClick={() => { if (interactive) setOpen(o => !o); }}
+        style={{ height: 31, borderRadius: 6, background: "rgb(244,248,255)", boxShadow: "10px 10px 21px -3.75px rgba(0,0,0,0.055), 2.6px 2.6px 3.8px -2.25px rgba(0,0,0,0.23), 1.2px 1.2px 1.7px -1.5px rgba(0,0,0,0.247), inset -1px -1px 0 0 rgba(0,0,0,0.1), inset 1px 1px 1px 0 rgba(255,255,255,1)", padding: "0 14px", display: "flex", alignItems: "center", gap: 8, fontSize: 10, fontWeight: 700, color: "rgb(34,41,65)" }}
+      >
+        {label}
+        <span style={{ display: "inline-flex", transform: open ? "rotate(180deg)" : "none", transition: "transform 160ms ease" }}>
+          <ChevronDown size={6} color="rgb(34,41,65)" />
+        </span>
+      </div>
+      {interactive && open && (
+        <>
+          {/* click-away */}
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 19 }} />
+          <div style={{
+            position: "absolute",
+            top: "calc(100% + 6px)",
+            right: 0,
+            zIndex: 20,
+            minWidth: 132,
+            background: "#FFFFFF",
+            borderRadius: 8,
+            border: "1px solid rgba(0,0,0,0.06)",
+            boxShadow: "0 8px 24px rgba(15,28,67,0.14), 0 2px 6px rgba(15,28,67,0.08)",
+            padding: 4,
+            overflow: "hidden",
+          }}>
+            {options.map((d) => {
+              const isSel = d === value;
+              return (
+                <div
+                  key={d}
+                  className="legacy-tap"
+                  onClick={() => { onSelect(d); setOpen(false); }}
+                  style={{
+                    padding: "8px 10px",
+                    fontSize: 11,
+                    fontWeight: isSel ? 700 : 500,
+                    color: isSel ? "rgb(34,41,65)" : "rgba(74,83,112,0.85)",
+                    background: isSel ? "rgb(244,248,255)" : "transparent",
+                    borderRadius: 6,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 8,
+                  }}
+                >
+                  <span>Last {d} Days</span>
+                  {isSel && (
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <path d="M1.5 5.2l2.4 2.4L8.5 2.6" stroke="rgb(34,41,65)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-function ActionCard({ brand, mark, headline, onClick }) {
+function ActionCard({ brand, mark, headline, onClick, bgOverride, width, Icon, iconColor }) {
   const brands = {
-    axis: { bg: "linear-gradient(135deg, #fff0f0 0%, #ffebe0 100%)", ring: "#E52124" },
-    hsbcR: { bg: "linear-gradient(135deg, #f0fbff 0%, #e0ecff 100%)", ring: "#DB0011" },
-    hsbcB: { bg: "linear-gradient(135deg, #f0f1ff 0%, #e0e7ff 100%)", ring: "#1B4F9C" },
-    idfc: { bg: "linear-gradient(135deg, #fff4ec 0%, #ffe4d3 100%)", ring: "#7B1E1E" },
+    axis: { bg: "linear-gradient(135deg, #ffd9d9 0%, #ffc7b3 100%)", ring: "#E52124" },
+    hsbcR: { bg: "linear-gradient(135deg, #c4e2fb 0%, #9fc4ee 100%)", ring: "#DB0011" },
+    hsbcB: { bg: "linear-gradient(135deg, #c8ccf5 0%, #a9b2e8 100%)", ring: "#1B4F9C" },
+    idfc: { bg: "linear-gradient(135deg, #ffe1c8 0%, #fcc7a0 100%)", ring: "#7B1E1E" },
   };
   const b = brands[brand] || brands.axis;
+  const ringColor = iconColor || b.ring;
   return (
-    <div className="legacy-tap" onClick={onClick} style={{ width: 315, minHeight: 72, borderRadius: 12, padding: "14px 14px 12px", background: b.bg, border: "1px solid rgba(255,255,255,1)", boxShadow: "0 0.6px 2px rgba(9,84,171,0.11)", display: "flex", gap: 12, alignItems: "flex-start" }}>
-      <div style={{ width: 32, height: 32, borderRadius: 16, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", color: b.ring, fontWeight: 700, fontSize: 13, boxShadow: `inset 0 0 0 1.5px ${b.ring}20`, flexShrink: 0 }}>{mark}</div>
+    <div className="legacy-tap" onClick={onClick} style={{ width: width || 250, minHeight: 72, borderRadius: 12, padding: "12px 12px", background: bgOverride || b.bg, border: "1px solid rgba(255,255,255,0.9)", boxShadow: "0 1px 3px rgba(9,84,171,0.10)", display: "flex", gap: 10, alignItems: "flex-start" }}>
+      <div style={{ width: 32, height: 32, borderRadius: 16, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", color: ringColor, fontWeight: 700, fontSize: 13, boxShadow: `inset 0 0 0 1.5px ${ringColor}20`, flexShrink: 0 }}>
+        {Icon ? <Icon size={17} strokeWidth={1.5} color={ringColor}/> : mark}
+      </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.6, color: "rgba(36,45,74,0.9)" }}>{headline}</div>
       </div>
@@ -252,92 +324,210 @@ function ActionCard({ brand, mark, headline, onClick }) {
   );
 }
 
-export function ImportantActions({ onViewAll, onAction }) {
+// Map a CONSIDER_HOOKS cardBrand → ActionCard visual brand + first-letter mark.
+const HOOK_BRAND_MAP: Record<string, { brand: string; mark: string }> = {
+  axis:  { brand: "axis",  mark: "A" },
+  hsbc:  { brand: "hsbcR", mark: "H" },
+  idfc:  { brand: "idfc",  mark: "I" },
+  hdfc:  { brand: "axis",  mark: "H" },
+  amex:  { brand: "axis",  mark: "A" },
+};
+
+// Very low-saturation warm palette. Closer to neutral cream/pearl with the
+// faintest hue tint so the icon and text breathe without high contrast.
+const HUE_SCHEMES: string[] = [
+  "linear-gradient(135deg, #fcf2f2 0%, #f7e9e9 100%)", // hint rose
+  "linear-gradient(135deg, #fdf1ea 0%, #f8e6db 100%)", // hint peach
+  "linear-gradient(135deg, #fdf6e4 0%, #f8eed5 100%)", // hint butter
+  "linear-gradient(135deg, #fdf0f5 0%, #f8e5ee 100%)", // hint pink
+  "linear-gradient(135deg, #fdf2e8 0%, #f9e6d4 100%)", // hint apricot
+  "linear-gradient(135deg, #fdf6da 0%, #f8edc1 100%)", // hint cream
+  "linear-gradient(135deg, #fbeee2 0%, #f6e1cd 100%)", // hint terracotta
+  "linear-gradient(135deg, #fcecea 0%, #f7e0db 100%)", // hint coral
+  "linear-gradient(135deg, #fbeede 0%, #f5e2c8 100%)", // hint amber
+  "linear-gradient(135deg, #fbe8df 0%, #f7dccd 100%)", // hint salmon
+];
+
+// Approximate width needed so the headline wraps to ≤ 2 lines.
+// Char-budget grows with card width given 12px / 700 font + ~190px text column @ 250px card.
+function widthForHeadline(text: string): number {
+  const len = (text || "").length;
+  if (len <= 44) return 250;
+  if (len <= 56) return 300;
+  return 340;
+}
+
+export function ImportantActions({ hooks, onViewAll, onAction }) {
+  // Fall back to the original hardcoded set if no hooks are supplied (keeps old usages working).
+  if (!Array.isArray(hooks) || hooks.length === 0) {
+    return (
+      <div style={{ paddingTop: 28, paddingBottom: 8 }}>
+        <LegacySectionHeader label="Important Actions" onAction={onViewAll} />
+        <div className="legacy-h-rail" style={{ margin: "0 0 0 16px" }}>
+          <ActionCard brand="axis" mark="A" headline={<>Credit Limit Reached. Repay outstanding to keep using Axis Flipkart card</>} onClick={() => onAction?.(0)} />
+          <ActionCard brand="hsbcR" mark="H" headline={<>Dining rewards maxed out on HSBC Travel One. Switch to Axis Flipkart</>} onClick={() => onAction?.(1)} />
+          <ActionCard brand="hsbcB" mark="H" headline={<>5,000 points expiring on HSBC Travel One. Redeem now</>} onClick={() => onAction?.(2)} />
+        </div>
+      </div>
+    );
+  }
   return (
     <div style={{ paddingTop: 28, paddingBottom: 8 }}>
-      <LegacySectionHeader label="Important Actions (10)" onAction={onViewAll} />
+      <LegacySectionHeader label="Important Actions" onAction={onViewAll} />
       <div className="legacy-h-rail" style={{ margin: "0 0 0 16px" }}>
-        <ActionCard brand="axis" mark="A" headline={<>Credit Limit Reached. Repay outstanding to keep using Axis Flipkart card</>} onClick={() => onAction?.(0)} />
-        <ActionCard brand="hsbcR" mark="H" headline={<>Dining rewards maxed out on HSBC Travel One. Switch to Axis Flipkart</>} onClick={() => onAction?.(1)} />
-        <ActionCard brand="hsbcB" mark="H" headline={<>5,000 points expiring on HSBC Travel One. Redeem now</>} onClick={() => onAction?.(2)} />
-        <ActionCard brand="idfc" mark="I" headline={<>Spend ₹8,000 more on IDFC Select to waive the annual fee</>} onClick={() => onAction?.(3)} />
+        {hooks.map((h, i) => {
+          const map = HOOK_BRAND_MAP[h.cardBrand] || { brand: "axis", mark: (h.cardName || "?").charAt(0).toUpperCase() };
+          const bg = HUE_SCHEMES[i % HUE_SCHEMES.length];
+          const w = widthForHeadline(h.title || "");
+          const catIcon = HOOK_CAT_ICON[h.cat];
+          return (
+            <ActionCard
+              key={h.id || i}
+              brand={map.brand}
+              mark={map.mark}
+              headline={<>{h.title}</>}
+              onClick={() => onAction?.(i)}
+              bgOverride={bg}
+              width={w}
+              Icon={catIcon?.Icon}
+              iconColor={catIcon?.color}
+            />
+          );
+        })}
       </div>
     </div>
   );
 }
 
 export function ToolsSection({ onOpenCalc, onOpenBestCards, onOpenRedeem }) {
-  const tiles = [
-    { img: "/tools/tools-savings-finder.png", label: "Savings\nFinder", bg: "#D6ECFF", circleBg: "#B8DCFF", circleW: 98, circleH: 98, circleLeft: 26, circleTop: 36, imgW: 82.85, imgH: 76, imgLeft: 29, imgTop: 38, onClick: onOpenCalc },
-    { img: "/tools/tools-best-cards.png", label: "Best Cards\nfor you", bg: "#FFDBEE", circleBg: "rgba(255,195,224,0.7)", circleW: 109, circleH: 109, circleLeft: -4, circleTop: 42, imgW: 82.85, imgH: 115.87, imgLeft: 3, imgTop: "calc(50% - 115.87px/2 + 4.93px)", onClick: onOpenBestCards },
-    { img: "/tools/tools-redeem.png", label: "Redeem\nReward Points", bg: "#FFEBB3", circleBg: "rgba(252,217,140,0.7)", circleW: 98, circleH: 98, circleLeft: 22, circleTop: 41, imgW: 82.85, imgH: 76, imgLeft: 19, imgTop: 47, onClick: onOpenRedeem },
-  ];
+  // Per Figma: 100×107 tile, label at top, large 3D icon overlapping a soft
+  // colored ellipse at the bottom-right. Each tile has its own warm-but-soft hue.
+  const Tile = ({ img, label, onClick, bg, ellipse }) => (
+    <div
+      className="legacy-tap"
+      onClick={onClick}
+      style={{
+        flex: 1,
+        height: 107,
+        background: bg,
+        border: "1px solid rgba(255,255,255,0.9)",
+        boxShadow: "0 1px 3px rgba(9,84,171,0.10)",
+        borderRadius: 12,
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Background ellipse */}
+      <div style={{
+        position: "absolute",
+        width: 98, height: 98,
+        right: -20, bottom: -28,
+        borderRadius: "50%",
+        background: ellipse,
+        pointerEvents: "none",
+      }}/>
+      {/* Label at top */}
+      <div style={{
+        position: "absolute", top: 10, left: 10, right: 10,
+        fontFamily: "'Google Sans', system-ui, sans-serif",
+        fontSize: 11, fontWeight: 500, lineHeight: "16px",
+        letterSpacing: "0.02em", color: "#000000",
+        whiteSpace: "pre-line",
+      }}>{label}</div>
+      {/* 3D icon — anchored bottom-right, overlapping the ellipse */}
+      <img
+        src={img}
+        alt=""
+        style={{
+          position: "absolute",
+          width: 82, height: 82,
+          right: -4, bottom: -4,
+          objectFit: "contain",
+          pointerEvents: "none",
+        }}
+      />
+    </div>
+  );
   return (
     <div style={{ padding: "28px 0 8px" }}>
       <LegacySectionHeader label="Tools to help you" action={null} />
-      <div style={{ display: "flex", justifyContent: "center", gap: 13, padding: "0 16px", marginTop: 2 }}>
-        {tiles.map((t, i) => (
-          <div key={i} className="legacy-tap" onClick={t.onClick} style={{ width: 100, height: 107, position: "relative", background: t.bg, borderRadius: 12, border: "1px solid rgba(255,255,255,0.72)", overflow: "hidden", cursor: "pointer", flexShrink: 0 }}>
-            <div style={{ position: "absolute", left: "50%", top: 10, transform: "translateX(-50%)", width: 86, fontFamily: "var(--legacy-sans)", fontSize: 11, fontWeight: 500, lineHeight: "16px", letterSpacing: "0.02em", color: "#000000", whiteSpace: "pre-line", zIndex: 2 }}>{t.label}</div>
-            <div style={{ position: "absolute", left: t.circleLeft, top: t.circleTop, width: t.circleW, height: t.circleH, borderRadius: "50%", background: t.circleBg }} />
-            <img src={t.img} alt="" style={{ position: "absolute", left: t.imgLeft, top: t.imgTop, width: t.imgW, height: t.imgH, objectFit: "contain", pointerEvents: "none", zIndex: 1 }} />
-          </div>
-        ))}
+      <div style={{ padding: "0 16px", display: "flex", gap: 13, marginTop: 2 }}>
+        <Tile img="/cdn/tool-savings.webp"     label={"Savings\nFinder"} onClick={onOpenCalc} bg="#D6ECFF" ellipse="#B8DCFF" />
+        <Tile img="/cdn/tool-best-cards.webp"  label={"Best Cards\nfor you"} onClick={onOpenBestCards} bg="#FFDBEE" ellipse="rgba(255,195,224,0.7)" />
+        <Tile img="/cdn/tool-redeem.webp"      label={"Redeem\nReward Points"} onClick={onOpenRedeem} bg="#FFEBB3" ellipse="rgba(252,217,140,0.7)" />
       </div>
     </div>
   );
 }
 
-function TABar({ height, color1, color2, label, amount, labelColor }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: labelColor, letterSpacing: "-0.01em", marginBottom: 6 }}>{amount}</div>
-      <div style={{ width: 54, height, borderRadius: "8px 8px 0 0", background: `linear-gradient(180deg, ${color1} 0%, ${color2} 100%)`, boxShadow: "inset 0 1px 2px rgba(255,255,255,0.5)", transformOrigin: "bottom", animation: "legacy-growY 600ms ease-out backwards" }} />
-      <div style={{ marginTop: 10, fontSize: 10.5, color: "#242d4a", textAlign: "center", lineHeight: 1.25, whiteSpace: "pre-line", fontWeight: 500 }}>{label}</div>
-    </div>
-  );
-}
-
 export function TransactionAnalysis({ timeWindow = "Last 365 Days" }) {
-  const bar1Val = Math.round(SAVINGS_BARS.bar1);
-  const bar2Val = Math.round(SAVINGS_BARS.bar2);
-  const bar3Val = Math.round(SAVINGS_BARS.bar3);
-  const maxVal = Math.max(bar1Val, bar2Val, bar3Val, 1);
-  const bar1H = Math.max(16, Math.round((bar1Val / maxVal) * 110));
-  const bar2H = Math.max(16, Math.round((bar2Val / maxVal) * 110));
-  const bar3H = Math.max(16, Math.round((bar3Val / maxVal) * 110));
+  const [days, setDays] = useState(365);
+  const factor = days / 365;
+  const fmt = (n) => "₹" + n.toLocaleString("en-IN");
+  // 365-day baselines
+  const CURRENT_365 = 20845;
+  const IDEAL_365 = 40000;
+  const currentSavings = Math.round(CURRENT_365 * factor);
+  const idealSavings = Math.round(IDEAL_365 * factor);
+  // Bar heights scale linearly; clamp so bars stay visible at small windows.
+  const orangeH = Math.max(12, Math.round(50 * factor));
+  const greenH = Math.max(20, Math.round(140 * factor));
+  // Labels sit ~38px above each bar's top.
+  const orangeLabelTop = 220 - orangeH - 38;
+  const greenLabelTop = 220 - greenH - 48;
   return (
     <div style={{ padding: "32px 0 0" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "0 20px", marginBottom: 22 }}>
         <h2 className="legacy-serif" style={{ margin: 0, fontSize: 20, fontWeight: 600, color: "rgba(54,64,96,0.92)" }}>
           Transaction Analysis
         </h2>
-        <TimeFilter label={timeWindow} />
+        <TimeFilter
+          label={`Last ${days} Days`}
+          options={TIME_WINDOW_OPTIONS}
+          value={days}
+          onSelect={setDays}
+        />
       </div>
+      {/* Container — 328 wide, taller to give bars visual presence; centered with stroke */}
       <div style={{
-        margin: "0 16px", maxWidth: "calc(100% - 32px)",
-        borderRadius: 12,
+        position: "relative",
+        margin: "0 auto",
+        width: 328, height: 220,
         background: "linear-gradient(0deg, #DBFCE5 0%, #F5F9FA 54.79%)",
-        border: "2px solid rgba(0,101,224,0.08)",
-        padding: "20px 12px 16px", boxSizing: "border-box",
+        border: "1px solid rgba(54,64,96,0.08)",
+        boxShadow: "0 2px 10px rgba(63,66,70,0.05)",
+        borderRadius: 12,
+        overflow: "hidden",
       }}>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-around" }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#eb8807", marginBottom: 4 }}>₹{f(bar1Val)} /yr</div>
-            <div style={{ fontSize: 10.5, fontWeight: 500, color: "#242d4a", marginBottom: 8, textAlign: "center", whiteSpace: "pre-line", lineHeight: 1.25 }}>{"Current\nsavings"}</div>
-            <div style={{ width: 54, height: bar1H, borderRadius: "8px 8px 0 0", background: "linear-gradient(180deg, #F2A454 0%, #D07820 100%)", boxShadow: "inset 0 1px 2px rgba(255,255,255,0.5)", transformOrigin: "bottom", animation: "legacy-growY 600ms ease-out backwards" }} />
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#078146", marginBottom: 4 }}>₹{f(bar2Val)} /yr</div>
-            <div style={{ fontSize: 10.5, fontWeight: 500, color: "#242d4a", marginBottom: 8, textAlign: "center", whiteSpace: "pre-line", lineHeight: 1.25 }}>{"If cards\nused right"}</div>
-            <div style={{ width: 54, height: bar2H, borderRadius: "8px 8px 0 0", background: "linear-gradient(180deg, #3BA15F 0%, #237E3F 100%)", boxShadow: "inset 0 1px 2px rgba(255,255,255,0.5)", transformOrigin: "bottom", animation: "legacy-growY 600ms ease-out backwards" }} />
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#0e66d2", marginBottom: 4 }}>₹{f(bar3Val)} /yr</div>
-            <div style={{ fontSize: 10.5, fontWeight: 500, color: "#242d4a", marginBottom: 8, textAlign: "center", whiteSpace: "pre-line", lineHeight: 1.25 }}>{"With the\nultimate card"}</div>
-            <div style={{ width: 54, height: bar3H, borderRadius: "8px 8px 0 0", background: "linear-gradient(180deg, #4A82E8 0%, #2A5EBE 100%)", boxShadow: "inset 0 1px 2px rgba(255,255,255,0.5)", transformOrigin: "bottom", animation: "legacy-growY 600ms ease-out backwards" }} />
-          </div>
-        </div>
+        {/* Orange (Current savings) — short bar on the left, anchored bottom */}
+        <div style={{ position: "absolute", left: 50, top: orangeLabelTop, width: 100, fontFamily: "'Google Sans', system-ui, sans-serif", fontSize: 12, fontWeight: 600, lineHeight: "150%", letterSpacing: "-0.01em", color: "#EB8807", textAlign: "center" }}>{fmt(currentSavings)}</div>
+        <div style={{ position: "absolute", left: 50, top: orangeLabelTop + 20, width: 100, fontFamily: "'Google Sans', system-ui, sans-serif", fontSize: 12, fontWeight: 500, lineHeight: "137%", letterSpacing: "-0.01em", color: "rgba(54,64,96,0.85)", textAlign: "center" }}>Current savings</div>
+        <div style={{
+          position: "absolute", left: 64, width: 72, bottom: 0, height: orangeH,
+          background: "linear-gradient(180deg, #EB8807 0%, #FCAA3F 100%)",
+          border: "1px solid #F8A130",
+          boxShadow: "inset 0 2px 0 rgba(255,255,255,0.4)",
+          borderRadius: "6px 6px 0 0",
+          boxSizing: "border-box",
+          transformOrigin: "bottom",
+          transition: "height 280ms ease-out",
+          animation: "legacy-growY 600ms ease-out backwards",
+        }}/>
+
+        {/* Green (If cards used right) — taller bar on the right, anchored bottom */}
+        <div style={{ position: "absolute", left: 178, top: greenLabelTop, width: 120, fontFamily: "'Google Sans', system-ui, sans-serif", fontSize: 12, fontWeight: 600, lineHeight: "150%", letterSpacing: "-0.01em", color: "#078146", textAlign: "center" }}>{fmt(idealSavings)}</div>
+        <div style={{ position: "absolute", left: 178, top: greenLabelTop + 20, width: 120, fontFamily: "'Google Sans', system-ui, sans-serif", fontSize: 12, fontWeight: 500, lineHeight: "137%", letterSpacing: "-0.01em", color: "rgba(54,64,96,0.85)", textAlign: "center" }}>If cards used right</div>
+        <div style={{
+          position: "absolute", left: 202, width: 72, bottom: 0, height: greenH,
+          background: "linear-gradient(180deg, #117E47 0%, #0AA759 100%)",
+          border: "1px solid #22AB66",
+          boxShadow: "inset 0 2px 0 rgba(255,255,255,0.4)",
+          borderRadius: "8px 8px 0 0",
+          boxSizing: "border-box",
+          transformOrigin: "bottom",
+          transition: "height 280ms ease-out",
+          animation: "legacy-growY 600ms ease-out backwards",
+        }}/>
       </div>
     </div>
   );
@@ -346,14 +536,30 @@ export function TransactionAnalysis({ timeWindow = "Last 365 Days" }) {
 export function CardPromo({ onClick }) {
   return (
     <div className="legacy-tap" onClick={onClick} style={{ margin: "28px 20px 0", borderRadius: 12, overflow: "hidden", boxShadow: "0 0.6px 4.4px rgba(63,66,70,0.11)" }}>
-      <img src={`${ASSET_BASE}/amex-promo-banner.png`} alt={`Getting a ${CARD_PROMO.name} can help you save up to ₹${f(CARD_PROMO.savings)} /year`} style={{ display: "block", width: "100%", height: "auto" }} />
+      <img src={`${ASSET_BASE}/amex-promo-banner.png`} alt="Getting an Amex Travel Platinum Card can help you save up to ₹1,00,845 /year" style={{ display: "block", width: "100%", height: "auto" }} />
     </div>
   );
 }
 
-const categoryData = SPEND_CATS.map(c => ({ name: c.name, pct: Math.round((c.amt / TOTAL_ACC) * 100), amount: `₹${f(c.amt)}` }));
+const categoryData = [
+  { name: "Shopping", pct: 44, amount: "₹6,77,710" },
+  { name: "Groceries", pct: 20, amount: "₹3,08,050" },
+  { name: "Bills", pct: 14, amount: "₹2,15,635" },
+  { name: "Travel", pct: 8, amount: "₹1,23,220" },
+  { name: "Insurance", pct: 9, amount: "₹1,38,622" },
+  { name: "Fuel", pct: 4, amount: "₹61,610" },
+  { name: "Entertainment", pct: 1, amount: "₹15,403" },
+];
 
-const brandData = SPEND_BRANDS.slice(0, 7).map(b => ({ name: b.name, pct: Math.round((b.amt / TOTAL_ACC) * 100), amount: `₹${f(b.amt)}` }));
+const brandData = [
+  { name: "Amazon", pct: 28, amount: "₹4,31,270" },
+  { name: "Flipkart", pct: 19, amount: "₹2,92,647" },
+  { name: "BigBasket", pct: 14, amount: "₹2,15,635" },
+  { name: "Swiggy", pct: 11, amount: "₹1,69,427" },
+  { name: "Zomato", pct: 9, amount: "₹1,38,622" },
+  { name: "MakeMyTrip", pct: 7, amount: "₹1,07,818" },
+  { name: "Others", pct: 12, amount: "₹1,84,830" },
+];
 
 // 3D category icons — same set used in the SpendAnalysis cinematic
 const CATEGORY_IMG: Record<string, string> = {
@@ -401,20 +607,47 @@ function CategoryIcon({ kind }) {
   );
 }
 
+const TIME_WINDOW_OPTIONS = [30, 60, 90, 120, 240, 365];
+const SPEND_TOTAL_365 = 1540250; // baseline annual total for scaling
+
 export function SpendAnalysis({ timeWindow = "Last 365 Days", initialTab = "Categories" }) {
   const [tab, setTab] = useState(initialTab);
-  const data = tab === "Categories" ? categoryData : brandData;
+  const [days, setDays] = useState(365);
+  const factor = days / 365;
+  const total = Math.round(SPEND_TOTAL_365 * factor);
+  const fmt = (n) => "₹" + n.toLocaleString("en-IN");
+  const baseData = tab === "Categories" ? categoryData : brandData;
+  const data = baseData.map((c) => {
+    const baseAmt = parseInt(c.amount.replace(/[^\d]/g, ""), 10) || 0;
+    return { ...c, amount: fmt(Math.round(baseAmt * factor)) };
+  });
   return (
     <div style={{ padding: "32px 0 0" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "0 20px", marginBottom: 22 }}>
         <h2 className="legacy-serif" style={{ margin: 0, fontSize: 20, fontWeight: 600, color: "rgba(54,64,96,0.92)" }}>
           Spend Analysis
         </h2>
-        <TimeFilter label={timeWindow} />
+        <TimeFilter
+          label={`Last ${days} Days`}
+          options={TIME_WINDOW_OPTIONS}
+          value={days}
+          onSelect={setDays}
+        />
       </div>
-      <div style={{ margin: "0 20px 22px", height: 82, borderRadius: 12, background: "#ffffff", border: "1px solid rgba(54,64,96,0.08)", boxShadow: "0 2px 10px rgba(63,66,70,0.05)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6 }}>
-        <div style={{ fontSize: 26, fontWeight: 800, color: "rgb(14,58,107)", letterSpacing: "-0.01em" }}>{`₹${f(TOTAL_ACC)}`}</div>
-        <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgb(123,131,152)" }}>Total Accounted Spends</div>
+      <div style={{
+        margin: "0 16px 22px",
+        height: 99,
+        padding: "22px 40px",
+        boxSizing: "border-box",
+        borderRadius: 8,
+        background: "linear-gradient(180deg, rgba(220,234,255,0.30) 0%, rgba(151,193,255,0.22) 100%)",
+        boxShadow: "inset 0 -2px 1px rgba(151,193,255,0.20)",
+        backdropFilter: "blur(2px)",
+        WebkitBackdropFilter: "blur(2px)",
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
+      }}>
+        <div style={{ fontFamily: "'Outfit','Google Sans',system-ui,sans-serif", fontSize: 24, fontWeight: 800, lineHeight: "30px", color: "#1C2A33", textAlign: "center" }}>{fmt(total)}</div>
+        <div style={{ fontFamily: "'Google Sans',system-ui,sans-serif", fontSize: 10, fontWeight: 600, lineHeight: "13px", letterSpacing: "0.1em", textTransform: "uppercase", color: "#5B6478", textAlign: "center" }}>Total Accounted Spends</div>
       </div>
       <div style={{ margin: "0 20px", padding: 2, height: 37, borderRadius: 8, background: "rgba(6,60,109,0.04)", boxShadow: "0 1px 0 rgba(255,255,255,0.25), inset 0 1px 2px rgba(6,60,109,0.12)", display: "flex" }}>
         {["Categories", "Brands"].map((opt) => {
@@ -602,21 +835,6 @@ const ctaVariants = {
   needsdata: { bg: "#EDEDED", color: "#7a8296", prefix: null, chevron: true },
 };
 
-import { SCENARIO_PILL, SCENARIO_SAVED_COLOR, tagText } from "@/data/simulation/txnScenario";
-
-function ScenarioPill({ scenario }) {
-  if (!scenario || scenario.id === "S6") return null;
-  const pill = SCENARIO_PILL[scenario.id];
-  const text = tagText(scenario);
-  const isBlue = scenario.id === "S4" || scenario.id === "S5c";
-  return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: isBlue ? 5 : 10, background: pill.bg, color: pill.color, borderRadius: 4, padding: "6px 10px", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", lineHeight: "120%" }}>
-      {isBlue && <svg width="10" height="10" viewBox="0 0 8 8" fill="none" style={{ flexShrink: 0 }}><path d="M4 0C4 2.2 5.8 4 8 4C5.8 4 4 5.8 4 8C4 5.8 2.2 4 0 4C2.2 4 4 2.2 4 0Z" fill="#0862CF"/></svg>}
-      <span>{text}</span>
-    </div>
-  );
-}
-
 function InlineCTA({ variant, text }) {
   const v = ctaVariants[variant];
   return (
@@ -628,8 +846,7 @@ function InlineCTA({ variant, text }) {
   );
 }
 
-export function TransactionRow({ brand, merchant, cardLine, amount, saved, savedColor, cta, scenario, onClick }) {
-  const savedColorFinal = scenario ? SCENARIO_SAVED_COLOR[scenario.id] : (saved === "₹0" ? "#B56D3C" : savedColor);
+export function TransactionRow({ brand, merchant, cardLine, amount, saved, savedColor, cta, onClick }) {
   return (
     <div className="legacy-tap" onClick={onClick} style={{ background: "#fff", borderRadius: 8, boxShadow: "0px 0.62px 4.35px rgba(63,66,70,0.11)", padding: "12px 12px 14px 12px" }}>
       <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
@@ -640,12 +857,12 @@ export function TransactionRow({ brand, merchant, cardLine, amount, saved, saved
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontWeight: 700, fontSize: 12, color: "#242d4a" }}>{amount}</div>
-          {saved && <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", lineHeight: "120%", color: savedColorFinal, marginTop: 6 }}>Saved {saved}</div>}
+          {saved && <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", lineHeight: "120%", color: saved === "₹0" ? "#B56D3C" : savedColor, marginTop: 6 }}>Saved {saved}</div>}
         </div>
         <ChevronRight size={6} color="#6b7489" strokeWidth={2} />
       </div>
       <DashedDivider />
-      {scenario ? <ScenarioPill scenario={scenario} /> : (cta && <InlineCTA {...cta} />)}
+      <InlineCTA {...cta} />
     </div>
   );
 }
@@ -696,12 +913,6 @@ export function TransactionsPreview({ transactions, onOpenTransactions, onSortCl
 }
 
 export function HeroSection({ onOpenOptimize, onOpenCards, onOpenCard, onAddCard }) {
-  const bar1 = SAVINGS_BARS?.bar1 || 0;
-  const bar2 = SAVINGS_BARS?.bar2 || 0;
-  const bar3 = SAVINGS_BARS?.bar3 || 0;
-  const missingOut = Math.max(0, Math.round(bar3 - bar1));
-  const isGreatJob = bar2 > 0 && bar1 >= bar2 * 0.85;
-  const earnMore = Math.max(0, Math.round(bar3 - bar1));
   const CardTile = ({ art, label, onClick }) => {
     const [isPortrait, setIsPortrait] = useState(false);
     return (
@@ -766,56 +977,29 @@ export function HeroSection({ onOpenOptimize, onOpenCards, onOpenCard, onAddCard
           <CardTile art={`${ASSET_BASE}/cards/hsbc-travel-one.png`} label="HSBC Travel One" onClick={() => onOpenCard?.(0)} />
         </div>
       </div>
-      {/* Headline + Chart */}
-      {isGreatJob ? (<>
-        <div className="legacy-serif" style={{ padding: "39px 16px 0", color: "#EAEDF7", fontSize: 22, lineHeight: 1.35, fontWeight: 700, maxWidth: 309 }}>
-          You can earn upto <span style={{ color: "#72ca46" }}>₹{f(earnMore)}</span> more per year in credit card savings
+      {/* Headline — Figma top 178, 309×60, Blacklist 22px line 135% #EAEDF7 */}
+      <div style={{ padding: "39px 16px 0", color: "#EAEDF7", fontFamily: "'Google Sans', system-ui, sans-serif", fontSize: 20, lineHeight: 1.55, fontWeight: 700, maxWidth: 360 }}>
+        You can save upto <span style={{ color: "#72ca46" }}>₹90,000/yr</span> in credit card savings
+      </div>
+      {/* Savings chart — bars start ~ top 310 / 397, badges floating above */}
+      <div style={{ position: "relative", height: 196, marginTop: 19 }}>
+        <div style={{ position: "absolute", left: 132, top: 84, width: 100, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, zIndex: 3 }}>
+          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.6)" }}>You saved</span>
+          <span style={{ fontSize: 13, color: "#6dad65", fontWeight: 600 }}>₹20,000/yr</span>
         </div>
-        <div style={{ position: "relative", height: 196, marginTop: 19 }}>
-          <div style={{ position: "absolute", left: 50, top: 44, width: 120, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, zIndex: 3 }}>
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.6)" }}>You saved</span>
-            <span style={{ fontSize: 13, color: "#6dad65", fontWeight: 600 }}>₹{f(Math.round(bar1))}/yr</span>
-          </div>
-          <div style={{ position: "absolute", right: 30, top: 8, width: 120, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, zIndex: 3 }}>
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.6)" }}>You could save</span>
-            <span style={{ fontSize: 13, color: "#72ca46", fontWeight: 600 }}>₹{f(Math.round(bar3))}/yr</span>
-          </div>
-          {(()=>{ const maxH = 125; const b1H = bar3 > 0 ? Math.max(30, Math.round((bar1 / bar3) * maxH)) : 60; return (<>
-            <div style={{ position: "absolute", left: 70, bottom: 18, width: 100, height: b1H, borderRadius: "8px 8px 0 0", background: "linear-gradient(180deg, #158000 0%, #144408 100%)", boxShadow: "inset 0 1px 4px 2px rgba(217,255,240,0.52)", transformOrigin: "bottom", animation: "legacy-growY 600ms ease-out 100ms backwards" }} />
-            <div style={{ position: "absolute", right: 50, bottom: 18, width: 100, height: maxH, borderRadius: "8px 8px 0 0", background: "linear-gradient(180deg, #72ca46 0%, #00c278 100%)", boxShadow: "0 4px 5px rgba(0,229,141,0.15), 0 10px 13px rgba(0,229,141,0.22), inset 0 1px 4px 2px rgba(217,255,240,1), inset 0 1px 18px 2px rgba(217,255,240,1)", animation: "legacy-growY 700ms ease-out 350ms backwards, legacy-glowPulse 3.2s ease-in-out 1.2s infinite", transformOrigin: "bottom" }} />
-          </>);})()}
-          <div style={{ position: "absolute", left: 16, right: 16, bottom: -10, height: 48 }}>
-            <div onClick={onOpenOptimize} className="legacy-tap" style={{ width: "100%", height: "100%", borderRadius: 10, background: "radial-gradient(circle at 30% 40%, #1a2707 0%, #0e0f13 80%)", boxShadow: "9px 9px 14px -2.5px rgba(0,0,0,0.2), 3.8px 3.8px 5.4px -2px rgba(0,0,0,0.19), 1.7px 1.7px 2.5px -1.5px rgba(0,0,0,0.23), inset -0.6px -0.6px 0.6px 0 rgba(0,0,0,0.23), inset 0.6px 0.6px 0.6px 0 rgba(255,255,255,0.7)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "rgb(232,232,232)", fontWeight: 700, fontSize: 12 }}>
-              See how you can earn more
-              <ChevronRight size={8} color="#fff" strokeWidth={2} />
-            </div>
+        <div style={{ position: "absolute", right: 32, top: 8, width: 100, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, zIndex: 3 }}>
+          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.6)" }}>You could save</span>
+          <span style={{ fontSize: 13, color: "#72ca46", fontWeight: 600 }}>₹90,000/yr</span>
+        </div>
+        <div style={{ position: "absolute", left: 132, bottom: 18, width: 100, height: 50, borderRadius: "8px 8px 0 0", background: "linear-gradient(180deg, #158000 0%, #144408 100%)", boxShadow: "inset 0 1px 4px 2px rgba(217,255,240,0.52)", transformOrigin: "bottom", animation: "legacy-growY 600ms ease-out 100ms backwards" }} />
+        <div style={{ position: "absolute", right: 32, bottom: 18, width: 100, height: 125, borderRadius: "8px 8px 0 0", background: "linear-gradient(180deg, #72ca46 0%, #00c278 100%)", boxShadow: "0 4px 5px rgba(0,229,141,0.15), 0 10px 13px rgba(0,229,141,0.22), inset 0 1px 4px 2px rgba(217,255,240,1), inset 0 1px 18px 2px rgba(217,255,240,1)", animation: "legacy-growY 700ms ease-out 350ms backwards, legacy-glowPulse 3.2s ease-in-out 1.2s infinite", transformOrigin: "bottom" }} />
+        <div style={{ position: "absolute", left: 16, right: 16, bottom: -10, height: 48 }}>
+          <div onClick={onOpenOptimize} className="legacy-tap" style={{ width: "100%", height: "100%", borderRadius: 10, background: "radial-gradient(circle at 30% 40%, #1a2707 0%, #0e0f13 80%)", boxShadow: "9px 9px 14px -2.5px rgba(0,0,0,0.2), 3.8px 3.8px 5.4px -2px rgba(0,0,0,0.19), 1.7px 1.7px 2.5px -1.5px rgba(0,0,0,0.23), inset -0.6px -0.6px 0.6px 0 rgba(0,0,0,0.23), inset 0.6px 0.6px 0.6px 0 rgba(255,255,255,0.7)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "rgb(232,232,232)", fontWeight: 700, fontSize: 12 }}>
+            See how you can save more
+            <ChevronRight size={8} color="#fff" strokeWidth={2} />
           </div>
         </div>
-      </>) : (<>
-        <div className="legacy-serif" style={{ padding: "39px 16px 0", color: "#EAEDF7", fontSize: 22, lineHeight: 1.35, fontWeight: 700, maxWidth: 309 }}>
-          You're missing out on <span style={{ color: "#72ca46" }}>₹{f(missingOut)}</span>
-          <br />
-          per year in extra savings
-        </div>
-        <div style={{ position: "relative", height: 196, marginTop: 19 }}>
-          <div style={{ position: "absolute", left: 132, top: 84, width: 100, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, zIndex: 3 }}>
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.6)" }}>You saved</span>
-            <span style={{ fontSize: 13, color: "#6dad65", fontWeight: 600 }}>₹{f(Math.round(bar1))}/yr</span>
-          </div>
-          <div style={{ position: "absolute", right: 32, top: 8, width: 100, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, zIndex: 3 }}>
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.6)" }}>You could save</span>
-            <span style={{ fontSize: 13, color: "#72ca46", fontWeight: 600 }}>₹{f(Math.round(bar3))}/yr</span>
-          </div>
-          <div style={{ position: "absolute", left: 132, bottom: 18, width: 100, height: 50, borderRadius: "8px 8px 0 0", background: "linear-gradient(180deg, #158000 0%, #144408 100%)", boxShadow: "inset 0 1px 4px 2px rgba(217,255,240,0.52)", transformOrigin: "bottom", animation: "legacy-growY 600ms ease-out 100ms backwards" }} />
-          <div style={{ position: "absolute", right: 32, bottom: 18, width: 100, height: 125, borderRadius: "8px 8px 0 0", background: "linear-gradient(180deg, #72ca46 0%, #00c278 100%)", boxShadow: "0 4px 5px rgba(0,229,141,0.15), 0 10px 13px rgba(0,229,141,0.22), inset 0 1px 4px 2px rgba(217,255,240,1), inset 0 1px 18px 2px rgba(217,255,240,1)", animation: "legacy-growY 700ms ease-out 350ms backwards, legacy-glowPulse 3.2s ease-in-out 1.2s infinite", transformOrigin: "bottom" }} />
-          <div style={{ position: "absolute", left: 16, right: 16, bottom: -10, height: 48 }}>
-            <div onClick={onOpenOptimize} className="legacy-tap" style={{ width: "100%", height: "100%", borderRadius: 10, background: "radial-gradient(circle at 30% 40%, #1a2707 0%, #0e0f13 80%)", boxShadow: "9px 9px 14px -2.5px rgba(0,0,0,0.2), 3.8px 3.8px 5.4px -2px rgba(0,0,0,0.19), 1.7px 1.7px 2.5px -1.5px rgba(0,0,0,0.23), inset -0.6px -0.6px 0.6px 0 rgba(0,0,0,0.23), inset 0.6px 0.6px 0.6px 0 rgba(255,255,255,0.7)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "rgb(232,232,232)", fontWeight: 700, fontSize: 12 }}>
-              See how you can improve
-              <ChevronRight size={8} color="#fff" strokeWidth={2} />
-            </div>
-          </div>
-        </div>
-      </>)}
+      </div>
     </div>
   );
 }

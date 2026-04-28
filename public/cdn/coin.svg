@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <radialGradient id="coinFace" cx="40%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#FFE08A"/>
+      <stop offset="40%" stop-color="#F5B73D"/>
+      <stop offset="80%" stop-color="#C8821A"/>
+      <stop offset="100%" stop-color="#8C5A0E"/>
+    </radialGradient>
+    <linearGradient id="coinRim" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#FFD771"/>
+      <stop offset="50%" stop-color="#E2A02C"/>
+      <stop offset="100%" stop-color="#7A4D0A"/>
+    </linearGradient>
+    <radialGradient id="coinHighlight" cx="35%" cy="25%" r="35%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.9)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="40" cy="40" rx="38" ry="38" fill="url(#coinRim)"/>
+  <ellipse cx="40" cy="40" rx="32" ry="32" fill="url(#coinFace)"/>
+  <ellipse cx="40" cy="40" rx="32" ry="32" fill="none" stroke="rgba(0,0,0,0.18)" stroke-width="1"/>
+  <ellipse cx="40" cy="40" rx="38" ry="38" fill="none" stroke="rgba(0,0,0,0.22)" stroke-width="0.8"/>
+  <ellipse cx="32" cy="28" rx="14" ry="9" fill="url(#coinHighlight)" opacity="0.85"/>
+</svg>

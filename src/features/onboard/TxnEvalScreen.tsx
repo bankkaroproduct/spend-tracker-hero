@@ -292,7 +292,7 @@ export function TxnEvalScreen() {
         <div
           key={`headline-${stage}`}
           style={{
-            position: "absolute", left: "50%", top: 296,
+            position: "absolute", left: "50%", top: 304,
             width: 380, maxWidth: "calc(100vw - 16px)", textAlign: "center",
             fontFamily: "'Blacklist','Google Sans',serif", fontWeight: 600, fontSize: 18,
             lineHeight: "130%", letterSpacing: "-0.01em", color: "rgba(54, 64, 96, 0.95)",
@@ -384,9 +384,6 @@ export function TxnEvalScreen() {
                     {t.saved}
                   </div>
                 </div>
-                <svg width="6" height="10" viewBox="0 0 6 10" fill="none" style={{ flexShrink: 0 }}>
-                  <path d="M1 1 L5 5 L1 9" stroke="#222941" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
               </div>
             </div>
 

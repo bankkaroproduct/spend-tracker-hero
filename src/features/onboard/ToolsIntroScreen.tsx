@@ -69,7 +69,7 @@ const TOOLS: ToolDef[] = [
     img: "/tools/redeem.webp",
     iconSize: 121,
     iconTop: -19,
-    iconLeftOffset: -9,
+    iconLeftOffset: 0,
     description: "Suggests the best way to redeem your points",
   },
 ];

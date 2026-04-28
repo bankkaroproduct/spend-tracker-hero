@@ -36,6 +36,8 @@ const App = () => (
           <Route path="/profile" element={<Index />} />
           <Route path="/cards" element={<Index />} />
           <Route path="/cards/:id" element={<Index />} />
+          <Route path="/portfolio/create" element={<Index />} />
+          <Route path="/portfolio/results" element={<Index />} />
           <Route path="/gmail" element={<Index />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

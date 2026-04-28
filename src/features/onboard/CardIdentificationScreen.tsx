@@ -121,7 +121,7 @@ export function CardIdentificationScreen() {
   }, []);
 
   const onGmail = () => {
-    startGmailFlow && startGmailFlow("txn-eval");
+    startGmailFlow && startGmailFlow("building");
   };
   const onManual = () => {
     setScreen && setScreen("manual-entry");
@@ -140,7 +140,7 @@ export function CardIdentificationScreen() {
         @keyframes ciTextIn   { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
         @keyframes ciCardIn   { from { opacity: 0; transform: translateY(28px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
         @keyframes ciSheetUp  { from { opacity: 0; transform: translateY(110%); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes ciDimIn    { from { opacity: 0; backdrop-filter: blur(0px); } to { opacity: 1; backdrop-filter: blur(8px); } }
+        @keyframes ciDimIn    { from { opacity: 0; } to { opacity: 1; } }
         @keyframes ciGmailOrbIn { from { opacity: 0; transform: translateY(20px) scale(0.6); } to { opacity: 1; transform: translateY(0) scale(1); } }
       `}</style>
 
@@ -229,9 +229,8 @@ export function CardIdentificationScreen() {
             position: "absolute", left: "50%", top: 112, transform: "translateX(-50%)",
             display: "flex", flexDirection: "row", alignItems: "center", gap: 16,
             zIndex: 2,
-            filter: phase === 2 ? "blur(14px)" : "none",
             opacity: phase === 2 ? 0.55 : 1,
-            transition: "filter 0.5s cubic-bezier(0.16,1,0.3,1), opacity 0.5s cubic-bezier(0.16,1,0.3,1)",
+            transition: "opacity 0.5s cubic-bezier(0.16,1,0.3,1)",
           }}>
             {CARDS.map((c, i) => (
               <div key={i} style={{
@@ -328,7 +327,7 @@ export function CardIdentificationScreen() {
               <div style={{
                 width: 280, textAlign: "center",
                 fontFamily: "'Google Sans',sans-serif", fontWeight: 400, fontSize: 14,
-                lineHeight: "140%", color: "#808387",
+                lineHeight: "170%", color: "#808387",
               }}>
                 So that we understand your spends and recommend the best ways to use your card
               </div>

@@ -159,7 +159,7 @@ function Accordion({ q, a }: { q: string; a: string }) {
 }
 
 // ─── The Bottom Sheet itself ───
-function ConsiderSheet({ hook, onClose, onPrimary }: any) {
+export function ConsiderSheet({ hook, onClose, onPrimary }: any) {
   if (!hook) return null;
   const s = hook.sheet;
 
