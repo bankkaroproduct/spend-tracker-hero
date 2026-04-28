@@ -296,6 +296,14 @@ Key computed exports:
 | `CARD_PROMO` | Market card #1 | Name, image, savings, spending_breakdown, milestones |
 | `SPEND_DIST` | `computeSpendDistribution()` | Per-card spend/savings for optimize screen |
 
+## Transaction Scenario System
+
+Every transaction is classified into one of 7 scenarios (S1, S2, S3, S4, S5a, S5b, S5c) or fallback S6. The scenario drives both the tag pill in the transaction list and the layout of the bottom sheet (which of `CardYouUsedBlock` / `BetterCardInWalletBlock` / `WorthAddingBlock` are shown).
+
+**Single source of truth**: `src/data/simulation/txnScenario.ts` → `getTransactionScenario(txn)`.
+
+**Full spec, routing rules, visibility matrix, and invariants** (e.g. "S3 hides Worth Adding", "never recommend an owned card"): see [`docs/transaction-scenarios.md`](./docs/transaction-scenarios.md). Update that file whenever scenario routing, tag text, or sheet visibility rules change.
+
 ## 3-State System
 
 The app enforces 3 distinct user states that control what each screen renders. State is derived in `Index.tsx` (lines 180-183) and passed via AppContext.
