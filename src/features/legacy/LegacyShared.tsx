@@ -1120,7 +1120,7 @@ export function HeroSection({ onOpenOptimize, onOpenCards, onOpenCard, onAddCard
     <div style={{
       position: "relative",
       // Figma hero gradient: 5 stacked layers + base purple (with cyan-green sheen)
-      background: "linear-gradient(180deg, #6F01FD 0%, rgba(99, 134, 248, 0.00) 59.56%), linear-gradient(270deg, rgba(126, 255, 114, 0.00) 27%, rgba(114, 203, 255, 0.60) 100%), linear-gradient(331deg, #0027E9 2.42%, rgba(104, 185, 255, 0.00) 75.74%), linear-gradient(90deg, rgba(255, 47, 134, 0.00) 0%, #FF2F86 100%), #5A0EFF",
+      background: "linear-gradient(180deg, rgb(1,4,9) 0%, rgb(88,7,88) 100%)",
       backgroundBlendMode: "normal, normal, normal, saturation, normal",
       paddingBottom: 30, minHeight: 480, overflow: "hidden",
     }}>
