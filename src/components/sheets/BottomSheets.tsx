@@ -6,6 +6,7 @@ import { f } from "@/lib/format";
 import { useAppContext } from "@/store/AppContext";
 import { SEMI_CARDS, ALL_TXNS, CAT_OPTIONS, BRAND_MAP, SIM_CARD_RATE, SIM_CARD_BASE_RATE, SIM_BEST_FOR, SIM_MARKET_BEST, computeTxnMissed, computeTxnMarketDelta, CD, CARDS } from "@/data/simulation/legacy";
 import { USER_CARDS } from "@/data/simulation/inputs";
+import { getTransactionScenario } from "@/data/simulation/txnScenario";
 
 const NOT_SPEND_REASONS=["Loan / EMI","Refund / Reversal","OTP / Auth charge","Duplicate SMS","Other (not a spend)"];
 
