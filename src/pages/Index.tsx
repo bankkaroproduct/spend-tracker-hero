@@ -35,16 +35,15 @@ import { TransactionsScreen } from "@/features/new/TransactionsScreen";
 import { OptimizeScreen } from "@/features/new/OptimizeScreen";
 
 export default function App(){
-  const restoreFallbackPath=()=>{
+  const getFallbackPath=()=>{
     try{
-      if(typeof window==="undefined")return;
+      if(typeof window==="undefined")return null;
       const params=new URLSearchParams(window.location.search);
       const saved=params.get("sa_route");
-      if(!saved)return;
+      if(!saved)return null;
       const target=decodeURIComponent(saved);
-      const cleanTarget=target.startsWith("/")?target:"/";
-      window.history.replaceState(null,"",cleanTarget);
-    }catch(e){}
+      return target.startsWith("/")?target:"/";
+    }catch(e){return null;}
   };
   const safeRead=(key,fallback)=>{
     try{
@@ -297,7 +296,6 @@ export default function App(){
   const navigate=useNavigate();
   const location=useLocation();
   const routeSyncedRef=useRef(false);
-  useEffect(()=>{restoreFallbackPath();},[]);
   
   const screenToPath=(s,cardIdx)=>{
     if(s==="home")return "/home";
@@ -364,10 +362,13 @@ export default function App(){
      governs what each screen renders. Gating here caused calculate/redeem to bounce
      back to /onboard during normal in-app navigation. */
   useEffect(()=>{
-    const parsed=pathToScreen(location.pathname);
+    const fallbackPath=getFallbackPath();
+    const activePath=fallbackPath || location.pathname;
+    const parsed=pathToScreen(activePath.split("?")[0]);
     if(!parsed){routeSyncedRef.current=true;return;}
     if(parsed.screen!==screen)setScreen(parsed.screen);
     if(parsed.ci!=null&&parsed.ci!==ci)setCi(parsed.ci);
+    if(fallbackPath)window.history.replaceState(null,"",fallbackPath);
     routeSyncedRef.current=true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[location.pathname]);
