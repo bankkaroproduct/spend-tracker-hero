@@ -593,31 +593,14 @@ export function TransactionAnalysis({ timeWindow = "Last 365 Days" }) {
   const [days, setDays] = useState(365);
   const factor = days / 365;
   const fmt = (n) => "₹" + n.toLocaleString("en-IN");
-  const fmtYr = (n) => "₹" + n.toLocaleString("en-IN") + " /yr";
-  const currentSavings = Math.round(SAVINGS_BARS.bar1 * factor);
-  const idealSavings = Math.round(SAVINGS_BARS.bar2 * factor);
-  const ultimateSavings = Math.round(SAVINGS_BARS.bar3 * factor);
-  const maxVal = Math.max(idealSavings, currentSavings, 1);
-  const maxBarH = 170;
-  const orangeH = Math.max(12, Math.round((currentSavings / maxVal) * maxBarH));
-  const greenH = Math.max(20, Math.round((idealSavings / maxVal) * maxBarH));
-  const blueH = Math.max(28, Math.round((ultimateSavings / maxVal) * maxBarH));
-  const chartH = 260;
-  const barW = 80;
-  const gap = 16;
-  const labelBlockH = 44; // reserved space above bar for value + label
-  const labelStyle = { fontFamily: "'Google Sans', system-ui, sans-serif", fontSize: 11, fontWeight: 500, lineHeight: "130%", letterSpacing: "-0.01em", color: "rgba(54,64,96,0.85)", textAlign: "center" as const };
-  const valStyle = { fontFamily: "'Google Sans', system-ui, sans-serif", fontSize: 12, fontWeight: 600, lineHeight: "130%", letterSpacing: "-0.01em", textAlign: "center" as const, whiteSpace: "nowrap" as const };
-  const barBase = { boxSizing: "border-box" as const, borderRadius: "8px 8px 0 0", transformOrigin: "bottom" as const, transition: "height 280ms ease-out", animation: "legacy-growY 600ms ease-out backwards", boxShadow: "inset 0 2px 0 rgba(255,255,255,0.4)" };
-
-  const Column = ({ value, label, color, height, bg, border, radius }: any) => (
-    <div style={{ width: barW, height: chartH, display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "center" }}>
-      <div style={{ ...valStyle, color, marginBottom: 2 }}>{value}</div>
-      <div style={{ ...labelStyle, marginBottom: 6, minHeight: 28 }}>{label}</div>
-      <div style={{ width: barW, height, background: bg, border, ...barBase, borderRadius: radius || "8px 8px 0 0" }} />
-    </div>
-  );
-
+  const CURRENT_365 = 20845;
+  const IDEAL_365 = 40000;
+  const currentSavings = Math.round(CURRENT_365 * factor);
+  const idealSavings = Math.round(IDEAL_365 * factor);
+  const orangeH = Math.max(12, Math.round(50 * factor));
+  const greenH = Math.max(20, Math.round(140 * factor));
+  const orangeLabelTop = 220 - orangeH - 46;
+  const greenLabelTop = 220 - greenH - 46;
   return (
     <div style={{ padding: "32px 0 0" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "0 20px", marginBottom: 22 }}>
@@ -626,9 +609,13 @@ export function TransactionAnalysis({ timeWindow = "Last 365 Days" }) {
         </h2>
         <TimeFilter label={`Last ${days} Days`} options={TIME_WINDOW_OPTIONS} value={days} onSelect={setDays} />
       </div>
-      <div style={{ margin: "0 16px", padding: "12px 0 0", height: chartH + 12, background: "linear-gradient(0deg, #DBFCE5 0%, #F5F9FA 54.79%)", border: "1px solid rgba(54,64,96,0.08)", boxShadow: "0 2px 10px rgba(63,66,70,0.05)", borderRadius: 12, overflow: "hidden", display: "flex", justifyContent: "center", alignItems: "flex-end", gap }}>
-        <Column value={fmt(currentSavings)} label="Current savings" color="#EB8807" height={orangeH} bg="linear-gradient(180deg, #EB8807 0%, #FCAA3F 100%)" border="1px solid #F8A130" />
-        <Column value={fmt(idealSavings)} label="If cards used right" color="#078146" height={greenH} bg="linear-gradient(180deg, #117E47 0%, #0AA759 100%)" border="1px solid #22AB66" />
+      <div style={{ position: "relative", margin: "0 16px", height: 220, background: "linear-gradient(0deg, #DBFCE5 0%, #F5F9FA 54.79%)", border: "1px solid rgba(54,64,96,0.08)", boxShadow: "0 2px 10px rgba(63,66,70,0.05)", borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ position: "absolute", left: 77, top: orangeLabelTop, width: 100, fontFamily: "'Google Sans', system-ui, sans-serif", fontSize: 12, fontWeight: 600, lineHeight: "150%", letterSpacing: "-0.01em", color: "#EB8807", textAlign: "center" }}>{fmt(currentSavings)}</div>
+        <div style={{ position: "absolute", left: 77, top: orangeLabelTop + 20, width: 100, fontFamily: "'Google Sans', system-ui, sans-serif", fontSize: 12, fontWeight: 500, lineHeight: "137%", letterSpacing: "-0.01em", color: "rgba(54,64,96,0.85)", textAlign: "center" }}>Current savings</div>
+        <div style={{ position: "absolute", left: 82, width: 90, bottom: 0, height: orangeH, background: "linear-gradient(180deg, #EB8807 0%, #FCAA3F 100%)", border: "1px solid #F8A130", boxShadow: "inset 0 2px 0 rgba(255,255,255,0.4)", borderRadius: "6px 6px 0 0", boxSizing: "border-box", transformOrigin: "bottom", transition: "height 280ms ease-out", animation: "legacy-growY 600ms ease-out backwards" }}/>
+        <div style={{ position: "absolute", left: 181, top: greenLabelTop, width: 120, fontFamily: "'Google Sans', system-ui, sans-serif", fontSize: 12, fontWeight: 600, lineHeight: "150%", letterSpacing: "-0.01em", color: "#078146", textAlign: "center" }}>{fmt(idealSavings)}</div>
+        <div style={{ position: "absolute", left: 181, top: greenLabelTop + 20, width: 120, fontFamily: "'Google Sans', system-ui, sans-serif", fontSize: 12, fontWeight: 500, lineHeight: "137%", letterSpacing: "-0.01em", color: "rgba(54,64,96,0.85)", textAlign: "center" }}>If cards used right</div>
+        <div style={{ position: "absolute", left: 196, width: 90, bottom: 0, height: greenH, background: "linear-gradient(180deg, #117E47 0%, #0AA759 100%)", border: "1px solid #22AB66", boxShadow: "inset 0 2px 0 rgba(255,255,255,0.4)", borderRadius: "8px 8px 0 0", boxSizing: "border-box", transformOrigin: "bottom", transition: "height 280ms ease-out", animation: "legacy-growY 600ms ease-out backwards" }}/>
       </div>
     </div>
   );
