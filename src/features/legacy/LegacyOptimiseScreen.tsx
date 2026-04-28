@@ -14,7 +14,8 @@ import {
 } from "./LegacyShared";
 import { CONSIDER_HOOKS } from "@/data/actionsConsider";
 import { ConsiderSheet } from "@/features/actions/ActionsConsiderScreen";
-import { SAVINGS_BARS, CARD_PROMO, SPEND_DIST_WITH_ULTIMATE, SPEND_DIST_WITHOUT_ULTIMATE, TOTAL_ACC, ALL_ACTIONS, OPT_BRANDS, SPEND_CATS } from "@/data/simulation/legacy";
+import { TOTAL_ACC, ALL_ACTIONS, SPEND_CATS } from "@/data/simulation/legacy";
+import { selectOptimizeMetrics } from "@/data/simulation/metrics";
 import { f } from "@/lib/format";
 import { ALL_INPUT_BUCKETS, ANNUAL_BUCKETS, LOUNGE_BUCKETS, RESPONSE_ONLY_BUCKETS, BUCKET_TO_CATEGORY, SPEND_PROFILE, BUCKET_TO_MERCHANT, USER_CARDS } from "@/data/simulation/inputs";
 import { calculateResponses, getBestCardForBucket, getBestMarketCardForBucket } from "@/data/simulation/mockApi";
@@ -116,15 +117,15 @@ function OptHero({ onBack }) {
       </div>
       <div style={{ position: "relative", zIndex: 2, textAlign: "center", padding: "24px 20px 0" }}>
         <div className="legacy-serif" style={{ fontSize: 22, fontWeight: 600, color: "rgb(234,237,247)", letterSpacing: "-0.01em" }}>You can save upto</div>
-        <div className="legacy-serif" style={{ marginTop: 6, fontSize: 40, fontWeight: 700, color: "#4ce08a", letterSpacing: "-0.02em", textShadow: "0 0 24px rgba(76,224,138,0.5), 0 2px 6px rgba(0,0,0,0.35)" }}>₹{f(SAVINGS_BARS.bar3)}/yr</div>
+        <div className="legacy-serif" style={{ marginTop: 6, fontSize: 40, fontWeight: 700, color: "#4ce08a", letterSpacing: "-0.02em", textShadow: "0 0 24px rgba(76,224,138,0.5), 0 2px 6px rgba(0,0,0,0.35)" }}>₹{f(selectOptimizeMetrics(true).bars.bar3)}/yr</div>
       </div>
       <div style={{ position: "relative", height: 300, marginTop: 18 }}>
         <DashedBaseline y={80} />
         <DashedBaseline y={140} />
         <DashedBaseline y={200} />
-        <SavingsBar leftOffset={34} height={72} amount={f(SAVINGS_BARS.bar1)} delay={120} />
-        <SavingsBar leftOffset={154} height={150} amount={f(SAVINGS_BARS.bar2)} icon={<ThumbsUp />} delay={280} />
-        <SavingsBar leftOffset={274} height={206} amount={f(SAVINGS_BARS.bar3)} icon={<Crown />} delay={440} glow />
+        <SavingsBar leftOffset={34} height={72} amount={f(selectOptimizeMetrics(true).bars.bar1)} delay={120} />
+        <SavingsBar leftOffset={154} height={150} amount={f(selectOptimizeMetrics(true).bars.bar2)} icon={<ThumbsUp />} delay={280} />
+        <SavingsBar leftOffset={274} height={206} amount={f(selectOptimizeMetrics(true).bars.bar3)} icon={<Crown />} delay={440} glow />
         <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 74, zIndex: 5, background: "linear-gradient(180deg, rgba(120,220,140,0.18) 0%, rgba(40,160,90,0.22) 40%, rgba(10,90,50,0.28) 100%)", borderTop: "1px solid rgba(180,255,200,0.55)", borderBottom: "1px solid rgba(8,80,40,0.6)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -1px 0 rgba(0,0,0,0.2), 0 -8px 20px rgba(0,0,0,0.25)", overflow: "hidden" }}>
           <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 4, background: "linear-gradient(180deg, rgba(200,255,210,0.65) 0%, rgba(200,255,210,0) 100%)", pointerEvents: "none" }} />
           <div style={{ position: "absolute", left: 0, top: 2, bottom: 2, width: 24, background: "linear-gradient(90deg, rgba(255,255,255,0.12), rgba(255,255,255,0))", pointerEvents: "none" }} />
@@ -1098,6 +1099,14 @@ function ClaimRedeem({ onOpenHook }) {
    ═══════════════════════════════════════════════════════════ */
 
 export function LegacyOptimiseScreen() {
+  const optMetricsWithUltimate = selectOptimizeMetrics(true);
+  const optMetricsWithoutUltimate = selectOptimizeMetrics(false);
+  const SAVINGS_BARS = optMetricsWithUltimate.bars;
+  const CARD_PROMO = optMetricsWithUltimate.cardPromo;
+  const SPEND_DIST_WITH_ULTIMATE = optMetricsWithUltimate.spendDistribution;
+  const SPEND_DIST_WITHOUT_ULTIMATE = optMetricsWithoutUltimate.spendDistribution;
+  const OPT_BRANDS = optMetricsWithUltimate.brands;
+
   const ctx: any = useAppContext();
   const { setScreen, setRedeemCard, setRedeemPts, setRedeemResult, setRedeemPref, setSelBrand, setCalcAmt, setCalcResult, setSearchQ, setBestCardDetail, openCard } = ctx;
 

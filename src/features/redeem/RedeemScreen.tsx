@@ -5,34 +5,10 @@ import { C, FN } from "@/lib/theme";
 import { f } from "@/lib/format";
 import { FL } from "@/components/shared/FontLoader";
 import { NavBar } from "@/components/shared/NavBar";
-import { CARDS } from "@/data/simulation/legacy";
-
+import { selectRedeemMetrics } from "@/data/simulation/metrics";
+import { CARD_IMG_MAP } from "@/data/simulation/legacy";
 import { useAppContext } from "@/store/AppContext";
 import { Toast, InfoBS, TxnSheet, ActSheet, GmailNudgePopup, GmailNudgeSheet, RetroOverlay, VoiceFlowOverlay, CatBS, FilterSheet } from "@/components/sheets/BottomSheets";
-
-const REDEEM_DATA = {
-  "HSBC Travel One": { pointName: "Reward Points", perPt: 0.30, checkUrl: "HSBC India App → Credit Cards → Reward Points Balance", options: [
-    { partner: "Air Miles", method: "Flights", rate: 0.50, minPts: 500, recommended: true, portal: "HSBC Rewards Hub", steps: "Login to HSBC Online → Cards → Rewards → Travel → Air Miles transfer → Confirm. Miles credited in 3-5 days.", icon: "✈️" },
-    { partner: "Amazon", method: "Shopping", rate: 0.30, minPts: 200, portal: "HSBC Rewards Hub", steps: "HSBC Online → Cards → Rewards → Gift Cards → Amazon → Select denomination → Confirm", icon: "📦" },
-    { partner: "Cleartrip", method: "Flights", rate: 0.40, minPts: 500, portal: "HSBC Rewards Hub", steps: "HSBC Online → Rewards → Travel → Cleartrip voucher → Confirm", icon: "🔵" },
-    { partner: "Flipkart", method: "Shopping", rate: 0.25, minPts: 200, portal: "HSBC Rewards Hub", steps: "HSBC Online → Rewards → Gift Cards → Flipkart → Select amount → Confirm", icon: "🛒" },
-    { partner: "Statement Credit", method: "Cashback", rate: 0.20, minPts: 500, portal: "HSBC India App", steps: "HSBC App → Credit Cards → Rewards → Redeem as Statement Credit → Confirm amount", icon: "💰" },
-  ]},
-  "Axis Flipkart": { pointName: "Cashback", perPt: 1, checkUrl: "Axis Mobile App → Cards → View Statement → Cashback Summary", options: [
-    { partner: "Statement Cashback", method: "Cashback", rate: 1.0, minPts: 1, recommended: true, portal: "Auto-credited", steps: "Cashback is automatically credited to your next billing statement. No action needed — it appears as a line item credit 3 days before statement generation.", icon: "💰" },
-  ]},
-  "HSBC Live+": { pointName: "Cashback", perPt: 1, checkUrl: "HSBC India App → Credit Cards → Cashback Summary", options: [
-    { partner: "Statement Cashback", method: "Cashback", rate: 1.0, minPts: 1, recommended: true, portal: "Auto-credited", steps: "Cashback is automatically credited to your statement each cycle. HSBC Live+ credits 1.5% on all spends directly — no manual redemption needed.", icon: "💰" },
-  ]},
-};
-
-const MARKET_CARDS = [
-  { name: "HDFC Infinia", color: "#1a1a2e", accent: "#333", last4: "—", pointName: "Reward Points", bestRate: "₹0.50/PT", img: "hdfc-infinia.png" },
-  { name: "Amex Travel Platinum", color: "#006fcf", accent: "#4a9ee5", last4: "—", pointName: "MR Points", bestRate: "₹0.50/PT", img: "amex-platinum-travel.png" },
-  { name: "ICICI Emeralde", color: "#1a3c34", accent: "#2d5a4e", last4: "—", pointName: "Reward Points", bestRate: "₹0.50/PT", img: "icici-emeralde.png" },
-  { name: "AU Zenith Plus", color: "#3d5a1e", accent: "#5a7d2e", last4: "—", pointName: "Reward Points", bestRate: "₹0.50/PT", img: "AU-Zenith.png" },
-  { name: "SBI Miles", color: "#b8860b", accent: "#d4a843", last4: "—", pointName: "Reward Points", bestRate: "₹0.50/PT", img: "sbi-miles.png" },
-];
 
 const cardClrs = {
   "HSBC Travel One": ["#0c2340", "#1a5276"],
@@ -44,16 +20,6 @@ const cardClrs = {
   "SBI Elite": ["#0a4c8c", "#3b82f6"],
 };
 
-const CARD_IMG_MAP = {
-  "HSBC Travel One": "/legacy-assets/cards/hsbc-travel-one.png",
-  "Axis Flipkart": "/legacy-assets/cards/axis-flipkart.png",
-  "HSBC Live+": "/legacy-assets/cards/hsbc-live.png",
-  "HDFC Infinia": "/legacy-assets/cards/hdfc-infinia.png",
-  "Amex Travel Platinum": "/legacy-assets/cards/amex-platinum-travel.png",
-  "ICICI Emeralde": "/legacy-assets/cards/icici-emeralde.png",
-  "AU Zenith Plus": "/legacy-assets/cards/AU-Zenith.png",
-  "SBI Miles": "/legacy-assets/cards/sbi-miles.png",
-};
 
 const isCashbackOnly = (nm) => nm === "Axis Flipkart" || nm === "HSBC Live+";
 
@@ -69,12 +35,21 @@ export const RedeemScreen = () => {
   } = useAppContext();
 
   const [searchQ, setSearchQ] = useState("");
+  const _metrics = selectRedeemMetrics();
+  const REDEEM_DATA = _metrics.byCardName;
+  const CARDS = _metrics.owned;
+  const MARKET_CARDS = _metrics.market;
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     if (p.get("result") === "1" && !redeemResult) {
       if (!hasGmail) setHasGmail(true);
-      setRedeemResult({ card: "HDFC Infinia", pts: 7000, options: [] });
+      const top = MARKET_CARDS[0];
+      setRedeemResult({
+        card: top?.name || "Top market card",
+        pts: top?.pointsAvailable || 0,
+        options: top?.options || [],
+      });
       setRedeemTab("Air Miles");
     }
   }, []);
@@ -110,7 +85,7 @@ export const RedeemScreen = () => {
         ) : (
           <div style={{width:64,height:44,borderRadius:8,background:`linear-gradient(135deg,${(cardClrs[redeemCard.name]||["#333","#555"])[0]},${(cardClrs[redeemCard.name]||["#333","#555"])[1]})`,flexShrink:0,boxShadow:"0 2px 8px rgba(0,0,0,0.15)"}} />
         )}
-        <div><div style={{fontSize:16,fontWeight:700,color:C.text}}>{redeemCard.name} Credit Card</div>{redeemCard.isMarket?<div style={{fontSize:11,fontWeight:700,color:C.blue,marginTop:4}}>BEST RATE: {redeemCard.bestRate||"varies"}</div>:<div style={{fontSize:11,fontWeight:700,color:"#1F8A3A",marginTop:4,letterSpacing:0.5}}>{f(redeemCard.availPts||3200)} POINTS AVAILABLE</div>}</div>
+        <div><div style={{fontSize:16,fontWeight:700,color:C.text}}>{redeemCard.name} Credit Card</div>{redeemCard.isMarket?<div style={{fontSize:11,fontWeight:700,color:C.blue,marginTop:4}}>BEST RATE: {redeemCard.bestRate||"varies"}</div>:<div style={{fontSize:11,fontWeight:700,color:"#1F8A3A",marginTop:4,letterSpacing:0.5}}>{f(redeemCard.pointsAvailable||3200)} POINTS AVAILABLE</div>}</div>
       </div>
       <div style={{marginTop:28}}>
         <div style={{fontSize:14,fontWeight:600,color:C.text,marginBottom:22}}>Enter the amount of points you want to redeem</div>
@@ -295,7 +270,7 @@ export const RedeemScreen = () => {
       ? `BEST RATE · ${c.bestRate || "₹0.50/PT"}`
       : isCashback
         ? "CASHBACK AUTOCREDITED"
-        : `${f(c.availPts || 0)} POINTS AVAILABLE`;
+        : `${f(c.pointsAvailable || 0)} POINTS AVAILABLE`;
     const subtitleColor = isMarket ? "#7f8a9f" : isCashback ? "#804009" : "#098039";
     const rowOpacity = isCashback ? 0.6 : 1;
 

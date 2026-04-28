@@ -3,19 +3,14 @@ import { useState } from "react";
 import { C, FN } from "@/lib/theme";
 import { f } from "@/lib/format";
 import { FL } from "@/components/shared/FontLoader";
-import { CALC_BRANDS, CALC_CATS, CALC_CARDS, SPEND_BRANDS, CD } from "@/data/simulation/legacy";
+import { CALC_BRANDS, CALC_CATS, CALC_CARDS, SPEND_BRANDS, CD, CARD_IMG_MAP } from "@/data/simulation/legacy";
 import { USER_CARDS } from "@/data/simulation/inputs";
 import { calculateResponses } from "@/data/simulation/mockApi";
+import { calculateRewardsForInput, selectCalculatorMetrics } from "@/data/simulation/metrics";
 import { useAppContext } from "@/store/AppContext";
 
 const cardColors = { "HSBC Travel One": ["#0c2340", "#1a5276"], "Axis Flipkart": ["#5b2c8e", "#8b5cf6"], "HSBC Live+": ["#006d5b", "#00a086"] };
 const howToEarn = { "HSBC Travel One": { "default": "Use your HSBC Travel One card directly at checkout. Earns 1 point per ₹150 on domestic spends, 6x on international. Redeem on HSBC Rewards catalogue for travel vouchers.", "MakeMyTrip": "Pay on MakeMyTrip with HSBC Travel One. Earns 3x points on travel bookings. Points best redeemed for flights via HSBC SmartBuy.", "Uber": "Book rides on Uber. Earns 2x points as a dining/transport merchant on HSBC Travel One." }, "Axis Flipkart": { "default": "Use Axis Flipkart at checkout. Cashback auto-credited to your next statement. No manual redemption needed.", "Flipkart": "Pay on Flipkart app/website. 5% cashback auto-credited. Works on all Flipkart purchases except gift cards & EMI.", "Myntra": "Shop on Myntra app/website. 4% cashback as preferred merchant. Cashback credited next billing cycle.", "Swiggy": "Order on Swiggy app. 4% cashback as preferred merchant. Doesn't apply to Instamart.", "Uber": "Book rides on Uber app. 4% cashback as preferred merchant. Credited to statement." }, "HSBC Live+": { "default": "Use HSBC Live+ anywhere. Flat 1.5% unlimited cashback on all spends, auto-credited to statement. No categories, no caps, no hassle." } };
-const CARD_IMG_MAP = {
-  "Axis Flipkart": "/legacy-assets/cards/axis-flipkart.png",
-  "HSBC Travel One": "/legacy-assets/cards/hsbc-travel-one.png",
-  "HSBC Live+": "/legacy-assets/cards/hsbc-live.png",
-  "Amex Platinum": "/legacy-assets/cards/amex-platinum-travel.png",
-};
 const getHowTo = (cardName, brand) => howToEarn[cardName]?.[brand] || howToEarn[cardName]?.["default"] || "Use this card directly at the merchant checkout to earn rewards.";
 const catSpendGuide = { "Shopping": "Best on Flipkart (5%), Amazon (2.5%), Myntra (7.5%). Use Axis Flipkart for Flipkart/Myntra, HSBC Live+ for Amazon.", "Groceries": "BigBasket & Instamart earn 1-4%. Use Axis Flipkart for Instamart (4% preferred), others earn base rate.", "Food Delivery": "Swiggy earns 4% on Axis Flipkart. Zomato/Dominos earn 2.5% on HSBC Live+ as partner.", "Travel": "Cleartrip earns 5% on Axis Flipkart. MakeMyTrip/Yatra earn 2.5% on HSBC Live+.", "Bills & Recharges": "Utility payments earn only 0.25% (1 RP/₹100). HSBC Travel One earns on insurance & utility; others exclude.", "Fuel": "All cards offer 1% surcharge waiver (₹400-₹4000). No reward points on fuel transactions.", "Entertainment": "BookMyShow earns 2.5% on HSBC Live+. HSBC Travel One gives 25% off movie tickets.", "Health": "Apollo 24|7 & Netmeds earn 2.5% on HSBC Live+ as 10X partners.", "Cab Rides": "Uber earns 4% on Axis Flipkart as preferred merchant. Ola earns base rate only.", "Dining Out": "HSBC Travel One offers Culinary Treats dining discounts at 1500+ restaurants." };
 
@@ -43,6 +38,8 @@ export const CalcScreen = () => {
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [bestPlacesPopup, setBestPlacesPopup] = useState<string | null>(null); // card name when open
 
+  const _metrics = selectCalculatorMetrics();
+  const CALC_CARDS = _metrics.cards;
   const allB = Object.entries(CALC_BRANDS).flatMap(([cat, bs]: any) => bs.map((b: any) => ({ ...b, category: cat })));
   const hits = searchQ.trim() ? allB.filter((b: any) => b.name.toLowerCase().includes(searchQ.toLowerCase())) : null;
   const bestR = (q: string) => Math.max(...CALC_CARDS.map((cc: any) => cc.rates[q] ?? cc.rates.default));
@@ -55,19 +52,7 @@ export const CalcScreen = () => {
     const a = parseInt(calcAmt.replace(/,/g, "")) || 0;
     if (!a) return;
     const isBrandMode = calcTab === "Brands";
-    const catName = isBrandMode ? null : selBrand?.name;
-    const r = CALC_CARDS.map((cc: any) => {
-      let rt: number;
-      if (isBrandMode) {
-        rt = cc.rates[selBrand?.name] ?? cc.rates.default;
-      } else {
-        // Category mode: best achievable rate within this category for this card.
-        const brands = (CALC_BRANDS[catName as string] || []) as any[];
-        const ratesInCat = brands.map(b => cc.rates[b.name] ?? cc.rates.default);
-        rt = ratesInCat.length ? Math.max(...ratesInCat, cc.rates.default) : cc.rates.default;
-      }
-      return { ...cc, rate: Math.round(rt * 100) / 100, saved: Math.round(a * rt / 100) };
-    }).sort((a: any, b: any) => b.saved - a.saved);
+    const r = calculateRewardsForInput(a, selBrand?.name || "this category", !isBrandMode);
     setCalcResult({ results: r, query: selBrand?.name || "this category", amount: a, brandName: selBrand?.name, isCategory: !isBrandMode });
     setCalcPopup(false);
     setHowExpanded(null);
@@ -86,12 +71,12 @@ export const CalcScreen = () => {
     const bSwiggy = pickBrand("Swiggy");
     const bUber = pickBrand("Uber");
     const altBrands = [
-      { name: "Amazon", icon: bAmazon?.icon ?? "📦", tileBg: "#FFE8DC", save: Math.round(amountNum * (bAmazon?.rate ?? 2.5) / 100) },
-      { name: "Myntra", icon: bMyntra?.icon ?? "👗", tileBg: "#FFDCF4", save: Math.round(amountNum * (bMyntra?.rate ?? 7.5) / 100) },
-      { name: "Shopclues", icon: "🧭", tileBg: "#D9FFF9", save: Math.round(amountNum * 4 / 100) },
-      { name: "Swiggy", icon: bSwiggy?.icon ?? "🍔", tileBg: "#FFEFD6", save: Math.round(amountNum * (bSwiggy?.rate ?? 4) / 100) },
-      { name: "Uber", icon: bUber?.icon ?? "🚗", tileBg: "#E8E5FF", save: Math.round(amountNum * (bUber?.rate ?? 4) / 100) },
-      { name: "Tata CLiQ", icon: "🛍️", tileBg: "#FFE0E0", save: Math.round(amountNum * 3 / 100) },
+      { name: "Amazon", icon: bAmazon?.icon ?? "📦", tileBg: "#FFE8DC", save: Math.round(amountNum * (bAmazon?.rate ?? 0) / 100) },
+      { name: "Myntra", icon: bMyntra?.icon ?? "👗", tileBg: "#FFDCF4", save: Math.round(amountNum * (bMyntra?.rate ?? 0) / 100) },
+      { name: "Shopclues", icon: "🧭", tileBg: "#D9FFF9", save: 0 },
+      { name: "Swiggy", icon: bSwiggy?.icon ?? "🍔", tileBg: "#FFEFD6", save: Math.round(amountNum * (bSwiggy?.rate ?? 0) / 100) },
+      { name: "Uber", icon: bUber?.icon ?? "🚗", tileBg: "#E8E5FF", save: Math.round(amountNum * (bUber?.rate ?? 0) / 100) },
+      { name: "Tata CLiQ", icon: "🛍️", tileBg: "#FFE0E0", save: 0 },
     ];
     const bestRewardLabel = best.type?.toLowerCase().includes("point") ? `${best.rate}% REWARDS` : `${best.rate}% CASHBACK ON ${(calcResult.query || "").toUpperCase()}`;
 

@@ -1,11 +1,11 @@
 // @ts-nocheck
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Lock, Star } from "lucide-react";
 import { FN } from "@/lib/theme";
 import { f } from "@/lib/format";
 import { FL } from "@/components/shared/FontLoader";
 import { useAppContext } from "@/store/AppContext";
-import { CARDS } from "@/data/simulation/legacy";
+import { CARDS, selectPortfolioMetrics } from "@/data/simulation/legacy";
 import { SavingsInfoIcon, SavingsBreakdownSheet } from "@/features/legacy/LegacyShared";
 
 // Lifted directly from CardDetailV2 — keeps tab section typography identical.
@@ -29,90 +29,9 @@ const CARD_IMG_MAP: Record<string, string> = {
   "HDFC Swiggy": "/legacy-assets/cards/Hdfc swiggy.png",
 };
 
-// Per-portfolio card spend × save profile — totals tally to EXACTLY
-// ₹16,00,000/yr spend and ₹1,33,000/yr save (matches hero "SAVE UPTO ₹1,33,000/yr").
-type CardProfile = {
-  name: string; spend: number; save: number; pct: number; c1: string; c2: string; tags: string[];
-  // Tally: save = savingsOnSpends + milestoneBenefits − annualFee
-  last4?: string; newCard?: boolean;
-  breakdown?: { savingsOnSpends: number; milestoneBenefits: number; annualFee: number };
-};
-const PORTFOLIO_PROFILE: CardProfile[] = [
-  { name: "Amex Travel Platinum", spend: 600000, save: 50400, pct: 37, c1: "#583598", c2: "#9359FE", tags: ["Bills", "Food Ordering", "Flights", "Dining Out"],
-    last4: "NEW CARD", newCard: true, breakdown: { savingsOnSpends: 43400, milestoneBenefits: 8000, annualFee: 1000 } },
-  { name: "Axis Magnus",          spend: 300000, save: 33000, pct: 19, c1: "#11257E", c2: "#0A44A7", tags: ["Flights", "Hotels", "Food Ordering"],
-    last4: "NEW CARD", newCard: true, breakdown: { savingsOnSpends: 24000, milestoneBenefits: 12000, annualFee: 3000 } },
-  { name: "HDFC Millennia",       spend: 280000, save: 20000, pct: 18, c1: "#4C98F4", c2: "#0862CF", tags: ["Shopping", "Groceries"],
-    last4: "NEW CARD", newCard: true, breakdown: { savingsOnSpends: 19000, milestoneBenefits: 2000, annualFee: 1000 } },
-  { name: "Axis Flipkart",        spend: 240000, save: 15000, pct: 15, c1: "#117E47", c2: "#0AA759", tags: ["Shopping", "Food Ordering", "Entertainment"],
-    last4: "XXXX 2355", breakdown: { savingsOnSpends: 13000, milestoneBenefits: 3000, annualFee: 1000 } },
-  { name: "HSBC Live+",           spend: 140000, save:  9300, pct:  9, c1: "#EB8807", c2: "#FCAA3F", tags: ["Groceries", "Bills"],
-    last4: "XXXX 9945", breakdown: { savingsOnSpends: 7800, milestoneBenefits: 2000, annualFee: 500 } },
-  { name: "HSBC Travel One",      spend:  40000, save:  5300, pct:  2, c1: "#0c2340", c2: "#1a5276", tags: ["Flights", "Hotels"],
-    last4: "XXXX 7891", breakdown: { savingsOnSpends: 3800, milestoneBenefits: 3000, annualFee: 1500 } },
-];
-// Sanity: Σspend = 16,00,000 · Σsave = 1,33,000 · Σpct = 100%
+/* PORTFOLIO_PROFILE and CATEGORIES are now computed dynamically from
+   selectPortfolioMetrics(). See the useMemo block inside the component. */
 
-// Cards Usage categories — realistic per-category spend split tied to PORTFOLIO_PROFILE
-// Σ across categories ≈ ₹16,00,000 spend / ₹1,33,000 save (matches headline & per-card list).
-type Cat = { key: string; icon: string; spend?: number; save?: number; cards?: { name: string; spend: number; share: number; caption: string; c1: string; c2: string }[] };
-// 11 card-usable categories + Milestones (Friends and Family is excluded — no
-// card maps to it). Σ category spend ≈ ₹16,00,000 / Σ save ≈ ₹1,33,000.
-const CATEGORIES: Cat[] = [
-  { key: "Milestones", icon: "⭐" },
-  { key: "Shopping",      icon: "/cdn/categories/Shopping.webp",      spend: 420000, save: 21000, cards: [
-    { name: "HDFC Millennia",        spend: 240000, share: 57, caption: "5% on Amazon, Flipkart, Swiggy",  c1: "#4C98F4", c2: "#0862CF" },
-    { name: "Axis Flipkart",         spend: 180000, share: 43, caption: "5% on Flipkart, 4% on Myntra",    c1: "#117E47", c2: "#0AA759" },
-  ] },
-  { key: "Groceries",     icon: "/cdn/categories/Groceries.webp",     spend: 120000, save: 4800, cards: [
-    { name: "HSBC Live+",            spend:  80000, share: 67, caption: "1.5% flat cashback",             c1: "#EB8807", c2: "#FCAA3F" },
-    { name: "HDFC Millennia",        spend:  40000, share: 33, caption: "5% on Big Basket via SmartBuy",  c1: "#4C98F4", c2: "#0862CF" },
-  ] },
-  { key: "Dining Out",    icon: "/cdn/categories/Dining Out.webp",    spend: 100000, save: 8500, cards: [
-    { name: "Amex Travel Platinum",  spend:  80000, share: 80, caption: "5X MR on dining",                c1: "#583598", c2: "#9359FE" },
-    { name: "HSBC Live+",            spend:  20000, share: 20, caption: "1.5% flat cashback",             c1: "#EB8807", c2: "#FCAA3F" },
-  ] },
-  { key: "Food Ordering", icon: "/cdn/categories/Food Ordering.webp", spend: 230000, save: 21800, cards: [
-    { name: "Amex Travel Platinum",  spend: 100000, share: 43, caption: "5X MR on food delivery",         c1: "#583598", c2: "#9359FE" },
-    { name: "Axis Magnus",           spend:  50000, share: 22, caption: "12X via airline transfers",     c1: "#11257E", c2: "#0A44A7" },
-    { name: "Axis Flipkart",         spend:  30000, share: 13, caption: "4% on Swiggy",                  c1: "#117E47", c2: "#0AA759" },
-    { name: "HSBC Live+",            spend:  50000, share: 22, caption: "1.5% flat cashback",            c1: "#EB8807", c2: "#FCAA3F" },
-  ] },
-  { key: "Bills",         icon: "/cdn/categories/Bills.webp",         spend: 230000, save: 9000, cards: [
-    { name: "Amex Travel Platinum",  spend: 200000, share: 87, caption: "2X MR points on bills",         c1: "#583598", c2: "#9359FE" },
-    { name: "HSBC Live+",            spend:  30000, share: 13, caption: "1.5% flat cashback",            c1: "#EB8807", c2: "#FCAA3F" },
-  ] },
-  { key: "Fuel",          icon: "/cdn/categories/Fuel.webp",          spend: 50000,  save: 500, cards: [
-    { name: "Amex Travel Platinum",  spend:  50000, share: 100, caption: "1% surcharge waiver only",      c1: "#583598", c2: "#9359FE" },
-  ] },
-  { key: "Flights",       icon: "/cdn/categories/Flights.webp",       spend: 250000, save: 50000, cards: [
-    { name: "Axis Magnus",           spend: 130000, share: 52, caption: "12X via airline transfers",     c1: "#11257E", c2: "#0A44A7" },
-    { name: "Amex Travel Platinum",  spend:  90000, share: 36, caption: "5X MR on flights",              c1: "#583598", c2: "#9359FE" },
-    { name: "HSBC Travel One",       spend:  30000, share: 12, caption: "3X via SmartBuy partners",      c1: "#0c2340", c2: "#1a5276" },
-  ] },
-  { key: "Hotels",        icon: "/cdn/categories/Hotels.webp",        spend: 140000, save: 14000, cards: [
-    { name: "Axis Magnus",           spend:  80000, share: 57, caption: "10X on hotel bookings",         c1: "#11257E", c2: "#0A44A7" },
-    { name: "Amex Travel Platinum",  spend:  60000, share: 43, caption: "Lounge + 3X on hotels",         c1: "#583598", c2: "#9359FE" },
-  ] },
-  { key: "Entertainment", icon: "/cdn/categories/Entertainment.webp", spend:  40000, save: 1900, cards: [
-    { name: "Axis Flipkart",         spend:  40000, share: 100, caption: "4% on PVR/Bookmyshow",          c1: "#117E47", c2: "#0AA759" },
-  ] },
-  { key: "Rent",          icon: "/cdn/categories/Rent.webp",          spend:  60000, save: 0, cards: [
-    { name: "—",                     spend:      0, share: 100, caption: "No card rewards rent",          c1: "#94A3B8", c2: "#475569" },
-  ] },
-  { key: "Insurance",     icon: "/cdn/categories/Insurance.webp",     spend:  60000, save: 1500, cards: [
-    { name: "HSBC Travel One",       spend:  60000, share: 100, caption: "0.67% base earn",              c1: "#0c2340", c2: "#1a5276" },
-  ] },
-];
-// Sanity: Σ category spend = 4,20,000 + 1,20,000 + 2,30,000 + 50,000 + 3,90,000 + 2,30,000 + (Hotels+Cab+Dining ~1,60,000) ≈ ₹16,00,000
-// Σ category save = 21,000 + 4,800 + 9,000 + 500 + 70,300 + 21,800 + (other ~6,400) = ₹1,33,000
-
-// Step-by-step "how to spend" timeline for the active category
-const TIMELINE = [
-  { kind: "card",  card: "Axis Flipkart", c1: "#117E47", c2: "#0AA759", title: "Spend ₹20,000/month on Axis Flipkart Card", caption: "via the Flipkart App", monthly: 2200, yearly: 26400 },
-  { kind: "lock",                                                         title: "Reward points cap reached on Axis Flipkart", caption: "Cap at 2,000 RP per month" },
-  { kind: "card",  card: "HSBC Live+",    c1: "#4C98F4", c2: "#0862CF", title: "Rest of ₹10,000/month on HSBC Live+",          caption: "via the Flipkart App", monthly: 1200, yearly: 14400 },
-];
 
 // Per-card benefits / fees / eligibility — driven by the active card pill.
 type CardBenefits = {
@@ -135,7 +54,7 @@ const CARD_BENEFITS: Record<string, CardBenefits> = {
       { title: "No International Lounge benefit availble on this card",     desc: "" },
     ],
   },
-  "Axis Magnus": {
+  "AU Zenith": {
     milestones: [
       { earned: "This card offers no milestone benefits.", desc: "Instead it offers accelerated benefits on your spends.", status: "claimable" },
     ],
@@ -190,7 +109,7 @@ const CARD_FEES: Record<string, CardFeesT> = {
       { range: "₹5001 - ₹10000", fee: "₹1,200" },
     ],
   },
-  "Axis Magnus": {
+  "AU Zenith": {
     annual: { fee: "₹12,500 + GST", spendToWaive: "Spend ₹25,00,000 in a year to waive next year's fee", remaining: "SPEND ₹1,32,750/YR MORE TO WAIVE" },
     joining: { fee: "₹12,500 + GST", note: "Value returned via welcome voucher" },
     bank: [
@@ -237,7 +156,7 @@ const CARD_FEES: Record<string, CardFeesT> = {
 type CardElig = { age: string; salary: string; rating: string; ntc: string; existing: string };
 const CARD_ELIG: Record<string, CardElig> = {
   "Amex Travel Platinum": { age: "21-60 Yrs", salary: "6 LPA",  rating: "725+", ntc: "Yes", existing: "Yes" },
-  "Axis Magnus":          { age: "21-60 Yrs", salary: "6 LPA",  rating: "725+", ntc: "Yes", existing: "Yes" },
+  "AU Zenith":            { age: "21-60 Yrs", salary: "6 LPA",  rating: "725+", ntc: "Yes", existing: "Yes" },
   "HSBC Travel One":      { age: "21-60 Yrs", salary: "5 LPA",  rating: "700+", ntc: "Yes", existing: "Yes" },
 };
 
@@ -259,21 +178,26 @@ const CardThumbHero = ({ name }: { name: string }) => {
 
 export const PortfolioResultsScreen = () => {
   const { setScreen, portfolioNew } = useAppContext();
-  const newCards = (portfolioNew && portfolioNew.length > 0) ? portfolioNew : ["Amex Travel Platinum", "Axis Magnus", "HDFC Millennia"];
+  const newCards = (portfolioNew && portfolioNew.length > 0) ? portfolioNew : ["Amex Travel Platinum", "AU Zenith", "HDFC Millennia"];
   const ownedCardNames = CARDS.map((c: any) => c.name);
   const allPortfolioCards: string[] = [...newCards, ...ownedCardNames];
+
+  const portfolio = useMemo(() => selectPortfolioMetrics(newCards), [newCards.join(",")]);
+  const PORTFOLIO_PROFILE = portfolio.cards;
+  const CATEGORIES = [{key:"Milestones", icon:"⭐"}, ...portfolio.categories];
+  const TIMELINE = portfolio.timeline;
+  const totalSpend = portfolio.totalSpend;
+  const totalSavings = portfolio.totalSavings;
 
   // Tabs ─ pill sub-nav follows new cards
   const [tab, setTab] = useState<"how" | "benefits" | "fee" | "elig">("how");
   const [activeCard, setActiveCard] = useState<string>(newCards[0] || allPortfolioCards[0]);
   const [period, setPeriod] = useState<"monthly" | "yearly">("monthly");
   const [activeCat, setActiveCat] = useState<string>("Shopping");
-  // Per-row savings-breakdown bottom sheet (opened from the (i) icon).
   const [breakdownOpen, setBreakdownOpen] = useState<any>(null);
-  // Anchor + handler for tag → CardsUsage scroll + tab switch.
   const cardsUsageRef = useRef<HTMLDivElement | null>(null);
   const catsRailRef = useRef<HTMLDivElement | null>(null);
-  const onCategoryTagClick = (tag: string) => {
+  const onCategoryTagClick = useCallback((tag: string) => {
     if (CATEGORIES.find((c: any) => c.key === tag)) setActiveCat(tag);
     requestAnimationFrame(() => {
       const target = catsRailRef.current || cardsUsageRef.current;
@@ -290,9 +214,7 @@ export const PortfolioResultsScreen = () => {
       const desired = Math.max(0, scroller.scrollTop + (tR.top - sR.top) - 8);
       try { scroller.scrollTo({ top: desired, behavior: "smooth" }); } catch { scroller.scrollTop = desired; }
     });
-  };
-  // Auto-scroll horizontal category strip — horizontal-only via scrollTo so
-  // vertical page scroll is never hijacked.
+  }, [CATEGORIES]);
   useEffect(() => {
     const rail = catsRailRef.current;
     if (!rail) return;
@@ -305,7 +227,6 @@ export const PortfolioResultsScreen = () => {
     try { rail.scrollTo({ left: desired, behavior: "smooth" }); } catch { rail.scrollLeft = desired; }
   }, [activeCat]);
   const cat = CATEGORIES.find(c => c.key === activeCat) || CATEGORIES[1];
-  // Spotlight position over active cat tab (matches CardDetailV2 — Milestones=72px, Shopping=82px, others=75px)
   const catWidth = (key: string) => key === "Milestones" ? 72 : key === "Shopping" ? 82 : 75;
   const activeIdx = CATEGORIES.findIndex(c => c.key === activeCat);
   let spotlightLeft = 10;
@@ -316,20 +237,11 @@ export const PortfolioResultsScreen = () => {
   const [applyChoice, setApplyChoice] = useState<string>(newCards[0] || "");
   const [carouselPage, setCarouselPage] = useState(0);
 
-  const totalSpend = PORTFOLIO_PROFILE.reduce((s, c) => s + c.spend, 0); // ₹16,00,000
-  const totalSavings = PORTFOLIO_PROFILE.reduce((s, c) => s + c.save, 0); // ₹1,32,700 ≈ ₹1,33,000
   const totalCardsCount = allPortfolioCards.length;
 
   const benefits = CARD_BENEFITS[activeCard] || CARD_BENEFITS["Amex Travel Platinum"];
-  const fees = CARD_FEES[activeCard] || CARD_FEES["Axis Magnus"];
-  const elig = CARD_ELIG[activeCard] || CARD_ELIG["Axis Magnus"];
-
-  // How to spend rules — derived from PORTFOLIO_PROFILE for Shopping category as in the design
-  const howToSpend = [
-    { title: "Spend ₹20,000/month on Axis Flipkart Card", note: "via the Flipkart App",  amount: "₹2,200/mn" },
-    { title: "Reward points cap reached on Axis Flipkart", note: "Cap at 2,000 RP per month", amount: "" },
-    { title: "Rest of ₹10,000/month on HSBC Live+",       note: "via the Flipkart App",  amount: "₹1,200/mn" },
-  ];
+  const fees = CARD_FEES[activeCard] || CARD_FEES["AU Zenith"];
+  const elig = CARD_ELIG[activeCard] || CARD_ELIG["AU Zenith"];
 
   return (
     <div style={{ fontFamily: FN, maxWidth: 400, margin: "0 auto", background: "#F4F9FA", height: "100vh", display: "flex", flexDirection: "column" }}>
@@ -543,7 +455,7 @@ export const PortfolioResultsScreen = () => {
                 <span style={{ ...TINY_LABEL, fontWeight: 700 }}>You spend</span>
               </div>
               <div style={{ height: 0, borderTop: "1px dashed rgba(0,0,0,0.1)" }} />
-              {cat.cards.map((cc, i) => (
+              {CATEGORIES.find(c => c.key === activeCat)?.cards?.map((cc, i) => (
                 <div key={i} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                     <div style={{ width: 54, height: 36, borderRadius: 2.7, overflow: "hidden", flexShrink: 0, background: `linear-gradient(135deg,${cc.c1},${cc.c2})`, border: "0.225px solid rgba(255,255,255,0.2)", filter: "drop-shadow(0px 8px 3.2px rgba(20,21,72,0.03)) drop-shadow(0px 4.4px 2.6px rgba(20,21,72,0.1)) drop-shadow(0px 2px 2px rgba(20,21,72,0.17)) drop-shadow(0px 0.4px 1px rgba(20,21,72,0.2))" }}>
@@ -567,7 +479,7 @@ export const PortfolioResultsScreen = () => {
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{ padding: "0 4px" }}><span style={TINY_LABEL}>Spend distribution</span></div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  {cat.cards.map((cc, i) => (
+                  {CATEGORIES.find(c => c.key === activeCat)?.cards?.map((cc, i) => (
                     <div key={i} style={{ flex: `${cc.share} 1 0`, minWidth: 60, height: 24, borderRadius: 6.04, background: `linear-gradient(180deg,${cc.c1} 0%,${cc.c2} 100%)`, boxShadow: "inset 0 3.5px 3.4px rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, lineHeight: "140%", color: "#FFFFFF" }}>{cc.share}%</span>
                     </div>

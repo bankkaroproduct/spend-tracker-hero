@@ -5,7 +5,7 @@
 // To revert this entire feature: in src/features/actions/ActionsScreen.tsx,
 // set `USE_NEW_FLOW = false`. The original screen is preserved untouched.
 
-import { CD } from "@/data/simulation/legacy";
+import { selectOwnedCardDetailMetrics } from "@/data/simulation/metrics";
 import { USER_CARDS } from "@/data/simulation/inputs";
 import { f } from "@/lib/format";
 
@@ -16,7 +16,7 @@ export type Urgency = "now" | "soon" | "later" | "info";
 const card0 = USER_CARDS[0]; // HSBC Travel One
 const card1 = USER_CARDS[1]; // Axis Flipkart
 const card2 = USER_CARDS[2]; // HSBC Live+
-const cd0 = CD[0];
+const cd0 = selectOwnedCardDetailMetrics(0);
 
 // Credit utilization
 const card1CreditPct = Math.round((card1.credit_used / card1.credit_limit) * 100);
@@ -31,17 +31,19 @@ const feeThreshold0 = card0.fee_waiver_threshold || 800000;
 const feeRemaining0 = Math.max(0, feeThreshold0 - feeSpentYTD0);
 const feePct0 = Math.min(100, Math.round((feeSpentYTD0 / feeThreshold0) * 100));
 
-// Points expiring (card 0)
+// Points expiring (card 0) — null when no points are expiring
 const ptsExp0 = card0.points_expiring;
-const ptsExpAmt = ptsExp0?.amount || 2200;
-const ptsExpDays = ptsExp0?.days_until || 18;
+const ptsExpAmt = ptsExp0?.amount || 0;
+const ptsExpDays = ptsExp0?.days_until || 0;
 const ptsExpValue = Math.round(ptsExpAmt * card0.conv_rate);
 
-// Milestone (card 0)
+// Milestone (card 0) — null when card has no milestone benefits
 const milestone0 = card0.milestone_benefits?.[0];
-const milestoneMinSpend = milestone0?.minSpend || 1200000;
-const milestoneValue = milestone0?.value || 2000;
-const milestoneYTDSpend = (cd0.totalSpend || 0) * 3; // extrapolate to annual
+const milestoneMinSpend = milestone0?.minSpend || 0;
+const milestoneValue = milestone0?.value || 0;
+// totalSpend is the full annual spend; for milestone-progress framing we
+// use it directly rather than re-extrapolating from a stale month count.
+const milestoneYTDSpend = cd0.totalSpend || 0;
 const milestoneRemaining = Math.max(0, milestoneMinSpend - milestoneYTDSpend);
 
 // Lounge (card 0)
@@ -52,14 +54,12 @@ const intlTotal0 = card0.lounge_access?.international_annual || 4;
 const intlUsed0 = card0.lounge_used?.international || 1;
 const intlRemaining0 = intlTotal0 - intlUsed0;
 
-// Caps — find from CD[i].limits.caps by category substring, with fallbacks
 function findCap(cdIdx: number, keyword: string) {
-  const caps = CD[cdIdx]?.limits?.caps || [];
+  const caps = selectOwnedCardDetailMetrics(cdIdx)?.limits?.caps || [];
   return caps.find((c: any) => c.name.toLowerCase().includes(keyword.toLowerCase()));
 }
 
-// Axis Flipkart caps from sim
-const axisCaps = CD[1]?.limits?.caps || [];
+const axisCaps = selectOwnedCardDetailMetrics(1)?.limits?.caps || [];
 
 // 3D PNG icons used as the round hero badge in the sheet header.
 // We pick existing 3D assets that match the visual style of the Figma mocks.

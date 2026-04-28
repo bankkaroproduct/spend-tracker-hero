@@ -14,23 +14,31 @@ import {
   ACTIONS as COMPUTED_ACTIONS, ALL_ACTIONS as COMPUTED_ALL_ACTIONS, SMS_ACTIONS as COMPUTED_SMS_ACTIONS,
 } from "./compute";
 import { BANK_FEES_HSBC_TRAVEL, BANK_FEES_AXIS_FK, BANK_FEES_HSBC_LIVE, LATE_FEES_HSBC_TRAVEL, LATE_FEES_AXIS_FK, LATE_FEES_HSBC_LIVE } from "../cardDetail";
+import {
+  calculateRewardsForInput,
+  selectActionsMetrics,
+  selectBestCardBreakdownMetrics,
+  selectBestCardDetailMetrics,
+  selectBestCardsCombinedSavings,
+  selectBestCardsListMetrics,
+  selectCalculatorMetrics,
+  selectCardPromoMetrics,
+  selectOwnedCardDetailMetrics,
+  selectOwnedCardsMetrics,
+  selectPortfolioMetrics,
+  selectRedeemMetrics,
+  selectSavingsBars,
+  selectSpendAnalysisMetrics,
+  selectSpendDistributionMetrics,
+  selectTransactionMetrics,
+} from "./metrics";
 
 const PER_CARD_BANK_FEES = [BANK_FEES_HSBC_TRAVEL, BANK_FEES_AXIS_FK, BANK_FEES_HSBC_LIVE];
 const PER_CARD_LATE_FEES = [LATE_FEES_HSBC_TRAVEL, LATE_FEES_AXIS_FK, LATE_FEES_HSBC_LIVE];
 
 // ─── cards.ts replacements ──────────────────────────────────────────────────
 
-export const CARDS = USER_CARDS.map((c) => ({
-  name: c.name,
-  last4: c.last4,
-  color: c.color,
-  accent: c.accent,
-  headerAccent: c.headerAccent,
-  quality: computeCardQuality(c.index),
-  availPts: c.availPts,
-  ptName: c.ptName,
-  points_expiring: c.points_expiring,
-}));
+export const CARDS = selectOwnedCardsMetrics();
 
 export const SEMI_CARDS = USER_CARDS.map((c) => ({
   bank: c.bank + " Bank",
@@ -40,7 +48,7 @@ export const SEMI_CARDS = USER_CARDS.map((c) => ({
 
 // ─── transactions.ts replacements ───────────────────────────────────────────
 
-export const ALL_TXNS = generateTransactions();
+export const ALL_TXNS = selectTransactionMetrics().transactions;
 
 const merchantSet = new Set<string>();
 const iconSet = new Map<string, string>();
@@ -63,7 +71,7 @@ for (const [bucket, merchants] of Object.entries(BUCKET_TO_MERCHANT)) {
 }
 
 export const tg = (ms: number | null, ti: number, brand: string, via: string, amt: number) => {
-  const rec = bestCardForMap[brand] || "Axis Flipkart";
+  const rec = bestCardForMap[brand] || USER_CARDS[0].name;
   const cardNames = {
     "Axis Flipkart Card": "Axis Flipkart",
     "HSBC Travel One": "HSBC Travel One",
@@ -88,9 +96,10 @@ export const tg = (ms: number | null, ti: number, brand: string, via: string, am
 
 // ─── spend.ts replacements ──────────────────────────────────────────────────
 
-export const SPEND_CATS = computeSpendCategories();
-export const SPEND_BRANDS = computeSpendBrands();
-export const TOTAL_ACC = TOTAL_ANNUAL_SPEND;
+const _spendAnalysis = selectSpendAnalysisMetrics();
+export const SPEND_CATS = _spendAnalysis.categories;
+export const SPEND_BRANDS = _spendAnalysis.brands;
+export const TOTAL_ACC = _spendAnalysis.totalSpend;
 
 // ─── actions.ts replacements ────────────────────────────────────────────────
 
@@ -100,7 +109,7 @@ export const SMS_ACTIONS = COMPUTED_SMS_ACTIONS;
 
 // ─── cardDetail.ts replacements ─────────────────────────────────────────────
 
-const _cdCache = [0, 1, 2].map((i) => computeCardDetail(i));
+const _cdCache = [0, 1, 2].map((i) => selectOwnedCardDetailMetrics(i));
 
 export const CD = _cdCache.map((d, i) => ({
   advice: d.advice,
@@ -130,32 +139,41 @@ export const CD_CATS = _cdCache[0]?.categories || [];
 
 // ─── calculator.ts replacements ─────────────────────────────────────────────
 
-export const CALC_CARDS = USER_CARDS.map((c) => {
-  const rates: Record<string, number> = { default: 0 };
-  if (c.index === 0) {
-    rates.default = 0.4;
-    rates.MakeMyTrip = 3.2; rates.Cleartrip = 3.2; rates.IndiGo = 3.2; rates["Air India"] = 3.2;
-    rates["Booking.com"] = 4.8; rates.OYO = 4.8;
-  } else if (c.index === 1) {
-    rates.default = 1;
-    rates.Flipkart = 5; rates.Myntra = 7.5;
-    rates.MakeMyTrip = 5; rates.Cleartrip = 5; rates["Booking.com"] = 5; rates.OYO = 5;
-    rates.Swiggy = 4; rates.Uber = 4; rates.PVR = 4; rates["Cult.fit"] = 4;
-  } else if (c.index === 2) {
-    rates.default = 1.5;
-    rates.Swiggy = 10; rates.Zomato = 10; rates.BigBasket = 10;
-    rates.Blinkit = 10; rates.Zepto = 10; rates.DMart = 10;
-    rates.Starbucks = 10; rates["McDonald's"] = 10;
-    rates["Swiggy Instamart"] = 10; rates["Nature's Basket"] = 10;
-  }
-  return {
-    name: c.name,
-    type: c.savings_type === "points" ? "Points" : c.index === 1 ? "Auto Cashback" : "Cashback",
-    rates,
-  };
-});
+const _calcMetrics = selectCalculatorMetrics();
+export const CALC_CARDS = _calcMetrics.cards;
 
-export { CALC_BRANDS, CALC_CATS, CAT_OPTIONS, BRAND_MAP } from "../calculator";
+// CALC_BRANDS / CALC_CATS / BRAND_MAP / CAT_OPTIONS — generated from simulation
+// (replaces the static, drifting rates that used to live in src/data/calculator.ts).
+export const CALC_BRANDS: Record<string, Array<{ name: string; icon: string; rate: number }>> = (() => {
+  const out: Record<string, any[]> = {};
+  for (const b of _calcMetrics.brands) {
+    const bestRate = Math.max(0, ..._calcMetrics.cards.map((c: any) => c.rates[b.name] || 0));
+    (out[b.category] = out[b.category] || []).push({
+      name: b.name,
+      icon: MERCHANT_ICONS[b.name] || "📦",
+      rate: Math.round(bestRate * 100) / 100,
+    });
+  }
+  return out;
+})();
+
+export const CALC_CATS: Record<string, number> = (() => {
+  const out: Record<string, number> = {};
+  for (const [cat, brands] of Object.entries(CALC_BRANDS)) {
+    out[cat] = Math.max(0, ...brands.map((b) => b.rate));
+  }
+  return out;
+})();
+
+export const CAT_OPTIONS = Object.keys(CALC_BRANDS);
+
+export const BRAND_MAP: Record<string, string[]> = (() => {
+  const out: Record<string, string[]> = {};
+  for (const [cat, brands] of Object.entries(CALC_BRANDS)) {
+    out[cat] = brands.map((b) => b.name);
+  }
+  return out;
+})();
 
 // ─── optimize.ts replacements ───────────────────────────────────────────────
 
@@ -164,7 +182,7 @@ export const OPT_BRANDS = computeOptBrands();
 const marketTop = getFirstEligibleMarketCard();
 export const SAVINGS_COMP = [
   {
-    name: cleanCardName(marketTop?.card_name || "HDFC Diners Black"),
+    name: marketTop ? cleanCardName(marketTop.card_name) : "No recommendation",
     color: "#111827",
     cls: "Best Card For You",
     clsColor: C.dkGreen,
@@ -194,8 +212,8 @@ export const SAVINGS_COMP = [
 
 // ─── Savings bars (for Home + Optimize screens) ────────────────────────────
 
-export const SAVINGS_BARS = getSavingsBars();
-export const COMBINED_SAVINGS = computeCombinedSavings(2);
+export const SAVINGS_BARS = selectSavingsBars();
+export const COMBINED_SAVINGS = selectBestCardsCombinedSavings(2);
 
 export const USER_CARD_YEARLY_SAVINGS = calculateResponses.map((cr, i) => ({
   name: USER_CARDS[i].name,
@@ -205,56 +223,16 @@ export const USER_CARD_YEARLY_SAVINGS = calculateResponses.map((cr, i) => ({
 
 // ─── Spend distribution (for Optimize screen) ──────────────────────────────
 
-export const SPEND_DIST_WITH_ULTIMATE = computeSpendDistribution(true);
-export const SPEND_DIST_WITHOUT_ULTIMATE = computeSpendDistribution(false);
+export const SPEND_DIST_WITH_ULTIMATE = selectSpendDistributionMetrics(true);
+export const SPEND_DIST_WITHOUT_ULTIMATE = selectSpendDistributionMetrics(false);
 
 // ─── Best Cards screen data ────────────────────────────────────────────────
 
 function cleanCardName(n: string) { return (n || "").trim().replace(/\s+credit\s+card$/i, "").replace(/\s+/g, " ").trim(); }
-function parseFee(s: any): number { if (!s) return 0; const m = String(s).replace(/[₹,\s]/g, "").match(/\d+/); return m ? parseInt(m[0]) : 0; }
 function parseMoney(s: any): number { if (typeof s === "number") return s; if (!s) return 0; const cleaned = String(s).replace(/[^0-9.]/g, ""); return cleaned ? Math.round(parseFloat(cleaned)) : 0; }
 function marketYearlySavings(card: any): number { return Math.round(card?.total_savings_yearly || parseMoney(card?.annual_rewards_value) || parseMoney(card?.net_annual_savings) || 0); }
 
-export const BEST_CARDS = (recommendResponse?.savings || []).map((card, i) => {
-  const ownedIdx = getOwnedCardIndex(card);
-  const isOwned = ownedIdx >= 0;
-  return {
-    name: cleanCardName(card.card_name),
-    bank: card.bank_name,
-    color: i === 0 ? "#111827" : i === 1 ? "#0c2340" : "#333",
-    accent: "#666",
-    annualFee: parseFee(card.annual_fees || card.annual_fee) || Math.round((parseFee(card.annual_fee_without_gst) || 0) * 1.18),
-    savings: marketYearlySavings(card),
-    match: computeMatchScore(i),
-    tags: (isInviteOnlyMarketCard(card) ? ["Invite Only"] : []).concat(
-      isOwned ? ["In Your Wallet"] : [],
-      parseFee(card.annual_fees || card.annual_fee) === 0 ? ["Lifetime Free"] : [],
-      (card.annual_fee_waiver_toggle || card.annual_fee_waiver) ? ["Fee Waiver"] : []
-    ),
-    highlights: (card.product_usps || []).slice(0, 3).map((u) => u.header + ": " + u.description),
-    whyGood: (card.product_usps || []).slice(0, 3).map((u) => u.header),
-    whyNot: [],
-    howToApply: isOwned ? "In Your Wallet" : (card.cg_network_url ? "Apply via partner link" : "Apply on bank website"),
-    image: card.image || card.card_bg_image || null,
-    card_bg_image: card.card_bg_image,
-    card_bg_gradient: card.card_bg_gradient,
-    cg_network_url: card.cg_network_url,
-    ck_store_url: card.ck_store_url,
-    is_owned: isOwned,
-    owned_card_index: ownedIdx,
-    card_alias: card.card_alias,
-    rating: card.rating,
-    lounge_value: card.lounge_value,
-    milestone_benefits_str: card.milestone_benefits,
-    welcome_benefits_raw: card.welcome_benefits,
-    spending_breakdown: card.spending_breakdown,
-    filterTags: (isInviteOnlyMarketCard(card) ? ["Invite Only"] : []).concat(
-      isOwned ? ["In Your Wallet"] : [],
-      parseFee(card.annual_fees || card.annual_fee) === 0 ? ["Lifetime Free"] : [],
-      (card.annual_fee_waiver_toggle || card.annual_fee_waiver) ? ["Fee Waiver"] : []
-    ),
-  };
-});
+export const BEST_CARDS = selectBestCardsListMetrics();
 
 export const BEST_CARDS_FILTER_OPTS = [
   { label: "All Cards", value: "all" },
@@ -263,114 +241,25 @@ export const BEST_CARDS_FILTER_OPTS = [
   { label: "Invite Only", value: "invite" },
 ];
 
-export const BEST_CARDS_COMB_SAVINGS = computeCombinedSavings(2);
+export const BEST_CARDS_COMB_SAVINGS = selectBestCardsCombinedSavings(2);
 
 // ─── Best Cards detail data ────────────────────────────────────────────────
 
 export function getBestCardDetail(idx: number) {
-  const card = recommendResponse?.savings?.[idx];
-  if (!card) return null;
-  const netSavings = Math.round((card.total_savings_yearly || 0) - (parseInt(card.annual_fee_without_gst || "0") || 0));
-  const worstUserCard = calculateResponses.reduce((w, c, i) =>
-    c.total_savings_yearly < (w?.total_savings_yearly || Infinity) ? { ...c, _idx: i } : w, null);
-
-  const wb = card.welcomeBenefits || card.welcome_benefits;
-  const wbFirst = Array.isArray(wb) ? wb[0] : null;
-  const mb = card.milestone_benefits;
-  const milestoneArr = Array.isArray(mb) ? mb : [];
-  const milestoneVal = typeof mb === "string" ? parseMoney(mb) : 0;
-
-  return {
-    welcome: wbFirst ? {
-      amt: wbFirst.cash_value || parseMoney(wbFirst.voucher_bonus) || parseMoney(wbFirst.rp_bonus) || 0,
-      validity: (wbFirst.maximum_days || "30") + " days",
-    } : null,
-    milestones: milestoneArr.length > 0
-      ? milestoneArr.map((m) => ({
-          amt: parseInt(m.voucherBonus || m.rpBonus || "0") || 0,
-          validity: (m.maxDays || "365") + " days",
-        }))
-      : milestoneVal > 0
-        ? [{ amt: milestoneVal, validity: "per year" }]
-        : [],
-    lounge: {
-      qty: (card.travel_benefits?.domestic_lounges_unlocked || 0) + (card.travel_benefits?.international_lounges_unlocked || 0),
-      type: "per year",
-    },
-    fees: {
-      annual: parseFee(card.annual_fees || card.annual_fee) || 0,
-      waiver: card.annual_fee_spends ? "Spend ₹" + (parseInt(card.annual_fee_spends) / 100000) + "L to waive" : "Check bank website",
-    },
-    replace: worstUserCard ? USER_CARDS[worstUserCard._idx]?.name : USER_CARDS[2].name,
-    replaceSave: worstUserCard ? Math.round((card.total_savings_yearly || 0) - worstUserCard.total_savings_yearly) : 0,
-    netSavings,
-    brandFit: buildBrandFit(card),
-    redemptionOptions: card.redemption_options || [],
-    recommendedRedemption: card.recommended_redemption_options || [],
-    productUsps: card.product_usps || [],
-    comparisonBars: [
-      { name: cleanCardName(card.card_name), savings: Math.round(card.total_savings_yearly || 0), color: "#111827" },
-      ...calculateResponses.map((cr, i) => ({
-        name: USER_CARDS[i].name,
-        savings: Math.round(cr.total_savings_yearly),
-        color: USER_CARDS[i].color,
-      })),
-    ],
-  };
-}
-
-function buildBrandFit(card: any) {
-  const topBuckets = Object.entries(card.spending_breakdown || {})
-    .filter(([, v]: any) => v.spend > 0 && v.savings > 0)
-    .sort(([, a]: any, [, b]: any) => b.savings - a.savings)
-    .slice(0, 10);
-
-  return topBuckets.map(([bucket, data]: any) => {
-    const merchants = BUCKET_TO_MERCHANT[bucket] || [bucket];
-    const rate = data.spend > 0 ? ((data.savings / data.spend) * 100).toFixed(1) : "0";
-    return {
-      brand: merchants[0],
-      spend: Math.round(data.spend * 12),
-      rate: rate + "%",
-      savings: Math.round(data.savings * 12),
-    };
-  });
+  return selectBestCardDetailMetrics(idx);
 }
 
 // ─── Redeem screen data ────────────────────────────────────────────────────
 
-export const REDEEM_DATA: Record<string, any> = {};
-for (const card of USER_CARDS) {
-  REDEEM_DATA[card.name] = {
-    pointName: card.ptName,
-    perPt: card.conv_rate,
-    checkUrl: "",
-    options: card.index === 0
-      ? [
-          // HSBC Travel One: 1 RP = ₹0.20 (MCP confirmed)
-          { name: "Statement Credit", rate: 0.20, steps: ["Login to HSBC Online", "Cards → Rewards", "Select Statement Credit"] },
-          { name: "Travel Booking", rate: 0.20, steps: ["Login to HSBC Online", "Cards → Rewards", "Book via SmartBuy"] },
-        ]
-      : [
-          { name: "Auto Cashback", rate: 1.0, steps: ["Cashback is credited automatically to your statement"] },
-        ],
-  };
-}
-
-export const MARKET_REDEEM_CARDS = (recommendResponse?.savings || []).slice(0, 3).map((card) => {
-  const topRedemption = card.redemption_options?.[0];
-  return {
-    name: cleanCardName(card.card_name),
-    bank: card.bank_name,
-    perPt: topRedemption?.conversion_rate || 0.50,
-    method: topRedemption?.method || "Points",
-    image: card.image,
-  };
-});
+const _redeemMetrics = selectRedeemMetrics();
+export const REDEEM_DATA: Record<string, any> = _redeemMetrics.byCardName;
+export const MARKET_REDEEM_CARDS = _redeemMetrics.marketCards;
 
 // ─── Actions screen data (inline replacement) ──────────────────────────────
 
-export const ACTIONS_DATA = COMPUTED_ALL_ACTIONS.slice(0, 7).map((a) => ({
+const _actionsMetrics = selectActionsMetrics();
+const _actionsList = Array.isArray(_actionsMetrics) ? _actionsMetrics : (_actionsMetrics?.items || []);
+export const ACTIONS_DATA = _actionsList.slice(0, 7).map((a) => ({
   title: a.title,
   desc: a.desc,
   badge: a.badge,
@@ -387,23 +276,39 @@ export const BEST_FOR_BRAND: Record<string, string> = { ...bestCardForMap };
 // ─── Per-txn savings helpers (for BottomSheets) ────────────────────────────
 
 export { computeTxnSaved, computeTxnMissed, computeTxnMarketDelta } from "./compute";
+export {
+  calculateRewardsForInput,
+  selectBestCardBreakdownMetrics,
+  selectPortfolioMetrics,
+};
+
+// ─── Card image map — single source of truth ───────────────────────────────
+// Used by BottomSheets, BestCards, Portfolio, Calc, Redeem, etc.
+export const CARD_IMG_MAP: Record<string, string> = {
+  "Axis Flipkart": "/legacy-assets/cards/axis-flipkart.png",
+  "HSBC Travel One": "/legacy-assets/cards/hsbc-travel-one.png",
+  "HSBC Live+": "/legacy-assets/cards/hsbc-live.png",
+  "HDFC Infinia": "/legacy-assets/cards/hdfc-infinia.png",
+  "HDFC Millennia": "/legacy-assets/cards/Hdfc swiggy.png",
+  "HDFC Millenia": "/legacy-assets/cards/Hdfc swiggy.png",
+  "HDFC Swiggy": "/legacy-assets/cards/Hdfc swiggy.png",
+  "HDFC Regalia": "/legacy-assets/cards/hdfc-infinia.png",
+  "IDFC First Select": "/legacy-assets/cards/idfc select.png",
+  "IDFC First Classic": "/legacy-assets/cards/idfc-select.png",
+  "Amex Travel Platinum": "/legacy-assets/cards/amex-platinum-travel.png",
+  "Amex Platinum": "/legacy-assets/cards/amex-platinum-travel.png",
+  "American Express Travel Platinum": "/legacy-assets/cards/amex-platinum-travel.png",
+  "Amex MRCC": "/legacy-assets/cards/amex-platinum-travel.png",
+  "Axis Magnus": "/legacy-assets/cards/AU-Zenith.png",
+  "AU Zenith": "/legacy-assets/cards/AU-Zenith.png",
+  "AU Zenith Plus": "/legacy-assets/cards/AU-Zenith.png",
+  "ICICI Emeralde": "/legacy-assets/cards/icici-emeralde.png",
+  "SBI Miles": "/legacy-assets/cards/sbi-miles.png",
+};
 
 // ─── Card Promo data (for Home screen) ──────────────────────────────────────
 
-export const CARD_PROMO = {
-  name: cleanCardName(marketTop?.card_name || "HDFC Diners Black"),
-  image: marketTop?.card_bg_image || marketTop?.image || "",
-  savings: marketYearlySavings(marketTop),
-  cg_url: marketTop?.cg_network_url || "",
-  spending_breakdown: marketTop?.spending_breakdown,
-  milestone_benefits: marketTop?.milestone_benefits,
-  welcome_benefits: marketTop?.welcomeBenefits,
-  travel_benefits: marketTop?.travel_benefits,
-  total_extra_benefits: marketTop?.total_extra_benefits || 0,
-  annual_fee: marketTop?.annual_fees,
-  fee_waiver: marketTop?.annual_fee_spends,
-  product_usps: marketTop?.product_usps,
-};
+export const CARD_PROMO = selectCardPromoMetrics();
 
 // ─── BottomSheets card rate/best mappings ───────────────────────────────────
 

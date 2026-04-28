@@ -198,7 +198,7 @@ export default function App(){
     setGmailOtp(["","","",""]);
     // Honor the return target set by `startGmailFlow(returnTo)`.
     // (Onboarding wants to go through txn-eval/tools-intro; other entry points may return to home/detail.)
-    if(gmailReturnTo==="building") setScreen("txn-eval");
+    if(gmailReturnTo==="building"){setBuildPhase(3);setScreen("building");}
     else setScreen(gmailReturnTo);
   };
   const startGmailFlow=(returnTo)=>{

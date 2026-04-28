@@ -13,8 +13,6 @@ import { CardDetailV2 } from "./CardDetailV2";
 /* Feature flag — flip to false to revert to the legacy detail page */
 const USE_NEW_CARD_DETAIL = true;
 
-let bestCardsLogOnce=false;
-
 export const BestCardsScreen = () => {
   const {
     bestCardDetail, setBestCardDetail,
@@ -37,10 +35,6 @@ export const BestCardsScreen = () => {
     setShowGmailNudgeSheet,
     portfolioNew, setPortfolioNew, setPortfolioEntryCard,
   } = useAppContext();
-
-  if(!bestCardsLogOnce){
-    bestCardsLogOnce=true;
-  }
 
     const BEST_CARDS=LEGACY_BEST_CARDS;
     const bcFilterOpts=["All Cards","In Your Wallet","Lifetime Free","Invite Only"];
@@ -79,8 +73,7 @@ export const BestCardsScreen = () => {
     const getBC=(card:any)=>{
       const bd=card.spending_breakdown;
       if(!bd){
-        const base=card.savings||0;
-        return {milestone:0,shopping:Math.round(base*0.3),groceries:Math.round(base*0.1),food:Math.round(base*0.08),dining:Math.round(base*0.12),fuel:Math.round(base*0.05),flights:Math.round(base*0.15),hotels:Math.round(base*0.1),bills:Math.round(base*0.05),rent:Math.round(base*0.05),thisCard:base,onAxisFlipkart:0,onHSBCTravelOne:0,onHSBCLivePlus:0,combined:base};
+        return {milestone:0,shopping:0,groceries:0,food:0,dining:0,fuel:0,flights:0,hotels:0,bills:0,rent:0,thisCard:0,onAxisFlipkart:0,onHSBCTravelOne:0,onHSBCLivePlus:0,combined:0};
       }
       const catMap:Record<string,number>={};
       let thisCardTotal=0;

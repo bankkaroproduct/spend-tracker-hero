@@ -4,7 +4,7 @@ import { X, Clock, Gift, Mail, CreditCard, FileText, Sparkles, Lock, AlertTriang
 import { C, FN } from "@/lib/theme";
 import { f } from "@/lib/format";
 import { useAppContext } from "@/store/AppContext";
-import { SEMI_CARDS, ALL_TXNS, CAT_OPTIONS, BRAND_MAP, SIM_CARD_RATE, SIM_CARD_BASE_RATE, SIM_BEST_FOR, SIM_MARKET_BEST, computeTxnMissed, computeTxnMarketDelta, CD, CARDS } from "@/data/simulation/legacy";
+import { SEMI_CARDS, ALL_TXNS, CAT_OPTIONS, BRAND_MAP, SIM_CARD_RATE, SIM_CARD_BASE_RATE, SIM_BEST_FOR, SIM_MARKET_BEST, computeTxnMissed, computeTxnMarketDelta, CD, CARDS, CARD_IMG_MAP } from "@/data/simulation/legacy";
 import { USER_CARDS } from "@/data/simulation/inputs";
 import { SCENARIO_SAVED_COLOR, getTransactionScenario } from "@/data/simulation/txnScenario";
 
@@ -22,8 +22,7 @@ export function InfoBS(){
   return(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:100,padding:"0 16px 16px"}} onClick={e=>{if(e.target===e.currentTarget)setInfoSheet(null);}}><div style={{background:C.white,borderRadius:24,padding:"16px 28px 44px",maxWidth:400,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.12)"}}><div style={{width:36,height:4,borderRadius:2,background:"rgba(0,0,0,0.1)",margin:"0 auto 20px"}}/><div style={{fontSize:18,fontWeight:700,color:C.text,marginBottom:12}}>{infoSheet.title}</div><div style={{fontSize:13,color:C.sub,lineHeight:1.6,marginBottom:20,whiteSpace:"pre-line"}}>{infoSheet.desc}</div><button onClick={()=>setInfoSheet(null)} style={{width:"100%",padding:14,background:C.blue,color:"#fff",border:"none",borderRadius:10,boxShadow:"0 4px 20px rgba(0,0,0,0.08)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:FN}}>Got it</button></div></div>);
 }
 
-const CARD_IMG_MAP={"Axis Flipkart":"/legacy-assets/cards/axis-flipkart.png","HSBC Travel One":"/legacy-assets/cards/HSBC TravelOne Credit Card.png","HSBC Live+":"/legacy-assets/cards/hsbc-live.png","HDFC Infinia":"/legacy-assets/cards/hdfc-infinia.png","IDFC First Select":"/legacy-assets/cards/idfc select.png"};
-const fmtRate=(cardName,brand)=>{const r=SIM_CARD_RATE[cardName]?.[brand];const isPoints=cardName==="HSBC Travel One";if(!r)return isPoints?"1X REWARDS":"1% CASHBACK";return isPoints?Math.round(r/10)+"X REWARDS":Math.round(r)+"% CASHBACK";};
+const fmtRate=(cardName,brand)=>{const r=SIM_CARD_RATE[cardName]?.[brand];const isPoints=cardName==="HSBC Travel One";if(!r){const baseR=SIM_CARD_BASE_RATE[cardName]||0;return isPoints?Math.round(baseR/10)+"X REWARDS":Math.round(baseR)+"% CASHBACK";}return isPoints?Math.round(r/10)+"X REWARDS":Math.round(r)+"% CASHBACK";};
 const fmtBaseRate=(cardName)=>{const r=SIM_CARD_BASE_RATE[cardName]||1;const isPoints=cardName==="HSBC Travel One";return isPoints?Math.round(r/10)+"X BASE REWARDS":Math.round(r)+"% BASE CASHBACK";};
 const CARD_VIA_MAP={"Axis Flipkart Card":"Axis Flipkart","HSBC Travel One":"HSBC Travel One","HSBC Live+":"HSBC Live+"};
 const cardImgStyle={width:70.72,height:47.15,borderRadius:3.54,border:"0.29px solid rgba(255,255,255,0.2)",boxShadow:"0px 0.52px 1.31px rgba(20,21,72,0.2), 0px 2.62px 2.62px rgba(20,21,72,0.17), 0px 5.76px 3.41px rgba(20,21,72,0.1)",objectFit:"cover",flexShrink:0};

@@ -7,7 +7,8 @@ import { RBar } from "@/components/shared/Primitives";
 import { TxnRow } from "@/components/shared/TxnRow";
 import { TransactionRow, ActionBar, UnaccountedRow, groupByDate } from "@/features/legacy/LegacyShared";
 import { ActionCard } from "@/components/shared/ActionCard";
-import { CARDS, SEMI_CARDS, CD, CALC_CARDS, ALL_TXNS, br, ic, tg, BEST_FOR_BRAND, computeTxnMissed } from "@/data/simulation/legacy";
+import { CARDS, SEMI_CARDS, CD, CALC_CARDS, ALL_TXNS, br, ic, tg, BEST_FOR_BRAND } from "@/data/simulation/legacy";
+import { getTransactionScenario } from "@/data/simulation/txnScenario";
 import { useAppContext } from "@/store/AppContext";
 import { NavBar as NavBarShared } from "@/components/shared/NavBar";
 import { CardAnalysisFigma } from "./CardAnalysisFigma";
@@ -124,7 +125,7 @@ export function CardDetailScreen(){
     if(!best||t.unaccounted)return t;
     const isOptimal=cardUsed===best;
     if(isOptimal)return{...t,tag:"Best card for this brand",tagColor:C.dkGreen,tagBg:"#EAF3DE"};
-    const missedAmt=computeTxnMissed(t);
+    const missedAmt=getTransactionScenario(t).walletDelta;
     return{...t,tag:"Use "+best+" — saves ₹"+missedAmt,tagColor:C.orange,tagBg:"#FAEEDA",missed:missedAmt};
   });
   const visibleTxns=cardTxns.slice(0,txnPage*20);

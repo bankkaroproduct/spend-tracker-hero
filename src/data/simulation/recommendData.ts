@@ -10,7 +10,52 @@ function parseMoney(s: any): number {
   return cleaned ? Math.round(parseFloat(cleaned)) : 0;
 }
 
-const enriched = (fixtureData.recommendations || []).map((card: any) => {
+function normalizeProductRules(card: any) {
+  const alias = String(card.card_alias || card.seo_card_alias || "").toLowerCase();
+  if (!alias.includes("hdfc-diners-club-black-metal")) return card;
+
+  return {
+    ...card,
+    card_max_cap: "75000",
+    welcomeBenefits: [
+      ...(Array.isArray(card.welcomeBenefits) ? card.welcomeBenefits : []),
+      {
+        description: "Spend ₹1,50,000 within 90 days and get ₹25,000 worth of vouchers from Club Marriott, Amazon Prime, and Swiggy One.",
+        voucher_bonus: "25000",
+        cash_value: 25000,
+        minimum_spend: 150000,
+        maximum_days: 90,
+      },
+    ],
+    milestone_benefits: [
+      ...(Array.isArray(card.milestone_benefits) ? card.milestone_benefits : []),
+      {
+        minSpend: 400000,
+        minimum_spend: 400000,
+        max_days: 90,
+        reward: "10,000 Reward Points",
+        value: 10000,
+      },
+    ],
+    travel_benefits: {
+      ...(card.travel_benefits || {}),
+      domestic_lounge_access: "Unlimited complimentary domestic lounge access",
+      international_lounge_access: "Unlimited complimentary international lounge access",
+    },
+    food_dining_benefits: [
+      ...(Array.isArray(card.food_dining_benefits) ? card.food_dining_benefits : []),
+      {
+        offer: "10% dining discount",
+        frequency: "1 time per month",
+        minimum_order_value: 3000,
+        max_discount: 800,
+      },
+    ],
+  };
+}
+
+const enriched = (fixtureData.recommendations || []).map((rawCard: any) => {
+  const card = normalizeProductRules(rawCard);
   const bd = card.spending_breakdown || {};
   const totalMonthly = Object.values(bd).reduce((s: number, b: any) => s + (b?.savings || 0), 0);
   const totalYearly = Math.round(totalMonthly * 12);

@@ -10,8 +10,7 @@ import {
   GmailNudgeSheet, RetroOverlay, VoiceFlowOverlay, CapBS, CatBS, FilterSheet,
 } from "@/components/sheets/BottomSheets";
 import { ActionsConsiderScreen } from "./ActionsConsiderScreen";
-import { ACTIONS_DATA as SIM_ACTIONS_DATA } from "@/data/simulation/legacy";
-
+import { selectActionsMetrics } from "@/data/simulation/metrics";
 const USE_NEW_FLOW = true;
 
 const TABS = [
@@ -21,7 +20,6 @@ const TABS = [
   { key: "milestone", label: "Milestones" },
 ];
 
-const ACTIONS_DATA = SIM_ACTIONS_DATA;
 
 function matchesTab(action, tab) {
   if (tab === "All") return true;
@@ -51,6 +49,7 @@ export const ActionsScreen = () => {
   } = useAppContext();
 
   const selectedTab = TABS.some((t) => t.key === actFilter) ? actFilter : "All";
+  const ACTIONS_DATA = selectActionsMetrics();
   const filtered = ACTIONS_DATA.filter((a) => matchesTab(a, selectedTab));
 
   const handleAction = (action) => {

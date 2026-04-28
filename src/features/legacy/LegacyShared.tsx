@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CreditCard, Gauge, Receipt, Trophy, Plane, Sparkles } from "lucide-react";
 import { SCENARIO_PILL, SCENARIO_SAVED_COLOR, tagText } from "@/data/simulation/txnScenario";
-import { SAVINGS_BARS } from "@/data/simulation/legacy";
+import { SAVINGS_BARS, SPEND_CATS, SPEND_BRANDS, TOTAL_ACC } from "@/data/simulation/legacy";
 
 // ───────────────────────────────────────────────────────────────────────────
 // SAVINGS BREAKDOWN — shared (i) tooltip + bottom-sheet that explains a single
@@ -593,12 +593,13 @@ export function TransactionAnalysis({ timeWindow = "Last 365 Days" }) {
   const [days, setDays] = useState(365);
   const factor = days / 365;
   const fmt = (n) => "₹" + n.toLocaleString("en-IN");
-  const CURRENT_365 = 20845;
-  const IDEAL_365 = 40000;
+  const CURRENT_365 = SAVINGS_BARS.bar1;
+  const IDEAL_365 = SAVINGS_BARS.bar3;
   const currentSavings = Math.round(CURRENT_365 * factor);
   const idealSavings = Math.round(IDEAL_365 * factor);
-  const orangeH = Math.max(12, Math.round(50 * factor));
-  const greenH = Math.max(20, Math.round(140 * factor));
+  const maxSavings = Math.max(IDEAL_365, CURRENT_365, 1);
+  const orangeH = Math.max(12, Math.round((currentSavings / maxSavings) * 140));
+  const greenH = Math.max(20, Math.round((idealSavings / maxSavings) * 140));
   const orangeLabelTop = 220 - orangeH - 46;
   const greenLabelTop = 220 - greenH - 46;
   return (
@@ -630,31 +631,9 @@ export function CardPromo({ onClick }) {
 }
 
 // 12 canonical categories — Friends and Family included (spend-analysis only).
-// Σ = ₹15,40,250  (matches the home Spend Analysis "Total Accounted Spends").
-const categoryData = [
-  { name: "Shopping",           pct: 25, amount: "₹3,85,000" },
-  { name: "Groceries",          pct: 15, amount: "₹2,30,000" },
-  { name: "Bills",              pct: 12, amount: "₹1,84,830" },
-  { name: "Food Ordering",      pct:  9, amount: "₹1,38,622" },
-  { name: "Flights",            pct:  7, amount: "₹1,07,818" },
-  { name: "Friends and Family", pct:  6, amount: "₹92,415" },
-  { name: "Dining Out",         pct:  6, amount: "₹92,415" },
-  { name: "Hotels",             pct:  5, amount: "₹77,012" },
-  { name: "Insurance",          pct:  5, amount: "₹77,013" },
-  { name: "Fuel",               pct:  4, amount: "₹61,610" },
-  { name: "Rent",               pct:  4, amount: "₹61,610" },
-  { name: "Entertainment",      pct:  2, amount: "₹30,805" },
-];
-
-const brandData = [
-  { name: "Amazon", pct: 28, amount: "₹4,31,270" },
-  { name: "Flipkart", pct: 19, amount: "₹2,92,647" },
-  { name: "BigBasket", pct: 14, amount: "₹2,15,635" },
-  { name: "Swiggy", pct: 11, amount: "₹1,69,427" },
-  { name: "Zomato", pct: 9, amount: "₹1,38,622" },
-  { name: "MakeMyTrip", pct: 7, amount: "₹1,07,818" },
-  { name: "Others", pct: 12, amount: "₹1,84,830" },
-];
+// Matches the home Spend Analysis "Total Accounted Spends".
+const categoryData = SPEND_CATS.map(c => ({ name: c.name, pct: c.pct || 0, amount: "₹" + c.amt.toLocaleString("en-IN") }));
+const brandData = SPEND_BRANDS.map(b => ({ name: b.name, pct: b.pct || 0, amount: "₹" + b.amt.toLocaleString("en-IN") }));
 
 // Unified category icon helper — points to the new /cdn/categories/<Name>.webp set.
 // All 12 canonical categories supported (incl. Friends and Family for spend-analysis).
@@ -716,7 +695,7 @@ function CategoryIcon({ kind }) {
 }
 
 const TIME_WINDOW_OPTIONS = [30, 60, 90, 120, 240, 365];
-const SPEND_TOTAL_365 = 1540250; // baseline annual total for scaling
+const SPEND_TOTAL_365 = TOTAL_ACC; // dynamically sourced from engine
 
 export function SpendAnalysis({ timeWindow = "Last 365 Days", initialTab = "Categories" }) {
   const [tab, setTab] = useState(initialTab);
@@ -1123,19 +1102,19 @@ export function HeroSection({ onOpenOptimize, onOpenCards, onOpenCard, onAddCard
       </div>
       {/* Headline — Figma top 178, 309×60, Blacklist 22px line 135% #EAEDF7 */}
       <div style={{ padding: "39px 16px 0", color: "#EAEDF7", fontFamily: "'Google Sans', system-ui, sans-serif", fontSize: 20, lineHeight: 1.55, fontWeight: 700, maxWidth: 360 }}>
-        You can save upto <span style={{ color: "#72ca46" }}>₹90,000/yr</span> in credit card savings
+        You can save upto <span style={{ color: "#72ca46" }}>₹{(SAVINGS_BARS.bar3).toLocaleString("en-IN")}/yr</span> in credit card savings
       </div>
       {/* Savings chart — bars start ~ top 310 / 397, badges floating above */}
       <div style={{ position: "relative", height: 196, marginTop: 19 }}>
         <div style={{ position: "absolute", left: 132, top: 84, width: 100, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, zIndex: 3 }}>
           <span style={{ fontSize: 10, color: "rgba(255,255,255,0.6)" }}>You saved</span>
-          <span style={{ fontSize: 13, color: "#6dad65", fontWeight: 600 }}>₹20,000/yr</span>
+          <span style={{ fontSize: 13, color: "#6dad65", fontWeight: 600 }}>₹{(SAVINGS_BARS.bar1).toLocaleString("en-IN")}/yr</span>
         </div>
         <div style={{ position: "absolute", right: 32, top: 8, width: 100, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, zIndex: 3 }}>
           <span style={{ fontSize: 10, color: "rgba(255,255,255,0.6)" }}>You could save</span>
-          <span style={{ fontSize: 13, color: "#72ca46", fontWeight: 600 }}>₹90,000/yr</span>
+          <span style={{ fontSize: 13, color: "#72ca46", fontWeight: 600 }}>₹{(SAVINGS_BARS.bar3).toLocaleString("en-IN")}/yr</span>
         </div>
-        <div style={{ position: "absolute", left: 132, bottom: 18, width: 100, height: 50, borderRadius: "8px 8px 0 0", background: "linear-gradient(180deg, #158000 0%, #144408 100%)", boxShadow: "inset 0 1px 4px 2px rgba(217,255,240,0.52)", transformOrigin: "bottom", animation: "legacy-growY 600ms ease-out 100ms backwards" }} />
+        <div style={{ position: "absolute", left: 132, bottom: 18, width: 100, height: Math.max(10, Math.round((SAVINGS_BARS.bar1 / SAVINGS_BARS.bar3) * 125)), borderRadius: "8px 8px 0 0", background: "linear-gradient(180deg, #158000 0%, #144408 100%)", boxShadow: "inset 0 1px 4px 2px rgba(217,255,240,0.52)", transformOrigin: "bottom", animation: "legacy-growY 600ms ease-out 100ms backwards" }} />
         <div style={{ position: "absolute", right: 32, bottom: 18, width: 100, height: 125, borderRadius: "8px 8px 0 0", background: "linear-gradient(180deg, #72ca46 0%, #00c278 100%)", boxShadow: "0 4px 5px rgba(0,229,141,0.15), 0 10px 13px rgba(0,229,141,0.22), inset 0 1px 4px 2px rgba(217,255,240,1), inset 0 1px 18px 2px rgba(217,255,240,1)", animation: "legacy-growY 700ms ease-out 350ms backwards, legacy-glowPulse 3.2s ease-in-out 1.2s infinite", transformOrigin: "bottom" }} />
         <div style={{ position: "absolute", left: 16, right: 16, bottom: -10, height: 48 }}>
           <div onClick={onOpenOptimize} className="legacy-tap" style={{ width: "100%", height: "100%", borderRadius: 10, background: "radial-gradient(circle at 30% 40%, #1a2707 0%, #0e0f13 80%)", boxShadow: "9px 9px 14px -2.5px rgba(0,0,0,0.2), 3.8px 3.8px 5.4px -2px rgba(0,0,0,0.19), 1.7px 1.7px 2.5px -1.5px rgba(0,0,0,0.23), inset -0.6px -0.6px 0.6px 0 rgba(0,0,0,0.23), inset 0.6px 0.6px 0.6px 0 rgba(255,255,255,0.7)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "rgb(232,232,232)", fontWeight: 700, fontSize: 12 }}>

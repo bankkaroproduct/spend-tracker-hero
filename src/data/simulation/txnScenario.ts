@@ -3,7 +3,7 @@
 // Returns one of S1, S2, S3, S4, S5a, S5b, S5c, or S6.
 
 import { USER_CARDS, BUCKET_TO_MERCHANT } from "./inputs";
-import { calculateResponses, getEligibleMarketCards } from "./mockApi";
+import { calculateResponses, getEligibleMarketCards, getCardRewardForSpend, getBestCardForSpend } from "./mockApi";
 
 const CARD_IMG_MAP: Record<string, string> = {
   "Axis Flipkart": "/legacy-assets/cards/axis-flipkart.png",
@@ -67,6 +67,10 @@ function monthlySpendFor(bucket: string): number {
 
 function walletSavingsFor(cardIndex: number, bucket: string): number {
   return Number(calculateResponses[cardIndex]?.spending_breakdown?.[bucket]?.savings) || 0;
+}
+
+function walletSavingsForTxn(cardIndex: number, amount: number, bucket: string, merchant?: string): number {
+  return Number(getCardRewardForSpend(cardIndex, amount, bucket, merchant).savings) || 0;
 }
 
 function bestWalletFor(bucket: string): { cardIndex: number; savings: number } {
@@ -144,7 +148,7 @@ function walletCardRef(cardIndex: number, bucket: string, monthlySpend: number, 
   const card = USER_CARDS[cardIndex];
   if (!card) return null;
   const name = displayCardName(card.name);
-  const breakdown = calculateResponses[cardIndex]?.spending_breakdown?.[bucket];
+  const breakdown = { spend: monthlySpend, savings: monthlySavings, savings_type: card.savings_type };
   return {
     id: card.card_alias || comparableCardName(name),
     name,
@@ -197,18 +201,18 @@ export function getTransactionScenario(txn: any): TxnScenario {
   const proRate = monthlySpend > 0 ? amt / monthlySpend : 0;
   if (proRate <= 0) return emptyScenario("S6", isUPI);
 
-  const wallet = bestWalletFor(bucket);
+  const wallet = getBestCardForSpend(amt, bucket, txn.brand);
   const market = bestNonOwnedMarketFor(bucket);
   const cardIdx = typeof txn.card_index === "number" ? txn.card_index : null;
-  const actualSavingsMonthly = !isUPI && cardIdx != null ? walletSavingsFor(cardIdx, bucket) : 0;
+  const actualSavingsTxn = !isUPI && cardIdx != null ? walletSavingsForTxn(cardIdx, amt, bucket, txn.brand) : 0;
 
-  const actualSavings = Math.round(actualSavingsMonthly * proRate);
-  const bestWalletSavings = Math.round(wallet.savings * proRate);
+  const actualSavings = Math.round(actualSavingsTxn);
+  const bestWalletSavings = Math.round(wallet.savings);
   const bestMarketSavings = Math.round(market.savings * proRate);
   const bestOverallSavings = Math.max(bestWalletSavings, bestMarketSavings);
 
-  const cardUsed = cardIdx != null ? walletCardRef(cardIdx, bucket, monthlySpend, actualSavingsMonthly) : null;
-  const bestWalletCard = walletCardRef(wallet.cardIndex, bucket, monthlySpend, wallet.savings);
+  const cardUsed = cardIdx != null ? walletCardRef(cardIdx, bucket, amt, actualSavingsTxn) : null;
+  const bestWalletCard = walletCardRef(wallet.cardIndex, bucket, amt, wallet.savings);
   const bestMarketCard = marketCardRef(market.card, bucket, monthlySpend, market.savings);
   const bestOverallCard = bestMarketSavings > bestWalletSavings ? bestMarketCard : bestWalletCard;
   const worthAddingCard = bestMarketCard && bestMarketSavings > bestWalletSavings ? bestMarketCard : null;

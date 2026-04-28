@@ -10,6 +10,7 @@ import {
   calculateResponses, recommendResponse,
   getBucketSavings, getBestCardForBucket, getBestMarketCardForBucket,
   getEligibleMarketCards, getFirstEligibleMarketCard,
+  getCardRewardForSpend, getBestCardForSpend,
 } from "./mockApi";
 import {
   Clock, Gift, CreditCard, Star, AlertTriangle, Home, Wallet, Mail,
@@ -42,7 +43,7 @@ const TXN_BUCKETS = ALL_INPUT_BUCKETS.filter(b => !LOUNGE_BUCKETS.includes(b));
 
 function monthsElapsedInCardYear(activationDate: string): number {
   const act = new Date(activationDate);
-  const now = new Date("2026-04-26");
+  const now = new Date();
   const lastAnniversary = new Date(act);
   lastAnniversary.setFullYear(now.getFullYear());
   if (lastAnniversary > now) lastAnniversary.setFullYear(now.getFullYear() - 1);
@@ -146,23 +147,18 @@ export function computeCombinedSavings(topN: number = 2): number {
 
 export function computeTxnSaved(txn: any): number {
   if (!txn.bucket) return 0;
-  const bucketSpend = getMonthlySpend(txn.bucket);
-  if (bucketSpend <= 0) return 0;
   const cardIdx = txn.card_index ?? ACTUAL_CARD_USAGE[txn.bucket] ?? 0;
-  const bucketSavings = getBucketSavings(cardIdx, txn.bucket);
-  return Math.round((txn.amt / bucketSpend) * bucketSavings);
+  return Math.round(getCardRewardForSpend(cardIdx, txn.amt || 0, txn.bucket, txn.brand).savings);
 }
 
 export function computeTxnMissed(txn: any): number {
   if (!txn.bucket) return 0;
-  const bucketSpend = getMonthlySpend(txn.bucket);
-  if (bucketSpend <= 0) return 0;
   const cardIdx = txn.card_index ?? ACTUAL_CARD_USAGE[txn.bucket] ?? 0;
-  const actual = getBucketSavings(cardIdx, txn.bucket);
-  const best = getBestCardForBucket(txn.bucket).savings;
+  const actual = getCardRewardForSpend(cardIdx, txn.amt || 0, txn.bucket, txn.brand).savings;
+  const best = getBestCardForSpend(txn.amt || 0, txn.bucket, txn.brand).savings;
   const delta = best - actual;
   if (delta <= 0) return 0;
-  return Math.round((txn.amt / bucketSpend) * delta);
+  return Math.round(delta);
 }
 
 export function computeTxnMarketDelta(txn: any): number {
@@ -180,16 +176,16 @@ export function computeTxnMarketDelta(txn: any): number {
 // ─── 3B. Transaction Generator ─────────────────────────────────────────────
 
 function computeTag(bucket: string, cardIdx: number, amt: number, brand: string) {
-  const bestOwned = getBestCardForBucket(bucket);
+  const bestOwned = getBestCardForSpend(amt, bucket, brand);
   const bestMarket = getBestMarketCardForBucket(bucket);
   const bucketSpend = getMonthlySpend(bucket);
-  const actualSavings = getBucketSavings(cardIdx, bucket);
+  const actualSavings = getCardRewardForSpend(cardIdx, amt, bucket, brand).savings;
 
   if (cardIdx === bestOwned.cardIndex) {
     return { t: "Best card for this brand", c: C.dkGreen, bg: "#EAF3DE" };
   }
 
-  const ownedDelta = bucketSpend > 0 ? r2((amt / bucketSpend) * (bestOwned.savings - actualSavings)) : 0;
+  const ownedDelta = r2(bestOwned.savings - actualSavings);
   if (ownedDelta > 0) {
     return {
       t: "Use " + USER_CARDS[bestOwned.cardIndex].name + " — saves ₹" + Math.round(ownedDelta),
@@ -199,7 +195,7 @@ function computeTag(bucket: string, cardIdx: number, amt: number, brand: string)
   }
 
   // Check market card uplift
-  const marketDelta = bucketSpend > 0 ? r2((amt / bucketSpend) * (bestMarket.savings - actualSavings)) : 0;
+  const marketDelta = bucketSpend > 0 ? r2((amt / bucketSpend) * bestMarket.savings - actualSavings) : 0;
   if (marketDelta > 5 && bestMarket.cardName) {
     return {
       t: "★ Get " + bestMarket.cardName + " & earn ₹" + Math.round(marketDelta) + " more",
@@ -303,12 +299,11 @@ export function generateTransactions(): any[] {
     let missed: number | null = null;
 
     if (!isUnaccounted && !isUPI) {
-      saved = bucketSpend > 0 ? Math.round((amt / bucketSpend) * getBucketSavings(cardIdx, chosen)) : 0;
-      const bestOwned = getBestCardForBucket(chosen);
-      if (bestOwned.cardIndex !== cardIdx && bestOwned.savings > getBucketSavings(cardIdx, chosen)) {
-        missed = bucketSpend > 0
-          ? Math.round((amt / bucketSpend) * (bestOwned.savings - getBucketSavings(cardIdx, chosen)))
-          : 0;
+      const actualTxnSavings = getCardRewardForSpend(cardIdx, amt, chosen, merchant).savings;
+      const bestOwned = getBestCardForSpend(amt, chosen, merchant);
+      saved = Math.round(actualTxnSavings);
+      if (bestOwned.cardIndex !== cardIdx && bestOwned.savings > actualTxnSavings) {
+        missed = Math.round(bestOwned.savings - actualTxnSavings);
         if (missed <= 0) missed = null;
       }
     }
@@ -824,7 +819,7 @@ export function computeCardDetail(cardIndex: number): any {
 
   // Welcome status — check activation date vs today (2026-04-26)
   const activationDate = new Date(card.activation_date);
-  const now = new Date("2026-04-26");
+  const now = new Date();
   const daysSinceActivation = Math.floor((now.getTime() - activationDate.getTime()) / 86400000);
   const welcomeStatus = daysSinceActivation <= (card.welcome_benefits.maximum_days || 30) ? "Pending" : "Claimed";
 

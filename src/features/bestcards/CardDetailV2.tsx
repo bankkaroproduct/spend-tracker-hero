@@ -1,88 +1,15 @@
 // @ts-nocheck
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { ChevronLeft, Star, Lock, ChevronRight as ChevR, CreditCard, Check } from "lucide-react";
 import { FN } from "@/lib/theme";
 import { f } from "@/lib/format";
 import { FL } from "@/components/shared/FontLoader";
 import { SavingsInfoIcon, SavingsBreakdownSheet } from "@/features/legacy/LegacyShared";
+import { selectPortfolioMetrics, CARD_IMG_MAP as IMG } from "@/data/simulation/legacy";
 
-/* Image map for known cards (falls back to gradient placeholder otherwise) */
-const IMG: Record<string,string> = {
-  "HDFC Infinia":"/legacy-assets/cards/hdfc-infinia.png",
-  "IDFC First Classic":"/legacy-assets/cards/idfc-select.png",
-  "Amex MRCC":"/legacy-assets/cards/amex-platinum-travel.png",
-  "HDFC Regalia":"/legacy-assets/cards/hdfc-infinia.png",
-  "Axis Flipkart":"/legacy-assets/cards/axis-flipkart.png",
-  "HSBC Live+":"/legacy-assets/cards/hsbc-live.png",
-  "HSBC Travel One":"/legacy-assets/cards/hsbc-travel-one.png",
-  "Amex Travel Platinum":"/legacy-assets/cards/amex-platinum-travel.png",
-};
+/* WALLET and CATEGORIES are now computed dynamically from selectPortfolioMetrics().
+   See the useMemo block inside the component. */
 
-/* Wallet (existing user cards) — single source of truth.
-   Per-card spend & save are calibrated so the four rows tally to the
-   stacked-bar segments and the headline "Save Upto" exactly. */
-const WALLET = [
-  // Each card carries a `breakdown` whose tally always satisfies:
-  //   save = savingsOnSpends + milestoneBenefits − annualFee
-  // The (i) tooltip in the spends-distribution rows opens a sheet that shows
-  // this tally per card.
-  {name:"Amex Travel Platinum", spend:800000, save:50000, pct:50, c1:"#583598", c2:"#9359FE", tags:["Bills","Food Ordering","Dining Out","Flights"],
-    last4:"NEW CARD", newCard:true, breakdown:{savingsOnSpends:43000, milestoneBenefits:8000, annualFee:1000}},
-  {name:"Axis Flipkart",        spend:400000, save:20000, pct:25, c1:"#117E47", c2:"#0AA759", tags:["Shopping"],
-    last4:"XXXX 2355", breakdown:{savingsOnSpends:18000, milestoneBenefits:3000, annualFee:1000}},
-  {name:"HSBC Live+",           spend:200000, save:10000, pct:13, c1:"#4C98F4", c2:"#0862CF", tags:["Groceries","Hotels"],
-    last4:"XXXX 9945", breakdown:{savingsOnSpends:8500, milestoneBenefits:2000, annualFee:500}},
-  {name:"HSBC Travel One",      spend:200000, save:10000, pct:12, c1:"#EB8807", c2:"#FCAA3F", tags:["Flights","Hotels"],
-    last4:"XXXX 7891", breakdown:{savingsOnSpends:8500, milestoneBenefits:3000, annualFee:1500}},
-];
-const TOTAL_SPEND = WALLET.reduce((s,w)=>s+w.spend,0);              // 16,00,000
-const TOTAL_SAVE  = WALLET.reduce((s,w)=>s+w.save,0);               // 90,000
-
-/* Per-category breakdown for the "Cards Usage" section.
-   `share` percentages within each category MUST sum to 100. */
-// 11 card-usable categories + Milestones. Friends and Family is excluded —
-// no card maps to it. Per-category `share` percentages within each category MUST
-// sum to 100. Σ spend ≈ ₹16,00,000 / Σ save ≈ ₹85,500 (matches WALLET sums).
-const CATEGORIES = [
-  {key:"Milestones", icon:"⭐", color:"#FFD82C"},
-  {key:"Shopping",   icon:"/cdn/categories/Shopping.webp", color:"#3B82F6", spend:400000, save:20000, cards:[
-    {name:"Axis Flipkart", spend:340000, share:85, caption:"Gives 5% Cashback",              c1:"#117E47", c2:"#0AA759"},
-    {name:"HSBC Live+",    spend: 60000, share:15, caption:"4 Reward points per ₹100 spent", c1:"#4C98F4", c2:"#0862CF"},
-  ]},
-  {key:"Groceries",  icon:"/cdn/categories/Groceries.webp", color:"#16A34A", spend:200000, save:10000, cards:[
-    {name:"HSBC Live+",    spend:140000, share:70, caption:"3% Cashback on groceries",     c1:"#4C98F4", c2:"#0862CF"},
-    {name:"Axis Flipkart", spend: 60000, share:30, caption:"4% on Big Basket",              c1:"#117E47", c2:"#0AA759"},
-  ]},
-  {key:"Dining Out", icon:"/cdn/categories/Dining Out.webp", color:"#F472B6", spend:140000, save:9000, cards:[
-    {name:"Amex Travel Platinum", spend:140000, share:100, caption:"5X MR on dining",        c1:"#583598", c2:"#9359FE"},
-  ]},
-  {key:"Food Ordering", icon:"/cdn/categories/Food Ordering.webp", color:"#F97316", spend:120000, save:5400, cards:[
-    {name:"Amex Travel Platinum", spend:120000, share:100, caption:"3X MR on food apps",    c1:"#583598", c2:"#9359FE"},
-  ]},
-  {key:"Bills",      icon:"/cdn/categories/Bills.webp",     color:"#F59E0B", spend:180000, save:7200, cards:[
-    {name:"Amex Travel Platinum", spend:180000, share:100, caption:"2X MR points on bills", c1:"#583598", c2:"#9359FE"},
-  ]},
-  {key:"Fuel",       icon:"/cdn/categories/Fuel.webp",      color:"#EF4444", spend:96000, save:3800, cards:[
-    {name:"Amex Travel Platinum", spend:96000,  share:100, caption:"Fuel surcharge waiver", c1:"#583598", c2:"#9359FE"},
-  ]},
-  {key:"Flights",    icon:"/cdn/categories/Flights.webp",   color:"#06B6D4", spend:180000, save:14400, cards:[
-    {name:"HSBC Travel One", spend:120000, share:67, caption:"4X on flights via SmartBuy",  c1:"#EB8807", c2:"#FCAA3F"},
-    {name:"Amex Travel Platinum", spend: 60000, share:33, caption:"Lounge + 5X on travel",  c1:"#583598", c2:"#9359FE"},
-  ]},
-  {key:"Hotels",     icon:"/cdn/categories/Hotels.webp",    color:"#0EA5E9", spend:130000, save:6500, cards:[
-    {name:"HSBC Travel One", spend: 80000, share:62, caption:"3X on hotels via SmartBuy",   c1:"#EB8807", c2:"#FCAA3F"},
-    {name:"HSBC Live+",      spend: 50000, share:38, caption:"Lounge access at ₹1.5K trip", c1:"#4C98F4", c2:"#0862CF"},
-  ]},
-  {key:"Entertainment", icon:"/cdn/categories/Entertainment.webp", color:"#A855F7", spend:60000, save:3000, cards:[
-    {name:"Axis Flipkart", spend: 60000, share:100, caption:"4% on PVR/Bookmyshow",          c1:"#117E47", c2:"#0AA759"},
-  ]},
-  {key:"Rent",       icon:"/cdn/categories/Rent.webp",      color:"#94A3B8", spend:140000, save:0, cards:[
-    {name:"—",          spend:0,    share:100, caption:"No card rewards rent",                c1:"#94A3B8", c2:"#475569"},
-  ]},
-  {key:"Insurance",  icon:"/cdn/categories/Insurance.webp", color:"#6366F1", spend:154000, save:6200, cards:[
-    {name:"HSBC Travel One", spend:154000, share:100, caption:"0.67% base earn",            c1:"#EB8807", c2:"#FCAA3F"},
-  ]},
-];
 
 /* Milestone benefits — green-bordered cards with claimable badge or lock state */
 const MILESTONES = [
@@ -197,14 +124,12 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
   const [period, setPeriod] = useState<"monthly"|"yearly">("monthly");
   // Per-row savings-breakdown bottom sheet (opened from the (i) icon).
   const [breakdownOpen, setBreakdownOpen] = useState<any>(null);
+  const portfolio = useMemo(() => selectPortfolioMetrics([card.name]), [card.name]);
+  const WALLET = portfolio.cards;
+  const CATEGORIES = [{key:"Milestones", icon:"⭐"}, ...portfolio.categories];
   const cat = CATEGORIES.find(c=>c.key===activeCat) || CATEGORIES[1];
   const cardImg = IMG[card.name];
-  const headlineSave = card.savings || 40000;
-  /* Scale per-card saves so the row totals tally to headline exactly.
-     Last row absorbs any rounding drift so Σ saves === headlineSave. */
-  const SAVE_BASE = 90000; // base sum of WALLET[*].save
-  const scaledSaves = WALLET.map((w,i)=>i===WALLET.length-1?0:Math.round(w.save*headlineSave/SAVE_BASE));
-  scaledSaves[WALLET.length-1] = headlineSave - scaledSaves.reduce((s,v)=>s+v,0);
+  const headlineSave = portfolio.totalSavings;
 
   /* Compute spotlight rectangle left position based on active category */
   const catWidth = (k:string) => k==="Milestones"?72:k==="Shopping"?82:75;
@@ -213,6 +138,8 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
   for (let j=0; j<activeIdx; j++) spotlightLeft += catWidth(CATEGORIES[j].key) + 2;
   // Center the 78px rectangle within the active tile
   spotlightLeft += (catWidth(activeCat) - 78) / 2;
+
+  const totalSpend = portfolio.totalSpend;
 
   /* Sticky footer appears only after the top Apply Now button scrolls out of view */
   const topApplyRef = useRef<HTMLButtonElement>(null);
@@ -299,7 +226,7 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
             <div style={{padding:"12px 17px", display:"flex", flexDirection:"column", gap:12, alignItems:"center"}}>
               <div style={{width:"100%", padding:"0 4px", display:"flex", justifyContent:"space-between", boxSizing:"border-box"}}>
                 <span style={TINY_LABEL}>Total spends</span>
-                <span style={{...TINY_LABEL, fontWeight:700}}>₹{f(TOTAL_SPEND)}</span>
+                <span style={{...TINY_LABEL, fontWeight:700}}>₹{f(totalSpend)}</span>
               </div>
               <div style={{width:"100%", height:56, background:"#FFFFFF", borderRadius:12, padding:4, display:"flex", gap:4, boxShadow:"inset 0 0.9px 1.8px rgba(0,0,0,0.15), inset 0.9px -1.8px 1.8px rgba(0,0,0,0.08)", boxSizing:"border-box"}}>
                 {WALLET.map((w,i)=>(
@@ -344,16 +271,8 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
                     </div>
                     {/* Right: save + (i) tooltip */}
                     <span style={{display:"inline-flex", alignItems:"center", whiteSpace:"nowrap"}}>
-                      <span style={{fontFamily:FN, fontSize:14, fontWeight:500, lineHeight:"145%", color:"#139366"}}>Save ₹{f(scaledSaves[i])}</span>
+                      <span style={{fontFamily:FN, fontSize:14, fontWeight:500, lineHeight:"145%", color:"#139366"}}>Save ₹{f(w.save)}</span>
                       {w.breakdown && (() => {
-                        // Keep annualFee fixed and split the remainder (save + fee) between
-                        // SoS and milestone in their original ratio so the tally always
-                        // reconciles to the displayed Save.
-                        const fee = w.breakdown.annualFee;
-                        const ratioSoS = w.breakdown.savingsOnSpends / (w.breakdown.savingsOnSpends + w.breakdown.milestoneBenefits);
-                        const remainder = scaledSaves[i] + fee;
-                        const sos = Math.round(remainder * ratioSoS);
-                        const ms = remainder - sos;
                         return (
                           <SavingsInfoIcon onClick={(e: any) => { e.stopPropagation(); setBreakdownOpen({
                             cardName: (w.name + " Credit Card").toUpperCase(),
@@ -361,10 +280,10 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
                             cardImg: wImg || IMG[w.name],
                             newCard: !!w.newCard,
                             spend: "₹" + f(w.spend) + " / yr",
-                            save: "₹" + f(scaledSaves[i]) + "/yr",
-                            savingsOnSpends: sos,
-                            milestoneBenefits: ms,
-                            annualFee: fee,
+                            save: "₹" + f(w.save) + "/yr",
+                            savingsOnSpends: w.breakdown.savingsOnSpends,
+                            milestoneBenefits: w.breakdown.milestoneBenefits,
+                            annualFee: w.breakdown.annualFee,
                           }); }} />
                         );
                       })()}
@@ -384,7 +303,7 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
             <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"16px", background:"linear-gradient(90deg, #F5F9FA 0%, #F0FFEB 100%)", borderTop:"1px solid rgba(19,147,102,0.2)", borderBottom:"1px solid rgba(19,147,102,0.2)"}}>
               <div style={{display:"flex", alignItems:"baseline", gap:4}}>
                 <span style={{fontFamily:FN, fontSize:14, fontWeight:500, lineHeight:"140%", letterSpacing:"-0.01em", color:"rgba(54,64,96,0.6)"}}>Total:</span>
-                <span style={{fontFamily:FN, fontSize:14, fontWeight:700, lineHeight:"150%", letterSpacing:"-0.01em", color:"#364060"}}>₹{f(TOTAL_SPEND)}/yr</span>
+                <span style={{fontFamily:FN, fontSize:14, fontWeight:700, lineHeight:"150%", letterSpacing:"-0.01em", color:"#364060"}}>₹{f(totalSpend)}/yr</span>
               </div>
               <span style={{fontFamily:FN, fontSize:14, fontWeight:700, lineHeight:"100%", color:"#139366"}}>₹{f(headlineSave)}/yr</span>
             </div>
@@ -448,9 +367,9 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
                 <span style={{fontFamily:FN, fontSize:14, fontWeight:500, lineHeight:"16px", color:"rgba(54,64,96,0.8)", textAlign:"center"}}>Save Upto</span>
                 <div style={{display:"flex", justifyContent:"center", alignItems:"flex-start", gap:4, marginTop:4}}>
                   <span style={{fontFamily:"'IBM Plex Serif',Georgia,serif", fontSize:30, fontWeight:700, lineHeight:"110%", color:"#146CD5"}}>₹</span>
-                  <span className="legacy-serif" style={{fontFamily:"'Blacklist','Google Sans',serif", fontSize:32, fontWeight:800, lineHeight:"120%", letterSpacing:"0.02em", color:"#146CD5"}}>{f(cat.save || 0)}/yr</span>
+                  <span className="legacy-serif" style={{fontFamily:"'Blacklist','Google Sans',serif", fontSize:32, fontWeight:800, lineHeight:"120%", letterSpacing:"0.02em", color:"#146CD5"}}>{f(CATEGORIES.find(c=>c.key===activeCat)?.save || 0)}/yr</span>
                 </div>
-                <div style={{fontFamily:FN, fontSize:12, fontWeight:400, lineHeight:"150%", color:"rgba(0,0,0,0.6)", textAlign:"center", marginTop:4}}>Based on {cat.key} Spends of ₹{f(cat.spend || 0)}/yr</div>
+                <div style={{fontFamily:FN, fontSize:12, fontWeight:400, lineHeight:"150%", color:"rgba(0,0,0,0.6)", textAlign:"center", marginTop:4}}>Based on {activeCat} Spends of ₹{f(CATEGORIES.find(c=>c.key===activeCat)?.spend || 0)}/yr</div>
               </div>
             </div>
 
@@ -464,7 +383,7 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
                 </div>
                 <div style={{height:0, borderTop:"1px dashed rgba(0,0,0,0.1)"}}/>
                 {/* Card rows */}
-                {cat.cards.map((cc,i)=>(
+                {CATEGORIES.find(c=>c.key===activeCat)?.cards?.map((cc,i)=>(
                   <div key={i} style={{display:"flex", flexDirection:"column", gap:16}}>
                     <div style={{display:"flex", gap:12, alignItems:"flex-start"}}>
                       <div style={{width:54, height:36, borderRadius:2.7, overflow:"hidden", flexShrink:0, background:`linear-gradient(135deg,${cc.c1},${cc.c2})`, border:"0.225px solid rgba(255,255,255,0.2)", filter:"drop-shadow(0px 8px 3.2px rgba(20,21,72,0.03)) drop-shadow(0px 4.4px 2.6px rgba(20,21,72,0.1)) drop-shadow(0px 2px 2px rgba(20,21,72,0.17)) drop-shadow(0px 0.4px 1px rgba(20,21,72,0.2))"}}>
@@ -491,7 +410,7 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
                     <span style={TINY_LABEL}>Spend distribution</span>
                   </div>
                   <div style={{display:"flex", gap:8}}>
-                    {cat.cards.map((cc,i)=>(
+                    {CATEGORIES.find(c=>c.key===activeCat)?.cards?.map((cc,i)=>(
                       <div key={i} style={{flex:`${cc.share} 1 0`, minWidth:60, height:24, borderRadius:6.04, background:`linear-gradient(180deg,${cc.c1} 0%,${cc.c2} 100%)`, boxShadow:"inset 0 3.5px 3.4px rgba(255,255,255,0.25)", display:"flex", alignItems:"center", justifyContent:"center"}}>
                         <span style={{fontFamily:FN, fontSize:12, fontWeight:700, lineHeight:"140%", color:"#FFFFFF"}}>{cc.share}%</span>
                       </div>
