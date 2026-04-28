@@ -7,8 +7,10 @@ import { Tag } from "@/components/shared/Tag";
 import { SemiGauge, DotDiv } from "@/components/shared/Primitives";
 import { ActionCard } from "@/components/shared/ActionCard";
 import { Circles } from "@/components/shared/Circles";
-import { ACTIONS, SPEND_CATS, TOTAL_ACC, SEMI_CARDS, CARDS, ALL_TXNS, SAVINGS_BARS } from "@/data/simulation/legacy";
+import { ACTIONS } from "@/data/actions";
+import { SPEND_CATS, TOTAL_ACC } from "@/data/spend";
 import { CARD_CATALOGUE } from "@/data/bestCards";
+import { SEMI_CARDS } from "@/data/cards";
 import { VoiceFlowOverlay, SkipConfirmSheet } from "@/components/sheets/BottomSheets";
 import { useAppContext } from "@/store/AppContext";
 
