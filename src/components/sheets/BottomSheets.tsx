@@ -193,12 +193,13 @@ export function TxnSheet() {
   const showCYU = true; // always (UPI variants render text block within CardYouUsedBlock)
   const showNoWalletSubtext = scn.id === "S4" || scn.id === "S5c";
   const showBetterInWallet = scn.id === "S3" || scn.id === "S5a" || scn.id === "S5b";
+  // Worth Adding intentionally hidden for S3 — when the user already has a better
+  // wallet card, the primary CTA is "use what you own", not "add another card".
   const showWorthAdding =
     scn.id === "S2" ||
     scn.id === "S4" ||
     scn.id === "S5b" ||
-    scn.id === "S5c" ||
-    (scn.id === "S3" && scn.bestMarketSavings > scn.bestWalletSavings);
+    scn.id === "S5c";
 
   const header = (
     <>
