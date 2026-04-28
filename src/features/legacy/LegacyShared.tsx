@@ -597,7 +597,7 @@ export function TransactionAnalysis({ timeWindow = "Last 365 Days" }) {
   const currentSavings = Math.round(SAVINGS_BARS.bar1 * factor);
   const idealSavings = Math.round(SAVINGS_BARS.bar2 * factor);
   const ultimateSavings = Math.round(SAVINGS_BARS.bar3 * factor);
-  const maxVal = Math.max(ultimateSavings, idealSavings, currentSavings, 1);
+  const maxVal = Math.max(idealSavings, currentSavings, 1);
   const maxBarH = 170;
   const orangeH = Math.max(12, Math.round((currentSavings / maxVal) * maxBarH));
   const greenH = Math.max(20, Math.round((idealSavings / maxVal) * maxBarH));
@@ -629,7 +629,6 @@ export function TransactionAnalysis({ timeWindow = "Last 365 Days" }) {
       <div style={{ margin: "0 16px", padding: "12px 0 0", height: chartH + 12, background: "linear-gradient(0deg, #DBFCE5 0%, #F5F9FA 54.79%)", border: "1px solid rgba(54,64,96,0.08)", boxShadow: "0 2px 10px rgba(63,66,70,0.05)", borderRadius: 12, overflow: "hidden", display: "flex", justifyContent: "center", alignItems: "flex-end", gap }}>
         <Column value={fmt(currentSavings)} label="Current savings" color="#EB8807" height={orangeH} bg="linear-gradient(180deg, #EB8807 0%, #FCAA3F 100%)" border="1px solid #F8A130" />
         <Column value={fmt(idealSavings)} label="If cards used right" color="#078146" height={greenH} bg="linear-gradient(180deg, #117E47 0%, #0AA759 100%)" border="1px solid #22AB66" />
-        <Column value={fmtYr(ultimateSavings)} label="With ultimate card" color="#1D6AE5" height={blueH} bg="linear-gradient(180deg, #1D6AE5 0%, #5B9CF5 100%)" border="1px solid #4B8DE8" radius="10px 10px 0 0" />
       </div>
     </div>
   );
