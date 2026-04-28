@@ -129,8 +129,7 @@ function FloatField({ label, value, onChange, placeholder, focused, onFocus, onB
 export function GmailExtraInfoScreen() {
   const ctx: any = useAppContext();
   const {
-    setScreen, setBuildPhase,
-    completeGmailLink,
+    setScreen,
     setHasGmail, setUserFlag, setMappingCompleted, setCardMapping,
     gmailFirstName, setGmailFirstName,
     gmailLastName, setGmailLastName,
@@ -141,6 +140,7 @@ export function GmailExtraInfoScreen() {
 
   const [step, setStep] = useState(1);
   const [focusField, setFocusField] = useState<string | null>("first");
+  const [confirming, setConfirming] = useState(false);
   const hsbcRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Pre-fill last 4 digits for HSBC cards (only first 2 cells editable)
@@ -158,22 +158,15 @@ export function GmailExtraInfoScreen() {
   const handleStep1Proceed = () => setStep(2);
   // step 2 → 3
   const handleStep2Proceed = () => setStep(3);
-  // step 3 → transaction evaluation cinematic → home
+  // step 3 → transaction evaluation cinematic
   const handleProceed = () => {
-    // Completing this screen means the Gmail connection flow is done.
-    // Prefer the centralized completion handler when available.
-    if (typeof completeGmailLink === "function") {
-      completeGmailLink();
-      return;
-    }
-    try {
-      setHasGmail?.(true);
-      setUserFlag?.("NORMAL");
-      setMappingCompleted?.(true);
-      // keep existing mappings if any; set a sensible default otherwise
-      setCardMapping?.((prev: any) => (prev && Object.keys(prev).length ? prev : { 0: "Travel One", 1: "Flipkart", 2: "Live+" }));
-    } catch (e) {}
-    setScreen && setScreen("txn-eval");
+    if (confirming) return;
+    setConfirming(true);
+    setHasGmail?.(true);
+    setUserFlag?.("NORMAL");
+    setMappingCompleted?.(true);
+    setCardMapping?.((prev: any) => (prev && Object.keys(prev).length ? prev : { 0: "Travel One", 1: "Flipkart", 2: "Live+" }));
+    setTimeout(() => { setScreen && setScreen("txn-eval"); }, 2000);
   };
 
   const handleSkip = () => setStep(3);
@@ -487,12 +480,17 @@ export function GmailExtraInfoScreen() {
           display: "flex", flexDirection: "column", alignItems: "center", gap: 18,
           zIndex: 5,
         }}>
-          <button onClick={handleProceed} style={{
-            width: "100%", height: 50.51, border: "none", cursor: "pointer",
+          <button onClick={handleProceed} disabled={confirming} style={{
+            width: "100%", height: 50.51, border: "none", cursor: confirming ? "default" : "pointer",
             background: "#222941", borderRadius: 10.17, color: "#FEFEFE",
             fontFamily: "'Google Sans',sans-serif", fontWeight: 600, fontSize: 13.561,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+            opacity: confirming ? 0.92 : 1,
             boxShadow: "0.29px 0.29px 0.41px -0.49px rgba(0,0,0,0.26), 0.79px 0.79px 1.12px -0.98px rgba(0,0,0,0.247), 1.73px 1.73px 2.45px -1.47px rgba(0,0,0,0.23), 3.85px 3.85px 5.44px -1.96px rgba(0,0,0,0.192), 9.13px 9.13px 13.84px -2.45px rgba(0,0,0,0.2), inset 0.65px 0.65px 0.65px rgba(255,255,255,0.7), inset -0.65px -0.65px 0.65px rgba(0,0,0,0.23)",
-          }}>Confirm and Proceed</button>
+          }}>
+            {confirming && <svg width="16" height="16" viewBox="0 0 24 24" style={{ animation: "gxSpin 0.9s linear infinite" }}><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.25)" strokeWidth="3" fill="none" /><path d="M12 2a10 10 0 019.8 8" stroke="#fff" strokeWidth="3" strokeLinecap="round" fill="none" /></svg>}
+            <span>{confirming ? "Confirming…" : "Confirm and Proceed"}</span>
+          </button>
           <div onClick={() => setStep(1)} style={{
             cursor: "pointer", fontFamily: "'Google Sans',sans-serif", fontWeight: 600, fontSize: 13,
             color: "#222941", textAlign: "center",
@@ -502,6 +500,7 @@ export function GmailExtraInfoScreen() {
 
       <style>{`
         @keyframes geSheetIn { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes gxSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );
