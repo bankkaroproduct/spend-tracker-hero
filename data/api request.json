@@ -1,0 +1,32 @@
+{
+    "amazon_spends": 5000,
+    "flipkart_spends": 7000,
+    "other_online_spends": 4000,
+    "other_offline_spends": 4000,
+
+    "grocery_spends_online": 8000,
+    "offline_grocery": 7000,
+
+    "mobile_phone_bills": 1500,
+    "electricity_bills": 3000,
+    "water_bills": 1500,
+
+    "fuel": 6000,
+
+    "insurance_health_annual": 60000,
+    "life_insurance": 24000,
+    "insurance_car_or_bike_annual": 24000,
+
+    "school_fees": 0,
+
+    "rent": 45667,
+
+    "flights_annual": 100000,
+    "hotels_annual": 60000,
+
+    "domestic_lounge_usage_quarterly": 2.25,
+    "international_lounge_usage_quarterly": 0.75,
+
+    "dining_or_going_out": 10000,
+    "online_food_ordering": 8333
+}

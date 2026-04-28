@@ -1,0 +1,196 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+
+@font-face {
+  font-family: "Blacklist";
+  src: url("/legacy-assets/fonts/Blacklist-SemiBold.otf") format("opentype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Blacklist";
+  src: url("/legacy-assets/fonts/Blacklist-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Blacklist";
+  src: url("/legacy-assets/fonts/Blacklist-ExtraBold.ttf") format("truetype");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Blacklist";
+  src: url("/legacy-assets/fonts/Blacklist-Black.ttf") format("truetype");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --legacy-serif: "Blacklist", "Fraunces", Georgia, serif;
+  --legacy-sans: "Plus Jakarta Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+[data-scroll="1"]::-webkit-scrollbar {
+  display: none;
+}
+
+.legacy-phone {
+  width: 390px;
+  max-width: 100%;
+  margin: 0 auto;
+  background: #f5f9fa;
+  font-family: var(--legacy-sans);
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+.legacy-phone::-webkit-scrollbar {
+  display: none;
+}
+
+.legacy-overline {
+  font: 600 10px/1.4 var(--legacy-sans);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(74, 83, 112, 0.7);
+}
+
+.legacy-h-rail {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+
+.legacy-h-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.legacy-h-rail > * {
+  flex-shrink: 0;
+}
+
+.legacy-tap {
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.legacy-tap:active {
+  transform: scale(0.98);
+  opacity: 0.92;
+}
+
+.legacy-serif {
+  font-family: var(--legacy-serif);
+  letter-spacing: -0.01em;
+}
+
+@keyframes legacy-growY {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes legacy-growX {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes legacy-panelFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.legacy-panel-animate {
+  animation: legacy-panelFadeIn 0.35s ease-out;
+}
+
+@keyframes redeem-spin-step {
+  0% {
+    transform: rotate(-90deg);
+    opacity: 0.3;
+  }
+  60% {
+    transform: rotate(270deg);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(270deg);
+    opacity: 1;
+  }
+}
+
+@keyframes legacy-glowPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 3.7px 4.8px rgba(0, 229, 141, 0.15),
+      0 10.3px 13.4px rgba(0, 229, 141, 0.22),
+      inset 0 1px 4px 2px rgb(217, 255, 240),
+      inset 0 1px 18px 2px rgb(217, 255, 240);
+  }
+  50% {
+    box-shadow:
+      0 3.7px 4.8px rgba(0, 229, 141, 0.25),
+      0 14px 18px rgba(0, 229, 141, 0.32),
+      inset 0 1px 4px 2px rgb(217, 255, 240),
+      inset 0 1px 22px 2px rgb(217, 255, 240);
+  }
+}
+
+@keyframes legacy-twinkle {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes legacy-barGlow {
+  0%, 100% {
+    box-shadow: inset 0 8px 24px rgba(220,255,220,0.55), inset 0 -30px 30px rgba(5,70,30,0.45), 0 0 20px rgba(80,255,140,0.4);
+  }
+  50% {
+    box-shadow: inset 0 10px 28px rgba(230,255,230,0.7), inset 0 -30px 30px rgba(5,70,30,0.45), 0 0 32px rgba(80,255,140,0.6);
+  }
+}
+
+@keyframes legacy-haloPulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 1; }
+}
+
+@keyframes legacy-screenIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.legacy-screen-transition {
+  animation: legacy-screenIn 0.2s ease-out;
+}
