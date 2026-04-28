@@ -302,8 +302,30 @@ export function isInviteOnlyMarketCard(card: any): boolean {
     || name.includes("hdfc infinia");
 }
 
+// Normalize a card name for cross-source comparison
+// (strips "credit card" suffix, punctuation, collapses whitespace)
+function _normCardName(s: string): string {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/credit\s*card/g, "")
+    .replace(/[^a-z0-9+]+/g, " ")
+    .trim();
+}
+
+// True if this market card is one the user already owns.
+export function isAlreadyOwnedMarketCard(card: any): boolean {
+  const candidates = [card?.card_name, card?.card_alias].map(_normCardName).filter(Boolean);
+  if (!candidates.length) return false;
+  return USER_CARDS.some(uc => {
+    const owned = _normCardName(uc.name);
+    return candidates.some(c => c === owned || c.includes(owned) || owned.includes(c));
+  });
+}
+
 export function getEligibleMarketCards() {
-  return (recommendResponse?.savings || []).filter(c => !isInviteOnlyMarketCard(c));
+  return (recommendResponse?.savings || [])
+    .filter(c => !isInviteOnlyMarketCard(c))
+    .filter(c => !isAlreadyOwnedMarketCard(c));
 }
 
 export function getFirstEligibleMarketCard() {
