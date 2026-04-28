@@ -90,6 +90,20 @@ export const BUCKET_TO_MERCHANT: Record<string, string[]> = {
   life_insurance: ["LIC"],
 };
 
+// Reverse map: merchant name → bucket key.
+// Derived from BUCKET_TO_MERCHANT. If a merchant appears in multiple buckets
+// (e.g. MakeMyTrip in flights_annual & hotels_annual), the FIRST occurrence wins.
+// Use BUCKET_TO_MERCHANT directly if you need the full multi-bucket mapping.
+export const MERCHANT_TO_BUCKET: Record<string, string> = (() => {
+  const map: Record<string, string> = {};
+  for (const [bucket, merchants] of Object.entries(BUCKET_TO_MERCHANT)) {
+    for (const m of merchants) {
+      if (!(m in map)) map[m] = bucket;
+    }
+  }
+  return map;
+})();
+
 export const MERCHANT_ICONS: Record<string, string> = {
   Amazon: "📦", Flipkart: "🛒", Myntra: "👗", Nykaa: "🩷", Ajio: "👔",
   BookMyShow: "🎬", "Urban Company": "🏠", Lenskart: "👓",
