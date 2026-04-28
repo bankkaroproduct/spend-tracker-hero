@@ -259,14 +259,20 @@ All mounted by `<BottomSheets/>` component:
 
 ## Recent Changes (April 2026)
 
-- **3-State Enforcement** — Full progressive unlock system across all screens: SMS Only → Manually Mapped → Gmail Connected. Each state controls card name display, savings visibility, action filtering, feature gating, and contextual Gmail nudges
-- **Transaction Bottom Sheet** — 4 distinct flows (best card, switch, no reward, UPI) with staggered animations and frosted glass "You Spent" badge
-- **Category Bottom Sheet** — 3-step unaccounted transaction flow with 3D category images, brand logo grids, and "Not a spend" reasons
-- **Card Detail Transactions** — Now uses real `ALL_TXNS` filtered by card instead of locally generated data
-- **Brand images** — TxnRow and Card Detail now show brand logo PNGs (Flipkart, Amazon, Swiggy, etc.) instead of emoji
+- **Simulation data layer** — Added `src/data/simulation/*` to compute savings, transactions, card details, spend distribution, and action hooks from spend/profile inputs instead of scattering hardcoded values.
+- **CardGenius alignment** — Documented spend buckets, `/calculate` and `/recommend_cards` response shape, cap behavior, lounge handling, market-card priority, and data provenance in `data/` docs and README.
+- **Transaction scenario system** — Added `src/data/simulation/txnScenario.ts` plus `docs/transaction-scenarios.md`; every transaction now maps to S1/S2/S3/S4/S5a/S5b/S5c/S6 for tag text and bottom-sheet block visibility.
+- **TxnSheet logic fixes** — Worth Adding is hidden when the used card is already the best owned card; owned cards are never recommended as market cards; HSBC/owned-card tags route to the right wallet-vs-market treatment.
+- **3-State Enforcement** — Full progressive unlock system across all screens: SMS Only → Manually Mapped → Gmail Connected. Each state controls card name display, savings visibility, action filtering, feature gating, and contextual Gmail nudges.
+- **Transaction Bottom Sheet** — Distinct flows for best card, switch, no reward, UPI, and market-card opportunities with staggered animations and frosted glass "You Spent" badge.
+- **Category Bottom Sheet** — 3-step unaccounted transaction flow with 3D category images, brand logo grids, and "Not a spend" reasons.
+- **Card Detail Transactions** — Uses transaction data filtered by card instead of locally generated placeholder rows.
+- **Brand and category assets** — Transaction rows, sheets, spend analysis, onboarding, and tools use PNG/WebP assets from `public/brands`, `public/categories`, `public/cdn`, and `public/ui`.
+- **Best Cards + Portfolio** — Added enhanced marketplace details, `CardDetailV2`, floating portfolio entry, and `/portfolio/create` + `/portfolio/results` flows.
 - **Date grouping** — Transaction list grouped by descending month: "1 APR - TODAY", "1 MAR - 1 APR", etc.
-- **URL-based routing** — every screen has a real path; refresh and back/forward work everywhere
-- **AppContext rewritten** — hybrid module-level + Provider, eliminating render-time race conditions
+- **URL-based routing** — Every screen has a real path; refresh and browser back/forward work across the app.
+- **AppContext rewritten** — Hybrid module-level + Provider store to keep legacy `useAppContext()` callers stable across render paths.
+- **Build stability** — Fixed TypeScript regressions in Best Cards comparison typing and Important Actions card props so the preview/publish build renders correctly.
 
 ## Deletion Candidates
 
