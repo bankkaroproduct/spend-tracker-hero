@@ -134,7 +134,18 @@ export function ManualEntryScreen() {
     return all.filter(c => c.name.toLowerCase().includes(searchQ.toLowerCase()));
   }, [activeBank, searchQ]);
 
-  const cardById = (id?: string) => id ? Object.values(CARD_LIBRARY).flat().find(c => c.id === id) as CardOption : undefined;
+  const cardById = (id?: string, slotIndex?: number) => {
+    const allCards = Object.values(CARD_LIBRARY).flat();
+    const normalized = (id || "").toLowerCase().replace(/[^a-z0-9+]/g, "");
+    const matched = id
+      ? allCards.find(c => c.id === id || c.name.toLowerCase().replace(/[^a-z0-9+]/g, "").includes(normalized))
+      : undefined;
+    if (matched) return matched as CardOption;
+    if (slotIndex === 0) return CARD_LIBRARY.Axis.find(c => c.id === "axis-flipkart") as CardOption;
+    if (slotIndex === 1) return CARD_LIBRARY.HSBC.find(c => c.id === "hsbc-travel") as CardOption;
+    if (slotIndex === 2) return CARD_LIBRARY.HSBC.find(c => c.id === "hsbc-liveplus") as CardOption;
+    return undefined;
+  };
 
   const pickCard = (cardId: string) => {
     const usedSlot = Object.entries(mappings).find(([, v]) => v === cardId)?.[0];
@@ -165,7 +176,7 @@ export function ManualEntryScreen() {
 
         <div style={{ position: "absolute", left: "50%", top: 112, transform: "translateX(-50%)", display: "flex", flexDirection: "row", alignItems: "center", gap: 16 }}>
           {SLOTS.map((slot, i) => {
-            const card = cardById(mappings[i]);
+            const card = cardById(mappings[i], i);
             return (
               <div key={i} style={{ width: 99.49, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
                 <div style={{ width: 99.49, height: 150.15 }}>
