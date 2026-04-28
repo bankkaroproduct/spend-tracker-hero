@@ -17,100 +17,142 @@ const IMG: Record<string,string> = {
   "Amex Travel Platinum":"/legacy-assets/cards/amex-platinum-travel.png",
 };
 
-/* Wallet (existing user cards) — single source of truth.
-   Per-card spend & save are calibrated so the four rows tally to the
-   stacked-bar segments and the headline "Save Upto" exactly. */
-const WALLET = [
-  {name:"Amex Travel Platinum", spend:800000, save:50000, pct:50, c1:"#583598", c2:"#9359FE", tags:["Bills","Food Ordering","Dining","Travel"]},
-  {name:"Axis Flipkart",        spend:400000, save:20000, pct:25, c1:"#117E47", c2:"#0AA759", tags:["Online Shopping"]},
-  {name:"HSBC Live+",           spend:200000, save:10000, pct:13, c1:"#4C98F4", c2:"#0862CF", tags:["Groceries","Travel"]},
-  {name:"HSBC Travel One",      spend:200000, save:10000, pct:12, c1:"#EB8807", c2:"#FCAA3F", tags:["Travel"]},
-];
-const TOTAL_SPEND = WALLET.reduce((s,w)=>s+w.spend,0);              // 16,00,000
-const TOTAL_SAVE  = WALLET.reduce((s,w)=>s+w.save,0);               // 90,000
+/* ── Helper ── */
+function parseMoney(s: any): number { if (typeof s === "number") return s; if (!s) return 0; const cleaned = String(s).replace(/[^0-9.]/g, ""); return cleaned ? Math.round(parseFloat(cleaned)) : 0; }
 
-/* Per-category breakdown for the "Cards Usage" section.
-   `share` percentages within each category MUST sum to 100. */
-const CATEGORIES = [
-  {key:"Milestones", icon:"⭐", color:"#FFD82C"},
-  {key:"Shopping",   icon:"/categories/shopping.png", color:"#3B82F6", spend:634122, save:38400, cards:[
-    {name:"Axis Flipkart", spend:540000, share:81, caption:"Gives 5% Cashback",            c1:"#117E47", c2:"#0AA759"},
-    {name:"HSBC Live+",    spend: 60000, share:19, caption:"4 Reward points per ₹100 spent", c1:"#4C98F4", c2:"#0862CF"},
-  ]},
-  {key:"Groceries",  icon:"/categories/groceries.png", color:"#16A34A", spend:220000, save:12500, cards:[
-    {name:"HSBC Live+",    spend:160000, share:73, caption:"3% Cashback on groceries",     c1:"#4C98F4", c2:"#0862CF"},
-    {name:"Axis Flipkart", spend: 60000, share:27, caption:"4% on Big Basket",              c1:"#117E47", c2:"#0AA759"},
-  ]},
-  {key:"Bills",      icon:"/categories/bills.png",     color:"#F59E0B", spend:180000, save: 7200, cards:[
-    {name:"Amex Travel Platinum", spend:180000, share:100, caption:"2X MR points on bills", c1:"#583598", c2:"#9359FE"},
-  ]},
-  {key:"Fuel",       icon:"/categories/fuel.png",      color:"#EF4444", spend: 96000, save: 3800, cards:[
-    {name:"Amex Travel Platinum", spend: 96000, share:100, caption:"Fuel surcharge waiver", c1:"#583598", c2:"#9359FE"},
-  ]},
-  {key:"Travel",     icon:"/categories/travel.png",    color:"#06B6D4", spend:240000, save:18600, cards:[
-    {name:"HSBC Travel One", spend:160000, share:67, caption:"4X on flights & hotels",      c1:"#EB8807", c2:"#FCAA3F"},
-    {name:"HSBC Live+",      spend: 80000, share:33, caption:"Lounge access at ₹1.5K trip", c1:"#4C98F4", c2:"#0862CF"},
-  ]},
-  {key:"Food Ordering", icon:"/categories/food.png",   color:"#F97316", spend:120000, save: 5400, cards:[
-    {name:"Amex Travel Platinum", spend:120000, share:100, caption:"3X MR on food apps",    c1:"#583598", c2:"#9359FE"},
-  ]},
-];
+/* ── Bucket → Category mapping ── */
+const BUCKET_TO_CAT: Record<string, { key: string; icon: string; color: string }> = {
+  amazon_spends: { key: "Shopping", icon: "/categories/shopping.png", color: "#3B82F6" },
+  flipkart_spends: { key: "Shopping", icon: "/categories/shopping.png", color: "#3B82F6" },
+  other_online_spends: { key: "Shopping", icon: "/categories/shopping.png", color: "#3B82F6" },
+  other_offline_spends: { key: "Shopping", icon: "/categories/shopping.png", color: "#3B82F6" },
+  grocery_spends_online: { key: "Groceries", icon: "/categories/groceries.png", color: "#16A34A" },
+  offline_grocery: { key: "Groceries", icon: "/categories/groceries.png", color: "#16A34A" },
+  online_food_ordering: { key: "Food Ordering", icon: "/categories/food.png", color: "#F97316" },
+  dining_or_going_out: { key: "Dining", icon: "/categories/dining.png", color: "#EF4444" },
+  fuel: { key: "Fuel", icon: "/categories/fuel.png", color: "#EF4444" },
+  flights_annual: { key: "Travel", icon: "/categories/travel.png", color: "#06B6D4" },
+  hotels_annual: { key: "Travel", icon: "/categories/travel.png", color: "#06B6D4" },
+  mobile_phone_bills: { key: "Bills", icon: "/categories/bills.png", color: "#F59E0B" },
+  electricity_bills: { key: "Bills", icon: "/categories/bills.png", color: "#F59E0B" },
+  water_bills: { key: "Bills", icon: "/categories/bills.png", color: "#F59E0B" },
+  rent: { key: "Rent", icon: "/categories/bills.png", color: "#8B5CF6" },
+  insurance_health_annual: { key: "Insurance", icon: "/categories/bills.png", color: "#6366F1" },
+  insurance_car_or_bike_annual: { key: "Insurance", icon: "/categories/bills.png", color: "#6366F1" },
+  life_insurance: { key: "Insurance", icon: "/categories/bills.png", color: "#6366F1" },
+};
 
-/* Milestone benefits — green-bordered cards with claimable badge or lock state */
-const MILESTONES = [
-  {points:"7500 reward points",  spend:"Spend ₹1,90,000 in 365 days", status:"claimable"},
-  {points:"10000 reward points", spend:"Spend ₹4,00,000 in 365 days", status:"claimable"},
-  {points:"22500 reward points", spend:"Spend ₹7,00,000 in 365 days", status:"claimable"},
-  {points:"Taj Experiences (Worth ~ ₹10,000)", spend:"Spend ₹2,00,000 on this card in 120 Days", status:"locked", lockText:"spend ₹32,750/yr more to unlock"},
-];
+/* ── Dynamic data builders (all derive from card prop) ── */
 
-/* Lounge & additional benefits — white cards with subtle gradient */
-const LOUNGE = [
-  {t:"1 free airport lounge visit/quarter",   d:"Spend ₹75,000 in the previous quarter to unlock"},
-  {t:"1 free railway lounge visit/quarter",   d:"No minimum spend required"},
-  {t:"25% off movie tickets, 2x a month",     d:"Min. 2 tickets on BookMyShow or INOX, up to ₹100 off per booking"},
-  {t:"No International Lounge benefit availble on this card", d:"", muted:true},
-];
+function buildWallet(card: any) {
+  const bd = card.spending_breakdown;
+  if (!bd) return [{ name: card.name, spend: (card.savings || 0) * 10, save: card.savings || 0, pct: 100, c1: card.color || "#333", c2: card.accent || "#666", tags: ["All categories"] }];
+  let totalSavings = 0;
+  let totalSpend = 0;
+  for (const b of Object.values(bd)) { totalSavings += ((b as any).savings || 0) * 12; totalSpend += ((b as any).spend || 0) * 12; }
+  totalSavings = Math.round(totalSavings);
+  totalSpend = Math.round(totalSpend);
+  return [{ name: card.name, spend: totalSpend, save: totalSavings, pct: 100, c1: card.color || "#333", c2: card.accent || "#666", tags: ["Based on your spend profile"] }];
+}
 
-/* Welcome benefit — single card */
-const WELCOME = [
-  {t:"Bookmyshow Voucher", d:"Bonus reward points awarded your first spend with this card"},
-];
+function buildCategories(card: any) {
+  const bd = card.spending_breakdown;
+  if (!bd) return [{ key: "Milestones", icon: "⭐", color: "#FFD82C" }];
+  const catMap: Record<string, { spend: number; save: number; icon: string; color: string }> = {};
+  for (const [bucket, data] of Object.entries(bd)) {
+    const meta = BUCKET_TO_CAT[bucket];
+    if (!meta) continue;
+    const d = data as any;
+    if (!catMap[meta.key]) catMap[meta.key] = { spend: 0, save: 0, icon: meta.icon, color: meta.color };
+    catMap[meta.key].spend += ((d.spend || 0) * 12);
+    catMap[meta.key].save += ((d.savings || 0) * 12);
+  }
+  const catRows = Object.entries(catMap)
+    .filter(([, v]) => v.spend > 0)
+    .sort(([, a], [, b]) => b.save - a.save)
+    .map(([key, v]) => ({
+      key,
+      icon: v.icon,
+      color: v.color,
+      spend: Math.round(v.spend),
+      save: Math.round(v.save),
+      cards: [{ name: card.name, spend: Math.round(v.spend), share: 100, caption: `Earns on ${key.toLowerCase()}`, c1: card.color || "#333", c2: card.accent || "#666" }],
+    }));
+  return [{ key: "Milestones", icon: "⭐", color: "#FFD82C" } as any].concat(catRows);
+}
 
-/* Fees & Waivers — lounge-style cards */
-const FEES_WAIVERS = [
-  {t:"Annual Fee (₹500 + GST)",  d:"Spend ₹1,50,000 or more to waive the next year's annual fee", badge:"Can waive on existing spends"},
-  {t:"Joining Fee (₹500 + GST)", d:"Fee is mandatory and non-waivable"},
-];
+function buildMilestones(card: any) {
+  const milestones = card.milestone_benefits_str;
+  if (Array.isArray(milestones) && milestones.length > 0) {
+    return milestones.map((m: any) => {
+      const rpVal = parseMoney(m.rpBonus);
+      const voucherVal = parseMoney(m.voucherBonus);
+      const spendReq = parseMoney(m.minSpend);
+      const days = m.maxDays || "365";
+      const label = rpVal > 0 ? `${f(rpVal)} reward points` : voucherVal > 0 ? `₹${f(voucherVal)} cashback` : "Milestone reward";
+      return { points: label, spend: spendReq > 0 ? `Spend ₹${f(spendReq)} in ${days} days` : `Within ${days} days`, status: m.eligible ? "claimable" : "locked", lockText: m.eligible ? undefined : "Check bank website for thresholds" };
+    });
+  }
+  const milestoneVal = parseMoney(typeof milestones === "string" ? milestones : null);
+  if (milestoneVal > 0) {
+    return [{ points: `₹${f(milestoneVal)} in milestone rewards`, spend: "On annual spend milestones", status: "locked", lockText: "Check bank website for thresholds" }];
+  }
+  return [{ points: "No milestone benefits listed", spend: "Check bank website for details", status: "locked", lockText: "Check bank website" }];
+}
 
-/* Two-column fee tables */
+function buildLounge(card: any) {
+  const val = parseMoney(card.lounge_value);
+  if (val > 0) {
+    return [{ t: `Lounge access worth ₹${f(val)}/year`, d: "Check bank website for visit limits" }];
+  }
+  return [{ t: "No lounge benefit listed", d: "Check bank website", muted: true }];
+}
+
+function buildWelcome(card: any) {
+  const wb = card.welcome_benefits_raw;
+  if (wb && wb.length > 0) {
+    const w = wb[0];
+    const val = w.cash_value || parseMoney(w.voucher_bonus) || parseMoney(w.rp_bonus);
+    const desc = w.voucher_bonus && typeof w.voucher_bonus === "string" && w.voucher_bonus.length > 3 ? w.voucher_bonus : null;
+    const brands = (w.brands || []).map((b: any) => b.name || b).filter(Boolean).join(", ");
+    return [{ t: val > 0 ? `₹${f(val)} welcome benefit` : (desc || "Welcome benefit on first spend"), d: brands ? `Via ${brands}` : (w.maximum_days ? `Within ${w.maximum_days} days` : "On activation") }];
+  }
+  return [{ t: "Check bank website for welcome benefits", d: "" }];
+}
+
+function buildFees(card: any) {
+  const rows: any[] = [];
+  if (card.annualFee > 0) {
+    rows.push({ t: `Annual Fee (₹${f(card.annualFee)})`, d: "Check bank website for waiver conditions", badge: undefined });
+    rows.push({ t: `Joining Fee`, d: "Check bank website for joining fee details" });
+  } else {
+    rows.push({ t: "Annual Fee", d: "Lifetime Free", badge: "No annual fee" });
+  }
+  return rows;
+}
+
+/* Two-column fee tables — generic stubs (card-specific data not available from API) */
 const ADDITIONAL_BANK_FEES: [string,string][] = [
-  ["Forex Markups",            "3.50%"],
-  ["APR Fees",                 "3.75%"],
-  ["ATM Withdrawl",            "2.50%"],
-  ["Reward Redemption Fees",   "Not Applicable"],
-  ["Link for all T&Cs",        "0.054 g"],
-  ["Railway Surcharge",        "1%"],
-  ["Rent Payment Fee",         "1%"],
-  ["Cheque Payment Fee",       "N/A"],
-  ["Cash Payment Fees",        "₹100"],
+  ["Check bank website for detailed fee schedule", ""],
 ];
 const LATE_PAYMENT_FEES: [string,string][] = [
-  ["Amount Due",        "Late Payment Fee"], // header row
-  ["₹0 - ₹100",         "₹0"],
-  ["₹101 - ₹500",       "₹100"],
-  ["₹501 - ₹5000",      "₹500"],
-  ["₹5001 - ₹10000",    "₹700"],
-  ["₹10001 - ₹25000",   "₹800"],
-  ["₹25001 And Above",  "₹1200"],
+  ["Check bank website for late payment charges", ""],
 ];
 
-/* Step-by-step "how to spend" timeline for the active category */
-const TIMELINE = [
-  {kind:"card",  card:"Axis Flipkart", c1:"#117E47", c2:"#0AA759", title:"Spend ₹20,000/month on Axis Flipkart Card", caption:"via the Flipkart App", monthly:2200, yearly:26400},
-  {kind:"lock",  title:"Reward points cap reached on Axis Flipkart", caption:"Cap at 2,000 RP per month"},
-  {kind:"card",  card:"HSBC Live+",    c1:"#4C98F4", c2:"#0862CF", title:"Rest of ₹10,000/month on HSBC Live+",         caption:"via the Flipkart App", monthly:1200, yearly:14400},
-];
+/* Step-by-step "how to spend" timeline — built dynamically from category */
+function buildTimeline(card: any, cat: any) {
+  if (!cat || !cat.cards || cat.cards.length === 0) return [];
+  return cat.cards.map((cc: any) => ({
+    kind: "card" as const,
+    card: cc.name,
+    c1: cc.c1,
+    c2: cc.c2,
+    title: `Spend ₹${f(Math.round(cc.spend / 12))}/month on ${cc.name}`,
+    caption: `For ${cat.key}`,
+    monthly: Math.round(cat.save / 12),
+    yearly: cat.save,
+  }));
+}
 
 const SECTION_TITLE = {fontFamily:"'Blacklist','Google Sans',serif", fontSize:20, fontWeight:700, lineHeight:"140%", color:"rgba(54,64,96,0.9)"};
 const TINY_LABEL = {fontFamily:FN, fontSize:10, fontWeight:500, lineHeight:"12px", letterSpacing:"0.1em", textTransform:"uppercase" as const};
@@ -123,14 +165,27 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
   const [eligType, setEligType] = useState<"salaried"|"self">("self");
   const [eligPin, setEligPin] = useState("");
   const [eligIncome, setEligIncome] = useState("");
-  const [activeCat, setActiveCat] = useState("Shopping");
   const [period, setPeriod] = useState<"monthly"|"yearly">("monthly");
-  const cat = CATEGORIES.find(c=>c.key===activeCat) || CATEGORIES[1];
-  const cardImg = IMG[card.name];
+
+  /* ── Compute all data from card prop ── */
+  const WALLET = buildWallet(card);
+  const TOTAL_SPEND = WALLET.reduce((s,w)=>s+w.spend,0);
+  const TOTAL_SAVE  = WALLET.reduce((s,w)=>s+w.save,0);
+  const CATEGORIES = buildCategories(card);
+  const firstCatKey = (CATEGORIES.find(c=>c.key!=="Milestones") || CATEGORIES[0])?.key || "Shopping";
+  const [activeCat, setActiveCat] = useState(firstCatKey);
+  const MILESTONES = buildMilestones(card);
+  const LOUNGE = buildLounge(card);
+  const WELCOME = buildWelcome(card);
+  const FEES_WAIVERS = buildFees(card);
+
+  const cat = CATEGORIES.find(c=>c.key===activeCat) || CATEGORIES[1] || CATEGORIES[0] || {} as any;
+  const TIMELINE = buildTimeline(card, cat);
+  const cardImg = card.image || card.card_bg_image || IMG[card.name];
   const headlineSave = card.savings || 40000;
   /* Scale per-card saves so the row totals tally to headline exactly.
      Last row absorbs any rounding drift so Σ saves === headlineSave. */
-  const SAVE_BASE = 90000; // base sum of WALLET[*].save
+  const SAVE_BASE = TOTAL_SAVE || 1;
   const scaledSaves = WALLET.map((w,i)=>i===WALLET.length-1?0:Math.round(w.save*headlineSave/SAVE_BASE));
   scaledSaves[WALLET.length-1] = headlineSave - scaledSaves.reduce((s,v)=>s+v,0);
 
@@ -172,7 +227,7 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
             </div>
             {/* Card art — bridges dark + white */}
             <div style={{position:"absolute", top:131, left:"50%", transform:"translateX(-50%)", width:199, height:133, borderRadius:12, boxShadow:"0px 18px 36px rgba(0,0,0,0.35)", overflow:"hidden", background:`linear-gradient(135deg,${card.color || "#1a3a7a"},${card.accent || "#0c1f4a"})`, border:"0.83px solid rgba(255,255,255,0.2)", zIndex:2}}>
-              {cardImg ? <img src={cardImg} alt={card.name} style={{width:"100%", height:"100%", objectFit:"cover", display:"block"}}/> : <div style={{width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center"}}><CreditCard size={48} strokeWidth={1} color="rgba(255,255,255,0.4)"/></div>}
+              {cardImg ? <img src={cardImg} alt={card.name} style={{width:"100%", height:"100%", objectFit:"cover", display:"block"}} onError={(e:any)=>{e.target.style.display='none'}}/> : <div style={{width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center"}}><CreditCard size={48} strokeWidth={1} color="rgba(255,255,255,0.4)"/></div>}
               {/* shine */}
               <div style={{position:"absolute", top:-70, left:"50%", transform:"translateX(-50%)", width:235, height:119, background:"#FFFFFF", opacity:0.2, mixBlendMode:"plus-lighter", filter:"blur(26px)", pointerEvents:"none"}}/>
             </div>
@@ -714,26 +769,26 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
               <div style={{display:"flex",flexDirection:"row",gap:12,height:102}}>
                 <div style={{flex:1,background:"#FFFFFF",borderRadius:10,padding:"0 12px",display:"flex",flexDirection:"column",justifyContent:"center",gap:8,boxShadow:"0px 2px 5px rgba(0,0,0,0.04)"}}>
                   <div style={{fontFamily:FN,fontSize:12,fontWeight:500,lineHeight:"140%",color:"rgba(34,34,34,0.8)"}}>Age Criteria</div>
-                  <div style={{fontFamily:FN,fontSize:16,fontWeight:700,lineHeight:"140%",color:"#222222"}}>21–60 yrs</div>
+                  <div style={{fontFamily:FN,fontSize:16,fontWeight:700,lineHeight:"140%",color:"#222222"}}>Check bank website</div>
                 </div>
                 <div style={{flex:1,background:"#FFFFFF",borderRadius:12.75,padding:"0 12px",display:"flex",flexDirection:"column",justifyContent:"center",gap:8,boxShadow:"0px 2px 5px rgba(0,0,0,0.04)"}}>
                   <div style={{fontFamily:FN,fontSize:12,fontWeight:500,lineHeight:"140%",color:"rgba(34,34,34,0.8)"}}>Salary Criteria</div>
-                  <div style={{fontFamily:FN,fontSize:16,fontWeight:700,lineHeight:"140%",color:"#222222"}}>₹1L+/mo</div>
+                  <div style={{fontFamily:FN,fontSize:16,fontWeight:700,lineHeight:"140%",color:"#222222"}}>Check bank website</div>
                 </div>
               </div>
               {/* Row 2 — Credit Rating + New to Credit + Existing Bank Customer (3 cols) */}
               <div style={{display:"flex",flexDirection:"row",gap:12,height:118}}>
                 <div style={{flex:1,background:"#FFFFFF",borderRadius:12.75,padding:"9px 10px",display:"flex",flexDirection:"column",justifyContent:"space-between",boxShadow:"0px 2px 5px rgba(0,0,0,0.04)"}}>
                   <div style={{fontFamily:FN,fontSize:12,fontWeight:500,lineHeight:"140%",color:"rgba(34,34,34,0.8)"}}>Credit Rating</div>
-                  <div style={{fontFamily:"'Poppins','Google Sans',sans-serif",fontSize:16,fontWeight:600,lineHeight:"120%",color:"#222222"}}>750+</div>
+                  <div style={{fontFamily:"'Poppins','Google Sans',sans-serif",fontSize:16,fontWeight:600,lineHeight:"120%",color:"#222222"}}>Check bank website</div>
                 </div>
                 <div style={{flex:1,background:"#FFFFFF",borderRadius:12.75,padding:"9px 10px",display:"flex",flexDirection:"column",justifyContent:"space-between",boxShadow:"0px 2px 5px rgba(0,0,0,0.04)"}}>
                   <div style={{fontFamily:FN,fontSize:12,fontWeight:500,lineHeight:"140%",color:"rgba(34,34,34,0.8)"}}>New to Credit</div>
-                  <div style={{fontFamily:"'Poppins','Google Sans',sans-serif",fontSize:15.94,fontWeight:600,lineHeight:"120%",color:"#222222"}}>No</div>
+                  <div style={{fontFamily:"'Poppins','Google Sans',sans-serif",fontSize:15.94,fontWeight:600,lineHeight:"120%",color:"#222222"}}>Check bank website</div>
                 </div>
                 <div style={{flex:1,background:"#FFFFFF",borderRadius:12.75,padding:"6px 10px",display:"flex",flexDirection:"column",justifyContent:"space-between",boxShadow:"0px 2px 5px rgba(0,0,0,0.04)"}}>
                   <div style={{fontFamily:FN,fontSize:12,fontWeight:500,lineHeight:"140%",color:"rgba(34,34,34,0.8)"}}>Existing Bank Customer</div>
-                  <div style={{fontFamily:FN,fontSize:16,fontWeight:700,lineHeight:"140%",color:"#222222"}}>Bonus</div>
+                  <div style={{fontFamily:FN,fontSize:16,fontWeight:700,lineHeight:"140%",color:"#222222"}}>Check bank website</div>
                 </div>
               </div>
             </div>

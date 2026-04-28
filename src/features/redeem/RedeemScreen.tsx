@@ -106,35 +106,28 @@ export const RedeemScreen = () => {
   </div>);
 
   if (redeemResult) {
-    const bestVal = Math.round(redeemResult.pts * 1);
-    const ratePerPt = 1;
-    const bestPartner = "Cathay Pacific";
+    const rd2 = REDEEM_DATA[redeemResult.card];
+    const bestOpt2 = rd2 ? [...rd2.options].sort((a, b) => b.rate - a.rate)[0] : null;
+    const bestVal = rd2 && bestOpt2 ? Math.round(redeemResult.pts * bestOpt2.rate) : Math.round(redeemResult.pts * 0.20);
+    const ratePerPt = bestOpt2?.rate || 0.20;
+    const bestPartner = bestOpt2?.name || "Statement Credit";
     const cardDisplay = redeemResult.card;
-    const tabOptions = {
-      "Air Miles": [
-        { partner: "Emirates Skywards", rate: 0.67 },
-        { partner: "Qatar Airways Privilege Club", rate: 0.6 },
-        { partner: "Etihad Airways - Guest", rate: 0.57 },
-        { partner: "British Airways - Avios", rate: 0.55 },
-      ],
-      "Hotels": [
-        { partner: "Marriott Bonvoy", rate: 0.55 },
-        { partner: "Hilton Honors", rate: 0.5 },
-        { partner: "IHG One Rewards", rate: 0.48 },
-        { partner: "Accor Live Limitless", rate: 0.42 },
-      ],
-      "Vouchers": [
-        { partner: "Amazon Voucher", rate: 0.5 },
-        { partner: "Flipkart Voucher", rate: 0.45 },
-        { partner: "Myntra Voucher", rate: 0.4 },
-        { partner: "BookMyShow Voucher", rate: 0.35 },
-      ],
-    };
-    const tabLabels = ["Air Miles", "Hotels", "Vouchers"];
-    const colHeaders = { "Air Miles": "AIRLINE", "Hotels": "HOTEL", "Vouchers": "PARTNER" };
-    const activeTab = tabLabels.includes(redeemTab) ? redeemTab : "Air Miles";
-    const activeRows = tabOptions[activeTab];
-    const stepsArr = ["Login to the HDFC Smartbuy Portal", "Select Merchant (Cathay Pacific)", "Select your Routes", "Pay with Infinia Points"];
+    const tabOptions = {};
+    if (rd2) {
+      for (const opt of rd2.options) {
+        const tab = opt.name;
+        if (!tabOptions[tab]) tabOptions[tab] = [];
+        tabOptions[tab].push({ partner: opt.name, rate: opt.rate });
+      }
+    }
+    if (Object.keys(tabOptions).length === 0) {
+      tabOptions["Redemption"] = [{ partner: "Auto Cashback", rate: 1.0 }];
+    }
+    const tabLabels = Object.keys(tabOptions);
+    const colHeaders = Object.fromEntries(tabLabels.map(t => [t, "OPTION"]));
+    const activeTab = tabLabels.includes(redeemTab) ? redeemTab : tabLabels[0];
+    const activeRows = tabOptions[activeTab] || [];
+    const stepsArr = bestOpt2?.steps || ["Check your bank app or website for redemption steps"];
 
     return (<div key="redeem-result" className="slide-in" style={{fontFamily:FN,maxWidth:400,margin:"0 auto",background:"#f5f9fa",minHeight:"100vh"}}><FL/>
       {/* ── HEADER ── */}

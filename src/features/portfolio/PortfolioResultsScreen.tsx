@@ -5,7 +5,7 @@ import { FN } from "@/lib/theme";
 import { f } from "@/lib/format";
 import { FL } from "@/components/shared/FontLoader";
 import { useAppContext } from "@/store/AppContext";
-import { CARDS } from "@/data/cards";
+import { CARDS } from "@/data/simulation/legacy";
 
 // Lifted directly from CardDetailV2 — keeps tab section typography identical.
 const SECTION_TITLE = { fontFamily: "'Blacklist','Google Sans',serif", fontSize: 20, fontWeight: 700, lineHeight: "140%", color: "rgba(54,64,96,0.9)" };

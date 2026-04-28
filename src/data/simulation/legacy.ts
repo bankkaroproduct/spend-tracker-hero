@@ -4,7 +4,7 @@
 
 import { C } from "@/lib/theme";
 import { USER_CARDS, TOTAL_ANNUAL_SPEND, BUCKET_TO_MERCHANT, BUCKET_TO_CATEGORY, MERCHANT_ICONS } from "./inputs";
-import { calculateResponses, recommendResponse, getBestCardForBucket, getBestMarketCardForBucket, getFirstEligibleMarketCard, getEligibleMarketCards, isInviteOnlyMarketCard } from "./mockApi";
+import { calculateResponses, recommendResponse, getBestCardForBucket, getBestMarketCardForBucket, getFirstEligibleMarketCard, getEligibleMarketCards, isInviteOnlyMarketCard, isAlreadyOwnedMarketCard, getOwnedCardIndex } from "./mockApi";
 import {
   computeCurrentSavings, computeOptimizedSavings, computeUltimateSavings,
   getSavingsBars, computeCombinedSavings, computeMatchScore, computeCardQuality,
@@ -197,6 +197,12 @@ export const SAVINGS_COMP = [
 export const SAVINGS_BARS = getSavingsBars();
 export const COMBINED_SAVINGS = computeCombinedSavings(2);
 
+export const USER_CARD_YEARLY_SAVINGS = calculateResponses.map((cr, i) => ({
+  name: USER_CARDS[i].name,
+  savings: Math.round(cr.total_savings_yearly),
+  color: USER_CARDS[i].color,
+}));
+
 // ─── Spend distribution (for Optimize screen) ──────────────────────────────
 
 export const SPEND_DIST_WITH_ULTIMATE = computeSpendDistribution(true);
@@ -209,28 +215,46 @@ function parseFee(s: any): number { if (!s) return 0; const m = String(s).replac
 function parseMoney(s: any): number { if (typeof s === "number") return s; if (!s) return 0; const cleaned = String(s).replace(/[^0-9.]/g, ""); return cleaned ? Math.round(parseFloat(cleaned)) : 0; }
 function marketYearlySavings(card: any): number { return Math.round(card?.total_savings_yearly || parseMoney(card?.annual_rewards_value) || parseMoney(card?.net_annual_savings) || 0); }
 
-export const BEST_CARDS = (recommendResponse?.savings || []).map((card, i) => ({
-  name: cleanCardName(card.card_name),
-  bank: card.bank_name,
-  color: i === 0 ? "#111827" : i === 1 ? "#0c2340" : "#333",
-  accent: "#666",
-  annualFee: parseFee(card.annual_fees || card.annual_fee) || Math.round((parseFee(card.annual_fee_without_gst) || 0) * 1.18),
-  savings: marketYearlySavings(card),
-  match: computeMatchScore(i),
-  tags: (isInviteOnlyMarketCard(card) ? ["Invite Only"] : []).concat(
-    parseFee(card.annual_fees || card.annual_fee) === 0 ? ["Lifetime Free"] : [],
-    (card.annual_fee_waiver_toggle || card.annual_fee_waiver) ? ["Fee Waiver"] : []
-  ),
-  highlights: (card.product_usps || []).slice(0, 3).map((u) => u.header + ": " + u.description),
-  whyGood: (card.product_usps || []).slice(0, 3).map((u) => u.header),
-  whyNot: [],
-  howToApply: card.cg_network_url ? "Apply via partner link" : "Apply on bank website",
-  image: card.image || card.card_bg_image || null,
-  card_bg_image: card.card_bg_image,
-  card_bg_gradient: card.card_bg_gradient,
-  cg_network_url: card.cg_network_url,
-  ck_store_url: card.ck_store_url,
-}));
+export const BEST_CARDS = (recommendResponse?.savings || []).map((card, i) => {
+  const ownedIdx = getOwnedCardIndex(card);
+  const isOwned = ownedIdx >= 0;
+  return {
+    name: cleanCardName(card.card_name),
+    bank: card.bank_name,
+    color: i === 0 ? "#111827" : i === 1 ? "#0c2340" : "#333",
+    accent: "#666",
+    annualFee: parseFee(card.annual_fees || card.annual_fee) || Math.round((parseFee(card.annual_fee_without_gst) || 0) * 1.18),
+    savings: marketYearlySavings(card),
+    match: computeMatchScore(i),
+    tags: (isInviteOnlyMarketCard(card) ? ["Invite Only"] : []).concat(
+      isOwned ? ["In Your Wallet"] : [],
+      parseFee(card.annual_fees || card.annual_fee) === 0 ? ["Lifetime Free"] : [],
+      (card.annual_fee_waiver_toggle || card.annual_fee_waiver) ? ["Fee Waiver"] : []
+    ),
+    highlights: (card.product_usps || []).slice(0, 3).map((u) => u.header + ": " + u.description),
+    whyGood: (card.product_usps || []).slice(0, 3).map((u) => u.header),
+    whyNot: [],
+    howToApply: isOwned ? "In Your Wallet" : (card.cg_network_url ? "Apply via partner link" : "Apply on bank website"),
+    image: card.image || card.card_bg_image || null,
+    card_bg_image: card.card_bg_image,
+    card_bg_gradient: card.card_bg_gradient,
+    cg_network_url: card.cg_network_url,
+    ck_store_url: card.ck_store_url,
+    is_owned: isOwned,
+    owned_card_index: ownedIdx,
+    card_alias: card.card_alias,
+    rating: card.rating,
+    lounge_value: card.lounge_value,
+    milestone_benefits_str: card.milestone_benefits,
+    welcome_benefits_raw: card.welcome_benefits,
+    spending_breakdown: card.spending_breakdown,
+    filterTags: (isInviteOnlyMarketCard(card) ? ["Invite Only"] : []).concat(
+      isOwned ? ["In Your Wallet"] : [],
+      parseFee(card.annual_fees || card.annual_fee) === 0 ? ["Lifetime Free"] : [],
+      (card.annual_fee_waiver_toggle || card.annual_fee_waiver) ? ["Fee Waiver"] : []
+    ),
+  };
+});
 
 export const BEST_CARDS_FILTER_OPTS = [
   { label: "All Cards", value: "all" },
@@ -250,22 +274,32 @@ export function getBestCardDetail(idx: number) {
   const worstUserCard = calculateResponses.reduce((w, c, i) =>
     c.total_savings_yearly < (w?.total_savings_yearly || Infinity) ? { ...c, _idx: i } : w, null);
 
+  const wb = card.welcomeBenefits || card.welcome_benefits;
+  const wbFirst = Array.isArray(wb) ? wb[0] : null;
+  const mb = card.milestone_benefits;
+  const milestoneArr = Array.isArray(mb) ? mb : [];
+  const milestoneVal = typeof mb === "string" ? parseMoney(mb) : 0;
+
   return {
-    welcome: card.welcomeBenefits?.[0] ? {
-      amt: card.welcomeBenefits[0].cash_value || 0,
-      validity: card.welcomeBenefits[0].maximum_days + " days",
+    welcome: wbFirst ? {
+      amt: wbFirst.cash_value || parseMoney(wbFirst.voucher_bonus) || parseMoney(wbFirst.rp_bonus) || 0,
+      validity: (wbFirst.maximum_days || "30") + " days",
     } : null,
-    milestones: (card.milestone_benefits || []).map((m) => ({
-      amt: parseInt(m.voucherBonus || m.rpBonus || "0") || 0,
-      validity: m.maxDays + " days",
-    })),
+    milestones: milestoneArr.length > 0
+      ? milestoneArr.map((m) => ({
+          amt: parseInt(m.voucherBonus || m.rpBonus || "0") || 0,
+          validity: (m.maxDays || "365") + " days",
+        }))
+      : milestoneVal > 0
+        ? [{ amt: milestoneVal, validity: "per year" }]
+        : [],
     lounge: {
       qty: (card.travel_benefits?.domestic_lounges_unlocked || 0) + (card.travel_benefits?.international_lounges_unlocked || 0),
       type: "per year",
     },
     fees: {
       annual: parseFee(card.annual_fees || card.annual_fee) || 0,
-      waiver: card.annual_fee_spends ? "Spend ₹" + (parseInt(card.annual_fee_spends) / 100000) + "L to waive" : "No waiver",
+      waiver: card.annual_fee_spends ? "Spend ₹" + (parseInt(card.annual_fee_spends) / 100000) + "L to waive" : "Check bank website",
     },
     replace: worstUserCard ? USER_CARDS[worstUserCard._idx]?.name : USER_CARDS[2].name,
     replaceSave: worstUserCard ? Math.round((card.total_savings_yearly || 0) - worstUserCard.total_savings_yearly) : 0,
@@ -313,9 +347,9 @@ for (const card of USER_CARDS) {
     checkUrl: "",
     options: card.index === 0
       ? [
-          { name: "Air Miles (best value)", rate: 0.30, steps: ["Login to HSBC Online", "Cards → Rewards", "Select Air Miles"] },
-          { name: "Amazon Pay", rate: 0.20, steps: ["Login to HSBC Online", "Cards → Rewards", "Select Amazon Pay"] },
+          // HSBC Travel One: 1 RP = ₹0.20 (MCP confirmed)
           { name: "Statement Credit", rate: 0.20, steps: ["Login to HSBC Online", "Cards → Rewards", "Select Statement Credit"] },
+          { name: "Travel Booking", rate: 0.20, steps: ["Login to HSBC Online", "Cards → Rewards", "Book via SmartBuy"] },
         ]
       : [
           { name: "Auto Cashback", rate: 1.0, steps: ["Cashback is credited automatically to your statement"] },

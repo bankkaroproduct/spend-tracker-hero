@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { FN } from "@/lib/theme";
 import { FL } from "@/components/shared/FontLoader";
 import { useAppContext } from "@/store/AppContext";
-import { CARDS } from "@/data/cards";
+import { CARDS } from "@/data/simulation/legacy";
 import { CARD_CATALOGUE } from "@/data/bestCards";
 
 const CARD_IMG_MAP: Record<string, string> = {

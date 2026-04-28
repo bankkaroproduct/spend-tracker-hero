@@ -3,7 +3,8 @@ import { Star, ChevronDown, ChevronRight, Check, CreditCard, Search, Lock, Mail,
 import { C, FN } from "@/lib/theme";
 import { f } from "@/lib/format";
 import { FL } from "@/components/shared/FontLoader";
-import { TOTAL_ACC } from "@/data/spend";
+import { TOTAL_ACC } from "@/data/simulation/legacy";
+import { BEST_CARDS as LEGACY_BEST_CARDS, BEST_CARDS_COMB_SAVINGS, getBestCardDetail, USER_CARD_YEARLY_SAVINGS } from "@/data/simulation/legacy";
 import { NavBar } from "@/components/shared/NavBar";
 import { useAppContext } from "@/store/AppContext";
 import { Toast, InfoBS, TxnSheet, ActSheet, GmailNudgePopup, GmailNudgeSheet, RetroOverlay, VoiceFlowOverlay, CatBS, FilterSheet } from "@/components/sheets/BottomSheets";
@@ -41,57 +42,12 @@ export const BestCardsScreen = () => {
     bestCardsLogOnce=true;
   }
 
-    const BEST_CARDS=[
-      {name:"HDFC Infinia",bank:"HDFC Bank",color:"#0c1f4a",accent:"#1a3a7a",annualFee:10000,savings:150000,match:98,tags:[{cat:"Shopping",v:10000},{cat:"Travel",v:8000},{cat:"Dining",v:5000},{cat:"Fuel",v:2000},{cat:"Groceries",v:3000}],highlights:["3.3% reward rate via SmartBuy","Unlimited lounge access","10X on SmartBuy partners"],
-        brandFit:[{name:"Amazon",icon:"📦",rate:3.3,yourSave:4950,spend:150000},{name:"Flipkart",icon:"🛒",rate:3.3,yourSave:3300,spend:100000},{name:"Swiggy",icon:"🍔",rate:3.3,yourSave:1650,spend:50000},{name:"MakeMyTrip",icon:"✈️",rate:5,yourSave:2500,spend:50000},{name:"Myntra",icon:"👗",rate:3.3,yourSave:1320,spend:40000}],
-        whyGood:["Best-in-class 3.3% reward rate across all spends via SmartBuy","Unlimited domestic & international lounge access for you + guest","10X rewards on flights, hotels, Amazon, Flipkart","Milestone benefits: vouchers at ₹8L and ₹15L annual spend"],
-        whyNot:["High annual fee (₹10,000 + GST)","Invite-only or ₹10L+ income required","Reward points need manual redemption"],
-        howToApply:["Check eligibility on HDFC website or app","Annual income ₹10L+ required","Apply via NetBanking → Cards → Apply → Infinia","Existing HDFC customers get priority approval"],filterTags:["Eligible Cards","Invite Only"]},
-      {name:"IDFC First Classic",bank:"IDFC First Bank",color:"#0055b8",accent:"#3b8ee0",annualFee:0,savings:95000,match:92,tags:[{cat:"Shopping",v:8000},{cat:"Travel",v:6000},{cat:"Dining",v:4000},{cat:"Groceries",v:5000}],highlights:["3X rewards on top categories","Lifetime free — zero annual fee","No minimum income requirement"],
-        brandFit:[{name:"Amazon",icon:"📦",rate:3,yourSave:4500,spend:150000},{name:"Swiggy",icon:"🍔",rate:3,yourSave:1500,spend:50000},{name:"BigBasket",icon:"🥬",rate:3,yourSave:900,spend:30000}],
-        whyGood:["Lifetime free with no strings attached","3X rewards across top categories","No minimum income proof needed","Instant approval for IDFC account holders"],
-        whyNot:["Reward redemption options limited","No lounge access","Lower ceiling than premium cards"],
-        howToApply:["Apply on idfcfirstbank.com","No income proof needed","Instant virtual card in 2 minutes","Physical card in 5-7 days"],filterTags:["Eligible Cards","Lifetime Free"]},
-      {name:"Amex MRCC",bank:"American Express",color:"#006fcf",accent:"#4a9ee5",annualFee:3500,savings:125000,match:91,tags:[{cat:"Shopping",v:7000},{cat:"Dining",v:9000},{cat:"Travel",v:5000},{cat:"Entertainment",v:3000}],highlights:["Flat 2% on all spends","18 Karat dining benefits","4 lounge visits/yr"],
-        brandFit:[{name:"Amazon",icon:"📦",rate:2,yourSave:3000,spend:150000},{name:"Swiggy",icon:"🍔",rate:2,yourSave:1000,spend:50000},{name:"Zomato",icon:"🍕",rate:2,yourSave:600,spend:30000}],
-        whyGood:["Consistent 2% return on ALL spends","18 Karat dining: 20% off at 500+ restaurants","Bonus MR points every quarter","Great travel redemptions via Amex portal"],
-        whyNot:["Amex not accepted everywhere in India","Lounge access limited to 4 visits/year","MR points devalue on statement credit"],
-        howToApply:["Apply on amex.co.in or via referral","₹6L annual income required","Instant approval for salaried professionals","Card delivered in 5-7 days"],filterTags:["Eligible Cards"]},
-      {name:"HDFC Regalia",bank:"HDFC Bank",color:"#1a2744",accent:"#3b5998",annualFee:2500,savings:110000,match:87,tags:[{cat:"Shopping",v:6000},{cat:"Travel",v:7000},{cat:"Dining",v:3000},{cat:"Fuel",v:2500}],highlights:["4X via SmartBuy","6 lounge visits/yr","Milestone rewards at ₹8L"],
-        brandFit:[{name:"Amazon",icon:"📦",rate:2,yourSave:3000,spend:150000},{name:"Flipkart",icon:"🛒",rate:2,yourSave:2000,spend:100000}],
-        whyGood:["Strong SmartBuy multiplier for travel & shopping","6 lounge visits per year with Priority Pass","Low annual fee waivable on ₹3L spend","Milestone rewards at ₹3L, ₹5L, ₹8L"],
-        whyNot:["Reward rate drops to 1% outside SmartBuy","Only 6 lounge visits","No dining-specific accelerators"],
-        howToApply:["Apply via HDFC NetBanking or branch","₹6L annual income","Upgrade from Millennia","Fee waived on ₹3L spend"],filterTags:["Eligible Cards"]},
-      {name:"OneCard",bank:"OneCard",color:"#1a1a1a",accent:"#444",annualFee:0,savings:85000,match:82,tags:[{cat:"Shopping",v:12000},{cat:"Dining",v:2000},{cat:"Groceries",v:1500}],highlights:["5X in chosen category","Lifetime free metal card","Instant issuance"],
-        brandFit:[{name:"Amazon",icon:"📦",rate:5,yourSave:7500,spend:150000},{name:"Swiggy",icon:"🍔",rate:1,yourSave:500,spend:50000}],
-        whyGood:["5X in categories you pick — fully customisable","Zero fees forever","Metal card with real-time controls","Instant virtual card, no documents"],
-        whyNot:["5X only in 1 category at a time","Base rate is low (1%) outside selected zone","No lounge access or travel perks"],
-        howToApply:["Download OneCard app","PAN + Aadhaar verification only","No income proof required","Virtual card in 2 minutes"],filterTags:["Lifetime Free"]},
-      {name:"SBI Aurum",bank:"SBI Card",color:"#0a4c8c",accent:"#3b82f6",annualFee:4999,savings:95000,match:79,tags:[{cat:"Travel",v:6000},{cat:"Dining",v:5000},{cat:"Groceries",v:3000}],highlights:["2% on travel, dining, groceries","8 lounge visits/yr","Club Vistara Silver"],
-        brandFit:[{name:"MakeMyTrip",icon:"✈️",rate:2,yourSave:1000,spend:50000},{name:"Swiggy",icon:"🍔",rate:2,yourSave:1000,spend:50000}],
-        whyGood:["Solid 2% on dining, travel, groceries","8 lounge visits — generous","Club Vistara Silver with priority boarding","₹10K voucher at ₹10L annual spend"],
-        whyNot:["Annual fee not waivable","1% base rate outside preferred categories","Limited redemption options vs HDFC"],
-        howToApply:["Apply on sbicard.com","₹6L annual income required","Existing SBI holders get faster approval","Card in 7-10 days"],filterTags:["Eligible Cards","FD backed"]},
-      {name:"Axis Atlas",bank:"Axis Bank",color:"#5b2c8e",accent:"#8b5cf6",annualFee:5000,savings:92000,match:85,tags:[{cat:"Travel",v:9000},{cat:"Shopping",v:4000},{cat:"Dining",v:3000}],highlights:["5 EDGE miles per ₹200 on all spends","Complimentary Priority Pass","Milestone: 25K bonus miles at ₹7.5L"],brandFit:[{name:"MakeMyTrip",icon:"✈️",rate:2.5,yourSave:1250,spend:50000},{name:"Amazon",icon:"📦",rate:2.5,yourSave:3750,spend:150000}],whyGood:["Strong travel miles earning rate","Priority Pass with 8 complimentary visits","Milestone bonuses at ₹3.5L and ₹7.5L","Transfer partners include Singapore Airlines"],whyNot:["₹5,000 annual fee not waivable","Miles expire after 3 years","Best value only through transfer partners"],howToApply:["Apply on axisbank.com","₹15L annual income","Upgrade from Axis Privilege or Vistara","Card delivered in 7 days"],filterTags:["Eligible Cards"]},
-      {name:"ICICI Sapphiro",bank:"ICICI Bank",color:"#b54007",accent:"#e06020",annualFee:6500,savings:88000,match:83,tags:[{cat:"Travel",v:7000},{cat:"Dining",v:5000},{cat:"Shopping",v:4000}],highlights:["2 reward points per ₹100","Unlimited domestic lounge access","Buy 1 Get 1 movie tickets"],brandFit:[{name:"Amazon",icon:"📦",rate:2,yourSave:3000,spend:150000},{name:"Swiggy",icon:"🍔",rate:2,yourSave:1000,spend:50000}],whyGood:["Unlimited domestic lounge access","Buy 1 Get 1 on BookMyShow","Good reward rate across all categories","Payback points redeemable at multiple partners"],whyNot:["Annual fee of ₹6,500 is on the higher side","Payback points have limited value","International acceptance can be patchy"],howToApply:["Apply via ICICI iMobile app","₹12L annual income","Existing ICICI customers get faster processing","Card in 5-7 days"],filterTags:["Eligible Cards"]},
-      {name:"HDFC Millennia",bank:"HDFC Bank",color:"#2d5f8a",accent:"#5ba3d9",annualFee:1000,savings:72000,match:80,tags:[{cat:"Shopping",v:6000},{cat:"Dining",v:3000},{cat:"Groceries",v:2500}],highlights:["5% cashback on Amazon, Flipkart, Myntra","1% on other spends","Low annual fee, easily waivable"],brandFit:[{name:"Amazon",icon:"📦",rate:5,yourSave:7500,spend:150000},{name:"Flipkart",icon:"🛒",rate:5,yourSave:5000,spend:100000}],whyGood:["5% cashback on top online platforms","Low fee waivable on ₹1L spend","Good starter premium card","Milestone: ₹1K cashback on ₹1L spend"],whyNot:["5% capped at ₹750/month","1% base rate is average","No lounge access included"],howToApply:["Apply on hdfcbank.com","₹3L annual income","Instant approval for HDFC salary accounts","Upgrade from MoneyBack"],filterTags:["Eligible Cards"]},
-      {name:"Flipkart Axis",bank:"Axis Bank",color:"#047bd5",accent:"#2f9de4",annualFee:500,savings:68000,match:78,tags:[{cat:"Shopping",v:8000},{cat:"Groceries",v:2000},{cat:"Dining",v:1500}],highlights:["5% on Flipkart & Myntra","4% on preferred partners","1.5% on all other spends"],brandFit:[{name:"Flipkart",icon:"🛒",rate:5,yourSave:5000,spend:100000},{name:"Myntra",icon:"👗",rate:5,yourSave:2000,spend:40000}],whyGood:["Highest Flipkart cashback in market","4% on Swiggy, Uber, PVR","1.5% base rate is above average","Practically free (₹500 waivable)"],whyNot:["5% capped at ₹500/billing cycle","Cashback credited as reward points","No lounge or travel perks"],howToApply:["Apply on Flipkart app → Credit Card section","₹3L annual income","Existing Axis customers get priority","Instant virtual card"],filterTags:["Eligible Cards"]},
-      {name:"ICICI Amazon Pay",bank:"ICICI Bank",color:"#232f3e",accent:"#485769",annualFee:0,savings:65000,match:76,tags:[{cat:"Shopping",v:7500},{cat:"Bills",v:2000},{cat:"Fuel",v:1500}],highlights:["5% on Amazon with Prime","2% on paying bills","1% on all other spends"],brandFit:[{name:"Amazon",icon:"📦",rate:5,yourSave:7500,spend:150000},{name:"BigBasket",icon:"🥬",rate:1,yourSave:300,spend:30000}],whyGood:["5% on Amazon is best in class","Lifetime free, no catches","2% on bill payments is useful","Amazon Pay balance cashback — instant use"],whyNot:["5% requires Amazon Prime membership","No lounge or travel benefits","1% base rate is just average","No milestone or bonus rewards"],howToApply:["Apply on Amazon app → Credit Card","No income proof needed","Instant approval for Prime members","Virtual card in 2 minutes"],filterTags:["Lifetime Free"]},
-      {name:"AU Lit",bank:"AU Small Finance",color:"#d4145a",accent:"#e8588b",annualFee:0,savings:58000,match:74,tags:[{cat:"Entertainment",v:3000},{cat:"Dining",v:4000},{cat:"Shopping",v:3000}],highlights:["5% on Swiggy, Zomato & BigBasket","3% on entertainment","Lifetime free metal card"],brandFit:[{name:"Swiggy",icon:"🍔",rate:5,yourSave:2500,spend:50000},{name:"Zomato",icon:"🍕",rate:5,yourSave:1500,spend:30000}],whyGood:["5% on food delivery is unmatched","Metal card with premium feel","Lifetime free — no conditions","Dynamic rewards via AU app"],whyNot:["AU bank ATM network is limited","Reward categories change periodically","No lounge access","Niche bank acceptance concerns"],howToApply:["Apply on AU Bank website or app","No income proof for existing customers","₹2L income for new customers","Card in 7-10 days"],filterTags:["Lifetime Free"]},
-      {name:"Axis Ace",bank:"Axis Bank",color:"#2e1065",accent:"#7c3aed",annualFee:0,savings:55000,match:72,tags:[{cat:"Bills",v:4000},{cat:"Shopping",v:3000},{cat:"Dining",v:2000}],highlights:["2% cashback on bill payments via Google Pay","5% on Swiggy, Uber, Zomato","Lifetime free"],brandFit:[{name:"Swiggy",icon:"🍔",rate:5,yourSave:2500,spend:50000},{name:"Amazon",icon:"📦",rate:1.5,yourSave:2250,spend:150000}],whyGood:["2% on Google Pay bills is unique","5% on popular food platforms","Lifetime free card","Good for everyday spends"],whyNot:["2% only via Google Pay route","5% categories are limited","No lounge or travel perks","Monthly cashback caps apply"],howToApply:["Apply on Axis Bank website","₹3L annual income","Link Google Pay for 2% bills benefit","Instant approval for Axis customers"],filterTags:["Lifetime Free"]},
-      {name:"HSBC Cashback",bank:"HSBC",color:"#db0011",accent:"#ff3333",annualFee:750,savings:52000,match:70,tags:[{cat:"Shopping",v:4000},{cat:"Dining",v:3000},{cat:"Groceries",v:3500}],highlights:["1.5% unlimited cashback everywhere","No category restrictions","Simple, straightforward card"],brandFit:[{name:"Amazon",icon:"📦",rate:1.5,yourSave:2250,spend:150000},{name:"Swiggy",icon:"🍔",rate:1.5,yourSave:750,spend:50000}],whyGood:["Flat 1.5% everywhere — no thinking needed","Auto-credited cashback","Fee waivable on ₹1L annual spend","No reward point complexity"],whyNot:["1.5% is decent but not best-in-class","No lounge or travel benefits","No accelerated categories","No milestone bonuses"],howToApply:["Apply on hsbc.co.in","₹4L annual income","Existing HSBC customers get upgrade offers","Card in 7-10 days"],filterTags:["Eligible Cards"]},
-      {name:"RBL Shoprite",bank:"RBL Bank",color:"#002b5c",accent:"#1a5c99",annualFee:0,savings:48000,match:68,tags:[{cat:"Shopping",v:5000},{cat:"Dining",v:2000},{cat:"Entertainment",v:1500}],highlights:["5% on partner brands","2% on other online spends","Lifetime free"],brandFit:[{name:"Amazon",icon:"📦",rate:2,yourSave:3000,spend:150000},{name:"Flipkart",icon:"🛒",rate:2,yourSave:2000,spend:100000}],whyGood:["5% at partner merchants","Lifetime free with no conditions","2% on online is above average","Decent rewards without complexity"],whyNot:["Partner list is limited and changes","RBL bank app UX is poor","No lounge access","Redemption process is clunky"],howToApply:["Apply on rblbank.com","₹2.5L annual income","Instant decision for salaried applicants","Card in 10-12 days"],filterTags:["Lifetime Free"]},
-      {name:"Yes Marquee",bank:"Yes Bank",color:"#003399",accent:"#1a66cc",annualFee:2500,savings:78000,match:77,tags:[{cat:"Travel",v:5000},{cat:"Dining",v:5000},{cat:"Entertainment",v:4000}],highlights:["3X on dining, travel, entertainment","Complimentary Priority Pass","Buy 1 Get 1 movies"],brandFit:[{name:"MakeMyTrip",icon:"✈️",rate:3,yourSave:1500,spend:50000},{name:"Swiggy",icon:"🍔",rate:3,yourSave:1500,spend:50000}],whyGood:["3X on lifestyle categories","Priority Pass lounge access","Movie and dining offers","Fee waivable on ₹3L spend"],whyNot:["Yes Bank brand perception issues","3X only in select categories","Reward redemption options limited","App experience needs improvement"],howToApply:["Apply on yesbank.in","₹6L annual income","Existing Yes Bank customers get priority","Card in 7-10 days"],filterTags:["Eligible Cards"]},
-      {name:"IndusInd Legend",bank:"IndusInd Bank",color:"#6d1b7b",accent:"#9c27b0",annualFee:0,savings:62000,match:75,tags:[{cat:"Shopping",v:4000},{cat:"Fuel",v:3000},{cat:"Dining",v:2500}],highlights:["Weekend 2X rewards on all spends","1% fuel surcharge waiver","Lifetime free premium card"],brandFit:[{name:"Amazon",icon:"📦",rate:2,yourSave:3000,spend:150000},{name:"Swiggy",icon:"🍔",rate:2,yourSave:1000,spend:50000}],whyGood:["Weekend 2X is great for planned shopping","Fuel surcharge waiver saves on petrol","Lifetime free — no fee pressure","Good all-rounder card"],whyNot:["1X on weekdays is just average","No lounge access","IndusInd app is basic","Limited milestone benefits"],howToApply:["Apply on indusind.com","₹3L annual income","Quick approval for salaried applicants","Card in 5-7 days"],filterTags:["Lifetime Free"]},
-      {name:"Kotak 811",bank:"Kotak Mahindra",color:"#ed1c24",accent:"#ff5252",annualFee:0,savings:42000,match:65,tags:[{cat:"Shopping",v:3000},{cat:"Bills",v:2500},{cat:"Groceries",v:2000}],highlights:["Secured against FD — easy approval","1% cashback on all spends","No income proof needed"],brandFit:[{name:"Amazon",icon:"📦",rate:1,yourSave:1500,spend:150000},{name:"Swiggy",icon:"🍔",rate:1,yourSave:500,spend:50000}],whyGood:["FD-backed — guaranteed approval","1% cashback is straightforward","Good way to build credit score","No income documents needed"],whyNot:["1% rate is below average","Requires FD lock-in","No premium benefits at all","No lounge, dining or travel perks"],howToApply:["Open 811 account on Kotak app","Create FD of ₹5,000 minimum","Card issued against FD automatically","Instant virtual card"],filterTags:["FD backed","Lifetime Free"]},
-      {name:"Bob Financial Prime",bank:"Bank of Baroda",color:"#f36f21",accent:"#ff9a3c",annualFee:2499,savings:70000,match:73,tags:[{cat:"Travel",v:5000},{cat:"Dining",v:4000},{cat:"Shopping",v:3000}],highlights:["4 lounge visits per quarter","5X on travel portal","2% on dining and entertainment"],brandFit:[{name:"MakeMyTrip",icon:"✈️",rate:5,yourSave:2500,spend:50000},{name:"Swiggy",icon:"🍔",rate:2,yourSave:1000,spend:50000}],whyGood:["16 lounge visits per year is generous","5X on travel portal bookings","Fee waivable on ₹2.5L spend","Good for frequent travellers on a budget"],whyNot:["Bob bank digital experience is dated","Limited online merchant partnerships","Reward redemption is slow","Brand perception vs private banks"],howToApply:["Apply at Bank of Baroda branch or online","₹5L annual income","Existing BoB account helps","Card in 10-14 days"],filterTags:["Eligible Cards"]},
-      {name:"ICICI Coral",bank:"ICICI Bank",color:"#f58220",accent:"#f9a825",annualFee:500,savings:45000,match:66,tags:[{cat:"Dining",v:3500},{cat:"Shopping",v:2500},{cat:"Entertainment",v:2000}],highlights:["Buy 1 Get 1 movies at INOX","2 lounge visits per quarter","Payback points on all spends"],brandFit:[{name:"Amazon",icon:"📦",rate:1.5,yourSave:2250,spend:150000},{name:"Swiggy",icon:"🍔",rate:1.5,yourSave:750,spend:50000}],whyGood:["Cheap entry into lounge access","Great movie offer for regular viewers","Low fee easily waivable","Solid starter card"],whyNot:["Reward rate is below 2%","Only 2 lounge visits per quarter","Payback points devalue over time","Better cards available at same price"],howToApply:["Apply via ICICI iMobile app","₹3L annual income","Instant approval for salary account holders","Upgrade from other ICICI cards"],filterTags:["Eligible Cards"]},
-    ];
-    const bcFilterOpts=["Eligible Cards","Lifetime Free","FD backed","Invite Only"];
-    const toggleBcFilter=(f)=>setBcFilter(v=>v.includes(f)?v.filter(x=>x!==f):[...v,f]);
-    const filteredCards=BEST_CARDS.filter(c=>{if(bcSearch&&!c.name.toLowerCase().includes(bcSearch.toLowerCase())&&!c.bank.toLowerCase().includes(bcSearch.toLowerCase()))return false;if(bcFilter.length===0)return true;return bcFilter.some(f=>c.filterTags.includes(f));}).sort((a,b)=>{if(bcSort==="Highest Savings")return b.savings-a.savings;if(bcSort==="Lowest Fee")return a.annualFee-b.annualFee;if(bcSort==="Lifetime Free First")return(a.annualFee===0?0:1)-(b.annualFee===0?0:1)||b.match-a.match;return b.match-a.match;});
+    const BEST_CARDS=LEGACY_BEST_CARDS;
+    const bcFilterOpts=["All Cards","In Your Wallet","Lifetime Free","Invite Only"];
+    const toggleBcFilter=(fl)=>setBcFilter(v=>{if(fl==="All Cards")return[];return v.includes(fl)?v.filter(x=>x!==fl):[...v,fl];});
+    const filteredCards=BEST_CARDS.filter(c=>{if(bcSearch&&!c.name.toLowerCase().includes(bcSearch.toLowerCase())&&!c.bank.toLowerCase().includes(bcSearch.toLowerCase()))return false;if(bcFilter.length===0)return true;return bcFilter.some(fl=>{if(fl==="In Your Wallet")return c.is_owned;if(fl==="Lifetime Free")return c.filterTags.includes("Lifetime Free");if(fl==="Invite Only")return c.filterTags.includes("Invite Only");return c.filterTags.includes(fl);});}).sort((a,b)=>{if(bcSort==="Highest Savings")return b.savings-a.savings;if(bcSort==="Lowest Fee")return a.annualFee-b.annualFee;if(bcSort==="Lifetime Free First")return(a.annualFee===0?0:1)-(b.annualFee===0?0:1)||b.match-a.match;return b.match-a.match;});
     const top2=[BEST_CARDS[0],BEST_CARDS[1]];
-    const combSavings=100000;
+    const combSavings=BEST_CARDS_COMB_SAVINGS;
 
     /* ═══ TABLE TAB STATE & SHARED SAVINGS DATA ═══
        Single source of truth so values tally across both tabs.
@@ -108,42 +64,69 @@ export const BestCardsScreen = () => {
         <div style={{width:0,height:0,borderLeft:"3px solid transparent",borderRight:"3px solid transparent",borderTop:`4px solid ${active&&dir==="desc"?"#0064E0":"#9CA3AF"}`}}/>
       </div>
     );
+    const BUCKET_TO_CAT:Record<string,string>={
+      amazon_spends:"shopping",flipkart_spends:"shopping",other_online_spends:"shopping",other_offline_spends:"shopping",
+      grocery_spends_online:"groceries",offline_grocery:"groceries",
+      online_food_ordering:"food",
+      dining_or_going_out:"dining",
+      fuel:"fuel",
+      flights_annual:"flights",
+      hotels_annual:"hotels",
+      mobile_phone_bills:"bills",electricity_bills:"bills",water_bills:"bills",
+      rent:"rent",
+      insurance_health_annual:"bills",insurance_car_or_bike_annual:"bills",life_insurance:"bills",school_fees:"bills",
+    };
     const getBC=(card:any)=>{
-      const base=card.savings||0;
-      const thisTotal=Math.round(base*0.62);
-      const milestone=Math.round(thisTotal*0.12);
-      const rem=thisTotal-milestone;
-      // Deterministic split across 9 categories
-      const shopping  = Math.round(rem*0.18);
-      const groceries = Math.round(rem*0.08);
-      const food      = Math.round(rem*0.06);
-      const dining    = Math.round(rem*0.12);
-      const fuel      = Math.round(rem*0.04);
-      const flights   = Math.round(rem*0.28);
-      const hotels    = Math.round(rem*0.16);
-      const bills     = Math.round(rem*0.05);
-      // Last bucket absorbs rounding drift so milestone+cats === thisTotal exactly
-      const rent      = rem - (shopping+groceries+food+dining+fuel+flights+hotels+bills);
-      const thisCard  = milestone+shopping+groceries+food+dining+fuel+flights+hotels+bills+rent;
-      const onAxisFlipkart  = Math.round(base*0.16);
-      const onHSBCTravelOne = Math.round(base*0.12);
-      const onHSBCLivePlus  = Math.round(base*0.07);
-      const combined  = thisCard+onAxisFlipkart+onHSBCTravelOne+onHSBCLivePlus;
-      return {milestone,shopping,groceries,food,dining,fuel,flights,hotels,bills,rent,thisCard,onAxisFlipkart,onHSBCTravelOne,onHSBCLivePlus,combined};
+      const bd=card.spending_breakdown;
+      if(!bd){
+        const base=card.savings||0;
+        return {milestone:0,shopping:Math.round(base*0.3),groceries:Math.round(base*0.1),food:Math.round(base*0.08),dining:Math.round(base*0.12),fuel:Math.round(base*0.05),flights:Math.round(base*0.15),hotels:Math.round(base*0.1),bills:Math.round(base*0.05),rent:Math.round(base*0.05),thisCard:base,onAxisFlipkart:0,onHSBCTravelOne:0,onHSBCLivePlus:0,combined:base};
+      }
+      const catMap:Record<string,number>={};
+      let thisCardTotal=0;
+      for(const [bucket,data] of Object.entries(bd)){
+        const savings=(data as any).savings||0;
+        const cat=BUCKET_TO_CAT[bucket]||"other";
+        catMap[cat]=(catMap[cat]||0)+Math.round(savings*12);
+        thisCardTotal+=Math.round(savings*12);
+      }
+      const idx=BEST_CARDS.indexOf(card);
+      const detail=idx>=0?getBestCardDetail(idx):null;
+      const milestone=(detail?.milestones||[]).reduce((s:number,m:any)=>s+(m.amt||0),0);
+      thisCardTotal+=milestone;
+      const userSavings=USER_CARD_YEARLY_SAVINGS;
+      const onCard0=userSavings[0]?.savings||0;
+      const onCard1=userSavings[1]?.savings||0;
+      const onCard2=userSavings[2]?.savings||0;
+      const combined=thisCardTotal+onCard0+onCard1+onCard2;
+      return {milestone,shopping:catMap.shopping||0,groceries:catMap.groceries||0,food:catMap.food||0,dining:catMap.dining||0,fuel:catMap.fuel||0,flights:catMap.flights||0,hotels:catMap.hotels||0,bills:catMap.bills||0,rent:catMap.rent||0,thisCard:thisCardTotal,onAxisFlipkart:onCard1,onHSBCTravelOne:onCard0,onHSBCLivePlus:onCard2,combined};
     };
 
     /* ═══ BEST CARD DETAIL PAGE ═══ */
-    const CARD_DET={
-      "HDFC Infinia":{welcome:[{t:"5000 Reward Points worth ₹1,250",d:"Bonus reward points on your first spend with this card"}],milestones:[{t:"10,000 Points (₹2,500)",d:"On spends of ₹8,00,000 in a year",thr:800000,status:"locked"},{t:"+5,000 Points (₹1,250)",d:"On spends of ₹12,00,000 in a year",thr:1200000,status:"locked"},{t:"+5,000 Points (₹1,250)",d:"On spends of ₹15,00,000 in a year",thr:1500000,status:"locked"}],lounge:[{t:"Unlimited airport lounge access",d:"Domestic & international for cardholder + guest"},{t:"Complimentary golf games",d:"6 rounds per quarter at select courses"},{t:"Concierge service 24/7",d:"Travel, dining & lifestyle bookings"}],fees:{annual:"₹10,000 + GST",joining:"₹10,000 + GST",waiver:"Spend ₹10,00,000 or more to waive next year's annual fee",waiverStatus:"Not yet",bankFees:[["Forex Markup","2%"],["APR","3.49%"],["ATM Withdrawal","2.50%"],["Reward Redemption","N/A"],["Railway Surcharge","1%"],["Fuel Surcharge","1%"],["Cash Payment Fee","₹250"]],lateFees:[["Up to ₹500","Nil"],["₹500 - ₹5,000","₹100"],["₹5,000 - ₹10,000","₹500"],["₹10,000 - ₹25,000","₹600"],["₹25,000 - ₹50,000","₹800"],["Above ₹50,000","₹950"]]},replace:"ICICI Coral",replaceSave:66900},
-      "IDFC First Classic":{welcome:[{t:"500 Reward Points worth ₹125",d:"On first transaction within 30 days"}],milestones:[{t:"2,000 Points (₹500)",d:"On spends of ₹2,00,000 in a year",thr:200000,status:"claim"},{t:"+1,000 Points (₹250)",d:"On spends of ₹3,00,000 in a year",thr:300000,status:"claim"},{t:"+1,000 Points (₹250)",d:"On spends of ₹4,00,000 in a year",thr:400000,status:"claim"},{t:"+1,000 Points (₹250)",d:"On spends of ₹5,00,000 in a year",thr:500000,status:"locked"}],lounge:[{t:"1 free airport lounge visit/quarter",d:"Spend ₹75,000 in the previous quarter to unlock"},{t:"1 free railway lounge visit/quarter",d:"No minimum spend required"},{t:"25% off movie tickets, 2x a month",d:"Min 2 tickets on BookMyShow or INOX, up to ₹100 off"},{t:"No international lounge benefit",d:"Not available on this card"}],fees:{annual:"₹500 + GST",joining:"₹500 + GST",waiver:"Spend ₹1,50,000 or more to waive",waiverStatus:"Waived",bankFees:[["Forex Markup","3.50%"],["APR","3.75%"],["ATM Withdrawal","2.50%"],["Reward Redemption","Not Applicable"],["Link for all T&Cs","0.054/g"],["Railway Surcharge","1%"],["Fuel Surcharge","1%"],["Cheque Payment Fee","N/A"],["Cash Payment Fee","₹100"]],lateFees:[["Up to ₹500","Nil"],["₹500 - ₹5,000","₹100"],["₹5,000 - ₹10,000","₹500"],["₹10,000 - ₹25,000","₹600"],["Above ₹25,000","₹750"]]},replace:"HSBC Travel One",replaceSave:61900},
-      "Amex MRCC":{welcome:[{t:"4,000 MR Points worth ₹1,200",d:"On spending ₹20,000 in first 90 days"}],milestones:[{t:"1,000 Bonus MR Points",d:"On spending ₹1,50,000 in a quarter",thr:150000,status:"claim"},{t:"+1,000 Bonus MR Points",d:"On spending ₹3,00,000 in a quarter",thr:300000,status:"locked"}],lounge:[{t:"4 complimentary lounge visits/year",d:"Domestic lounges via Priority Pass"},{t:"18 Karat dining privileges",d:"20% off at 500+ restaurants across India"},{t:"Buy 1 Get 1 movie tickets",d:"Twice a month on BookMyShow"}],fees:{annual:"₹3,500 + GST",joining:"₹3,500 + GST",waiver:"Spend ₹1,50,000 to waive annual fee",waiverStatus:"Waived",bankFees:[["Forex Markup","3.5%"],["APR","3.50%"],["ATM Withdrawal","N/A"],["Reward Redemption","Free"],["Railway Surcharge","N/A"],["Fuel Surcharge","1%"]],lateFees:[["Up to ₹1,000","Nil"],["₹1,000 - ₹10,000","₹500"],["₹10,000 - ₹50,000","₹700"],["Above ₹50,000","₹950"]]},replace:"HSBC Live+",replaceSave:58000},
+    const getCD=(name:any)=>{
+      const idx=BEST_CARDS.findIndex((c:any)=>c.name===name);
+      const detail=idx>=0?getBestCardDetail(idx):null;
+      const card=BEST_CARDS.find((c:any)=>c.name===name);
+      if(detail) return {
+        welcome:detail.welcome?[{t:detail.welcome.amt>0?`₹${f(detail.welcome.amt)} welcome bonus`:"Welcome reward on first spend",d:detail.welcome.validity?`Within ${detail.welcome.validity}`:"On activation"}]:[{t:"Welcome reward on first spend",d:"On activation"}],
+        milestones:(detail.milestones||[]).map((m:any)=>({t:`₹${f(m.amt)} reward`,d:m.validity?`Within ${m.validity}`:"Annual",thr:0,status:"locked"})),
+        lounge:detail.lounge?.qty>0?[{t:`${detail.lounge.qty} lounge visits ${detail.lounge.type}`,d:"Domestic & international"}]:[{t:"Check bank website for lounge benefits",d:""}],
+        fees:{annual:card&&card.annualFee>0?`₹${f(card.annualFee)} + GST`:"Lifetime Free",joining:card&&card.annualFee>0?`₹${f(card.annualFee)} + GST`:"Nil",waiver:detail.fees?.waiver||"Check bank website",waiverStatus:"Check T&Cs",bankFees:[["Forex Markup","Check bank website"],["APR","Check bank website"]],lateFees:[["Check bank website",""]]},
+        replace:detail.replace||"",replaceSave:detail.replaceSave||0,
+      };
+      return {
+        welcome:[{t:"Welcome reward on first spend",d:"On activation"}],
+        milestones:[{t:"Check bank website for milestones",d:"",thr:0,status:"locked"}],
+        lounge:[{t:"Check bank website for lounge benefits",d:""}],
+        fees:{annual:card&&card.annualFee>0?`₹${f(card.annualFee)} + GST`:"Lifetime Free",joining:card&&card.annualFee>0?`₹${f(card.annualFee)} + GST`:"Nil",waiver:"Check bank website",waiverStatus:"Check T&Cs",bankFees:[["Check bank website",""]],lateFees:[["Check bank website",""]]},
+        replace:"",replaceSave:0,
+      };
     };
-    const getCD=(name)=>{const d=CARD_DET[name];if(d)return d;const c=BEST_CARDS.find(x=>x.name===name);const userCards=["HSBC Travel One","Axis Flipkart Card","HSBC Live+"];const worstCard=userCards[2];const saveDiff=c?Math.round(c.savings*0.45):30000;return{welcome:[{t:"Welcome reward points on first spend",d:"Bonus points or cashback credited on your first transaction"}],milestones:[{t:"Milestone rewards on annual spend",d:"Earn bonus rewards at spending milestones",thr:200000,status:"locked"},{t:"Additional milestone at higher spend",d:"Extra rewards on reaching next spending tier",thr:400000,status:"locked"}],lounge:[{t:c&&c.annualFee>=2500?"Complimentary airport lounge access":"No airport lounge access",d:c&&c.annualFee>=2500?"Check card-specific number of visits per year":"Not available on this card"},{t:c&&c.annualFee>=1000?"Movie or dining offers":"Basic rewards on all spends",d:c&&c.annualFee>=1000?"Periodic offers on entertainment & dining":"Cashback or reward points on transactions"}],fees:{annual:c&&c.annualFee>0?"₹"+f(c.annualFee)+" + GST":"Lifetime Free",joining:c&&c.annualFee>0?"₹"+f(c.annualFee)+" + GST":"Nil",waiver:c&&c.annualFee>0?"Spend-based waiver — check bank T&Cs":"No fee to waive",waiverStatus:c&&c.annualFee===0?"Waived":"Check T&Cs",bankFees:[["Forex Markup","3.50%"],["APR","3.49%"],["ATM Withdrawal","2.50%"],["Fuel Surcharge","1%"],["Railway Surcharge","1%"]],lateFees:[["Up to ₹500","Nil"],["₹500 - ₹10,000","₹500"],["Above ₹10,000","₹750"]]},replace:worstCard,replaceSave:saveDiff};};
 
     if(bestCardDetail && USE_NEW_CARD_DETAIL){
       return <CardDetailV2 card={bestCardDetail} ctx={{setBestCardDetail, setBcEligSheet}}/>;
     }
-    if(bestCardDetail){const card=bestCardDetail;const netSavings=card.savings-(card.annualFee||0);const det=getCD(card.name);return(
+    if(bestCardDetail){const card=bestCardDetail;const netSavings=card.savings-(card.annualFee||0);const det=getCD(card.name);const _detIdx=BEST_CARDS.findIndex((c:any)=>c.name===card.name);const _detData=_detIdx>=0?getBestCardDetail(_detIdx):null;if(!card.brandFit&&_detData?.brandFit){card.brandFit=_detData.brandFit.map((bf:any)=>({name:bf.brand,icon:"📦",rate:parseFloat(bf.rate)||0,yourSave:bf.savings||0,spend:bf.spend||0}));}if(!card.brandFit)card.brandFit=[];return(
     <div style={{fontFamily:FN,maxWidth:400,margin:"0 auto",height:"100vh",display:"flex",flexDirection:"column",position:"relative"}}><div data-scroll="1" style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",background:C.bg,paddingBottom:100}}><div className="slide-in"><FL/>
       {/* ── HEADER ── */}
       <div style={{background:`linear-gradient(160deg,${card.color},${card.accent})`,padding:"44px 24px 0",color:"#fff"}}>
@@ -183,9 +166,7 @@ export const BestCardsScreen = () => {
           {(()=>{
             const compCards=[
               {name:card.name,bank:card.bank,savings:card.savings,color:card.color,accent:card.accent,isThis:true},
-              {name:"HSBC Travel One",bank:"HSBC Bank",savings:50000,color:"#0c2340",accent:"#1a5276",isUser:true},
-              {name:"Axis Flipkart",bank:"Axis Bank",savings:80000,color:"#5b2c8e",accent:"#8b5cf6",isUser:true},
-              {name:"HSBC Live+",bank:"HSBC Bank",savings:45000,color:"#006d5b",accent:"#00a086",isUser:true},
+              ...USER_CARD_YEARLY_SAVINGS.map((uc:any)=>({name:uc.name,bank:"",savings:uc.savings,color:uc.color,accent:uc.color,isUser:true})),
             ].sort((a,b)=>b.savings-a.savings);
             const mx=Math.max(...compCards.map(c=>c.savings));
             return compCards.map((cc,ci)=>(<div key={ci} style={{marginBottom:ci<compCards.length-1?10:0}}>
@@ -356,6 +337,7 @@ export const BestCardsScreen = () => {
       "IDFC First Classic":"/legacy-assets/cards/idfc-select.png",
       "AU Lit":"/legacy-assets/cards/AU-Zenith.png",
     };
+    const getCardImg=(card:any)=>BC_IMG_MAP[card.name]||card.image||card.card_bg_image||null;
 
     /* ═══ BEST CARDS LIST PAGE ═══ */
     return(<div style={{fontFamily:FN,maxWidth:400,margin:"0 auto",height:"100vh",display:"flex",flexDirection:"column",position:"relative"}}><div data-scroll="1" style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",background:"#F4F9FA",paddingBottom:24}}><div key="bestcards" className="slide-in"><FL/>
@@ -384,7 +366,7 @@ export const BestCardsScreen = () => {
             <div style={{width:1,height:24,background:"rgba(255,255,255,0.4)",opacity:0.6,flexShrink:0}}/>
             <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}>
               <div style={{fontFamily:FN,fontSize:10,fontWeight:400,lineHeight:"140%",color:"rgba(255,255,255,0.6)"}}>Current Savings</div>
-              <div style={{fontFamily:FN,fontSize:13,fontWeight:500,lineHeight:"150%",color:"rgba(255,255,255,0.9)"}}>₹20,000/yr</div>
+              <div style={{fontFamily:FN,fontSize:13,fontWeight:500,lineHeight:"150%",color:"rgba(255,255,255,0.9)"}}>{"₹"+f(USER_CARD_YEARLY_SAVINGS.reduce((s:number,c:any)=>s+c.savings,0))+"/yr"}</div>
             </div>
           </div>
 
@@ -393,7 +375,7 @@ export const BestCardsScreen = () => {
             <div style={{fontFamily:FN,fontSize:10,fontWeight:400,lineHeight:"140%",color:"rgba(255,255,255,0.6)",textAlign:"center"}}>You Could Save</div>
             <div style={{display:"flex",flexDirection:"row",justifyContent:"center",alignItems:"flex-start",gap:4,filter:"drop-shadow(0px 26px 10px rgba(73,203,133,0.03)) drop-shadow(0px 15px 9px rgba(73,203,133,0.1)) drop-shadow(0px 7px 7px rgba(73,203,133,0.17)) drop-shadow(0px 2px 4px rgba(73,203,133,0.2))"}}>
               <span style={{fontFamily:"'IBM Plex Serif',serif",fontSize:30,fontWeight:700,lineHeight:"110%",background:"linear-gradient(180deg, #82FF8E 10.83%, #00770C 80%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>₹</span>
-              <span style={{fontFamily:"'Blacklist','Google Sans',serif",fontSize:32,fontWeight:800,lineHeight:"120%",letterSpacing:"-0.01em",background:"linear-gradient(180deg, #82FF8E 10.83%, #00770C 80%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>1,10,000/yr</span>
+              <span style={{fontFamily:"'Blacklist','Google Sans',serif",fontSize:32,fontWeight:800,lineHeight:"120%",letterSpacing:"-0.01em",background:"linear-gradient(180deg, #82FF8E 10.83%, #00770C 80%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>{f(combSavings)+"/yr"}</span>
             </div>
           </div>
         </div>
@@ -421,7 +403,7 @@ export const BestCardsScreen = () => {
 
         {/* Filter chips */}
         <div data-scroll="1" style={{display:"flex",gap:8,marginBottom:20,overflowX:"auto",paddingBottom:4}}>
-          {bcFilterOpts.map(fl=>{const on=bcFilter.includes(fl);return(<div key={fl} onClick={()=>toggleBcFilter(fl)} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 12px",height:32.48,boxSizing:"border-box",borderRadius:6,border:on?"1px solid #059669":"1px solid rgba(23,51,144,0.06)",background:on?"#f0fdf4":"linear-gradient(90deg, #FFFFFF 0%, #F5FAFF 100%)",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,boxShadow:"0px 1px 2px rgba(0,0,0,0.06)"}}>
+          {bcFilterOpts.map(fl=>{const on=fl==="All Cards"?bcFilter.length===0:bcFilter.includes(fl);return(<div key={fl} onClick={()=>toggleBcFilter(fl)} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 12px",height:32.48,boxSizing:"border-box",borderRadius:6,border:on?"1px solid #059669":"1px solid rgba(23,51,144,0.06)",background:on?"#f0fdf4":"linear-gradient(90deg, #FFFFFF 0%, #F5FAFF 100%)",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,boxShadow:"0px 1px 2px rgba(0,0,0,0.06)"}}>
             <div style={{width:16.48,height:16.48,borderRadius:5.88,border:on?"1.5px solid #059669":"0.82px solid rgba(28,42,51,0.2)",background:on?"#059669":"#FFFFFF",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{on&&<Check size={11} strokeWidth={3} color="#fff"/>}</div>
             <span style={{fontSize:12,fontWeight:500,lineHeight:"16px",color:on?"#059669":"#2B2B2B"}}>{fl}</span>
           </div>);})}
@@ -445,10 +427,10 @@ export const BestCardsScreen = () => {
             <div style={{width:140,flexShrink:0,position:"sticky",left:0,zIndex:2,background:"#fff",boxShadow:"4px 0px 10px 0px rgba(0,0,0,0.06)"}}>
               <div style={{padding:"10px 16px",height:78,display:"flex",alignItems:"center",justifyContent:"center",background:"#F0F0F7",border:"0.95px solid #EBEBF4",boxSizing:"border-box",boxShadow:"4px 0px 10px 0px rgba(0,0,0,0.06)",position:"sticky",left:0,zIndex:3}}><span style={{fontSize:11,fontWeight:500,lineHeight:"13px",color:"rgba(28,42,51,0.6)"}}>Cards</span></div>
               {sortedTableCards.map((card,i)=>{
-                const imgSrc=BC_IMG_MAP[card.name]||null;
-                const tag=card.filterTags.includes("Invite Only")?"INVITE ONLY":card.filterTags.includes("Lifetime Free")?"LIFETIME FREE":card.filterTags.includes("FD backed")?"FD BACKED":null;
-                const tagBg=tag==="INVITE ONLY"?"linear-gradient(102.32deg, rgba(255,239,186,0.5) 1.93%, rgba(255,237,176,0.5) 59.29%, rgba(255,239,186,0.5) 107.52%)":tag==="LIFETIME FREE"?"linear-gradient(102.32deg, rgba(186,255,254,0.35) 1.93%, rgba(158,255,253,0.35) 59.29%, rgba(186,255,202,0.35) 107.52%)":"linear-gradient(102.32deg, rgba(186,210,255,0.5) 1.93%, rgba(176,200,255,0.5) 59.29%, rgba(186,210,255,0.5) 107.52%)";
-                const tagTextGrad=tag==="INVITE ONLY"?"linear-gradient(97.92deg, #77552E 10.66%, #B07023 50.43%, #77552E 89.82%)":tag==="LIFETIME FREE"?"linear-gradient(97.92deg, #2E775D 10.66%, #23B07E 50.43%, #2E775D 89.82%)":"linear-gradient(97.92deg, #1E40AF 10.66%, #3B82F6 50.43%, #1E40AF 89.82%)";
+                const imgSrc=getCardImg(card);
+                const tag=card.is_owned?"IN YOUR WALLET":card.filterTags.includes("Invite Only")?"INVITE ONLY":card.filterTags.includes("Lifetime Free")?"LIFETIME FREE":card.filterTags.includes("FD backed")?"FD BACKED":null;
+                const tagBg=tag==="IN YOUR WALLET"?"linear-gradient(102.32deg, rgba(186,255,202,0.5) 1.93%, rgba(158,255,200,0.5) 59.29%, rgba(186,255,202,0.5) 107.52%)":tag==="INVITE ONLY"?"linear-gradient(102.32deg, rgba(255,239,186,0.5) 1.93%, rgba(255,237,176,0.5) 59.29%, rgba(255,239,186,0.5) 107.52%)":tag==="LIFETIME FREE"?"linear-gradient(102.32deg, rgba(186,255,254,0.35) 1.93%, rgba(158,255,253,0.35) 59.29%, rgba(186,255,202,0.35) 107.52%)":"linear-gradient(102.32deg, rgba(186,210,255,0.5) 1.93%, rgba(176,200,255,0.5) 59.29%, rgba(186,210,255,0.5) 107.52%)";
+                const tagTextGrad=tag==="IN YOUR WALLET"?"linear-gradient(97.92deg, #2E775D 10.66%, #23B07E 50.43%, #2E775D 89.82%)":tag==="INVITE ONLY"?"linear-gradient(97.92deg, #77552E 10.66%, #B07023 50.43%, #77552E 89.82%)":tag==="LIFETIME FREE"?"linear-gradient(97.92deg, #2E775D 10.66%, #23B07E 50.43%, #2E775D 89.82%)":"linear-gradient(97.92deg, #1E40AF 10.66%, #3B82F6 50.43%, #1E40AF 89.82%)";
                 return(
                 <div key={i} style={{width:140,height:146,position:"relative",borderWidth:"0 1px 1px 0",borderStyle:"solid",borderColor:"rgba(0,0,0,0.08)",boxSizing:"border-box",background:"#fff",overflow:"hidden"}}>
                   {/* Tag pill */}
@@ -473,9 +455,9 @@ export const BestCardsScreen = () => {
                 ? [
                     {label:"Combined Savings",key:"combined",w:130},
                     {label:"Savings on this card",key:"thisCard",w:130},
-                    {label:"Savings on Axis Flipkart",key:"onAxisFlipkart",w:130},
-                    {label:"Savings on HSBC Travel One",key:"onHSBCTravelOne",w:140},
-                    {label:"Savings on HSBC Live+",key:"onHSBCLivePlus",w:130},
+                    {label:`Savings on ${USER_CARD_YEARLY_SAVINGS[1]?.name||"Card 2"}`,key:"onAxisFlipkart",w:130},
+                    {label:`Savings on ${USER_CARD_YEARLY_SAVINGS[0]?.name||"Card 1"}`,key:"onHSBCTravelOne",w:140},
+                    {label:`Savings on ${USER_CARD_YEARLY_SAVINGS[2]?.name||"Card 3"}`,key:"onHSBCLivePlus",w:130},
                   ]
                 : [
                     {label:"Combined Savings",key:"combined",w:130},
@@ -512,7 +494,7 @@ export const BestCardsScreen = () => {
         </div>);})():(
         <div style={{display:"flex",flexDirection:"column",gap:16}}>
           {filteredCards.map((card,i)=>{
-            const imgSrc=BC_IMG_MAP[card.name]||null;
+            const imgSrc=getCardImg(card);
             const bc=getBC(card);
             return(
           <div key={i} style={{boxSizing:"border-box",background:"#fff",borderRadius:10,boxShadow:"0px 2px 8px rgba(0,0,0,0.08)",overflow:"hidden"}}>
@@ -523,9 +505,11 @@ export const BestCardsScreen = () => {
               </div>
               <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",justifyContent:"center",gap:8,padding:"10px 0"}}>
                 <div style={{fontFamily:FN,fontSize:14,fontWeight:600,lineHeight:"20px",color:"#36405E"}}>{card.name} Credit Card</div>
-                <div style={{display:"inline-flex",alignSelf:"flex-start",alignItems:"center",justifyContent:"center",padding:"8px 11px",borderRadius:6,background:"linear-gradient(92.04deg, rgba(255,109,29,0.2) 2.34%, rgba(255,109,29,0.08) 29.05%, rgba(255,109,29,0.02) 97.73%)",cursor:"pointer"}}>
+                {card.is_owned?(<div style={{display:"inline-flex",alignSelf:"flex-start",alignItems:"center",justifyContent:"center",padding:"8px 11px",borderRadius:6,background:"linear-gradient(92.04deg, rgba(5,150,105,0.15) 2.34%, rgba(5,150,105,0.05) 97.73%)"}}>
+                  <span style={{fontFamily:FN,fontSize:11,fontWeight:600,lineHeight:"11px",letterSpacing:"0.02em",textTransform:"uppercase",color:"#059669",whiteSpace:"nowrap"}}>In Your Wallet</span>
+                </div>):(<div style={{display:"inline-flex",alignSelf:"flex-start",alignItems:"center",justifyContent:"center",padding:"8px 11px",borderRadius:6,background:"linear-gradient(92.04deg, rgba(255,109,29,0.2) 2.34%, rgba(255,109,29,0.08) 29.05%, rgba(255,109,29,0.02) 97.73%)",cursor:"pointer"}}>
                   <span style={{fontFamily:FN,fontSize:11,fontWeight:600,lineHeight:"11px",letterSpacing:"0.02em",textTransform:"uppercase",color:"#FF6D1D",whiteSpace:"nowrap"}}>Apply &amp; Get ₹1400</span>
-                </div>
+                </div>)}
               </div>
             </div>
 
@@ -542,8 +526,8 @@ export const BestCardsScreen = () => {
               </div>
               <div style={{width:1,alignSelf:"stretch",background:"linear-gradient(180deg, #FCFEFF 0%, #CCD1D6 52.88%, #FCFEFF 100%)"}}/>
               <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,padding:8}}>
-                <span style={{fontFamily:FN,fontSize:11,fontWeight:400,lineHeight:"155%",color:"#808387"}}>Eligibility</span>
-                <button onClick={()=>setBcEligSheet(card)} style={{border:"none",background:"transparent",cursor:"pointer",padding:2,fontFamily:"'SF Pro Display',sans-serif",fontSize:11,fontWeight:500,lineHeight:"16px",color:"#0064E0"}}>Check Now</button>
+                <span style={{fontFamily:FN,fontSize:11,fontWeight:400,lineHeight:"155%",color:"#808387"}}>{card.is_owned?"Status":"Eligibility"}</span>
+                {card.is_owned?<span style={{fontFamily:FN,fontSize:11,fontWeight:600,lineHeight:"16px",color:"#059669"}}>Owned</span>:<button onClick={()=>setBcEligSheet(card)} style={{border:"none",background:"transparent",cursor:"pointer",padding:2,fontFamily:"'SF Pro Display',sans-serif",fontSize:11,fontWeight:500,lineHeight:"16px",color:"#0064E0"}}>Check Now</button>}
               </div>
             </div>
 
@@ -556,19 +540,22 @@ export const BestCardsScreen = () => {
               </div>
             </div>
 
-            {/* CTAs — outlined Create Portfolio + filled View details */}
+            {/* CTAs — outlined Create Portfolio / View Card + filled View details */}
             <div style={{display:"flex",gap:10,padding:"0 12px 16px"}}>
-              {(() => {
+              {card.is_owned?(
+                <button onClick={()=>{if(typeof card.owned_card_index==="number"&&card.owned_card_index>=0){openCard(card.owned_card_index);}}} style={{flex:1,height:42,boxSizing:"border-box",padding:"12px 20px",borderRadius:8,border:"1px solid rgba(5,150,105,0.3)",background:"#f0fdf4",cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",gap:5,fontFamily:FN,fontSize:12,fontWeight:500,lineHeight:"150%",color:"#059669"}}>
+                  View Card
+                </button>
+              ):(()=>{
                 const isAdded = (portfolioNew||[]).includes(card.name);
                 const portfolioStarted = (portfolioNew||[]).length > 0;
                 const portfolioFull = (portfolioNew||[]).length >= 3;
                 const onClick = () => {
                   if (isAdded) {
-                    // Toggle off — deselect the card.
                     setPortfolioNew((portfolioNew||[]).filter((n: string) => n !== card.name));
                     return;
                   }
-                  if (portfolioFull) return; // can't add — slot limit reached
+                  if (portfolioFull) return;
                   if (portfolioStarted) {
                     setPortfolioNew([...(portfolioNew||[]), card.name]);
                   } else {

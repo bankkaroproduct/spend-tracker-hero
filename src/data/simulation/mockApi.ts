@@ -292,14 +292,12 @@ export function getBestCardForBucket(bucket: string): { cardIndex: number; savin
   return best;
 }
 
+// Static allowlist — replace with API data when invite_only field becomes available
+const INVITE_ONLY_ALIASES = ["magnus-burgundy-credit-card", "hdfc-infinia-credit-card"];
+
 export function isInviteOnlyMarketCard(card: any): boolean {
   const alias = String(card?.card_alias || "").toLowerCase();
-  const name = String(card?.card_name || "").toLowerCase();
-  return Boolean(card?.invite_only)
-    || alias.includes("magnus-burgundy")
-    || alias.includes("hdfc-infinia")
-    || name.includes("magnus burgundy")
-    || name.includes("hdfc infinia");
+  return Boolean(card?.invite_only) || INVITE_ONLY_ALIASES.some(a => alias.includes(a));
 }
 
 // Normalize a card name for cross-source comparison
@@ -312,8 +310,9 @@ function _normCardName(s: string): string {
     .trim();
 }
 
-// True if this market card is one the user already owns.
 export function isAlreadyOwnedMarketCard(card: any): boolean {
+  const alias = String(card?.card_alias || "").toLowerCase();
+  if (alias && USER_CARDS.some(uc => uc.card_alias === alias)) return true;
   const candidates = [card?.card_name, card?.card_alias].map(_normCardName).filter(Boolean);
   if (!candidates.length) return false;
   return USER_CARDS.some(uc => {
@@ -322,10 +321,24 @@ export function isAlreadyOwnedMarketCard(card: any): boolean {
   });
 }
 
+export function getOwnedCardIndex(card: any): number {
+  const alias = String(card?.card_alias || "").toLowerCase();
+  if (alias) {
+    const idx = USER_CARDS.findIndex(uc => uc.card_alias === alias);
+    if (idx >= 0) return idx;
+  }
+  return -1;
+}
+
 export function getEligibleMarketCards() {
-  return (recommendResponse?.savings || [])
+  const all = recommendResponse?.savings || [];
+  const eligible = all
     .filter(c => !isInviteOnlyMarketCard(c))
     .filter(c => !isAlreadyOwnedMarketCard(c));
+  if (typeof window !== "undefined") {
+    console.log("[mockApi] Total cards:", all.length, "| Eligible:", eligible.length, "| First eligible:", eligible[0]?.card_name);
+  }
+  return eligible;
 }
 
 export function getFirstEligibleMarketCard() {

@@ -53,7 +53,9 @@
       "Bash(rm \"public/ui/Frame 1991635110.png\" \"public/ui/Frame 1991635110 \\(1\\).png\" \"public/ui/Frame 1991635110 \\(2\\).png\")",
       "Bash(mv \"public/ui/image 4600.png\" \"public/ui/coin-large.png\")",
       "Bash(mv \"public/ui/image 4601.png\" \"public/ui/coin-medium.png\")",
-      "Bash(mv \"public/ui/image 4602.png\" \"public/ui/coin-small.png\")"
+      "Bash(mv \"public/ui/image 4602.png\" \"public/ui/coin-small.png\")",
+      "Bash(curl -s http://localhost:5174)",
+      "Bash(npx kill-port *)"
     ]
   }
 }

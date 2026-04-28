@@ -4,6 +4,7 @@ import { FN } from "@/lib/theme";
 import { f } from "@/lib/format";
 import { ChevronDown, ChevronRight, Info } from "lucide-react";
 import { CD, CARDS } from "@/data/simulation/legacy";
+import { USER_CARDS } from "@/data/simulation/inputs";
 
 /**
  * CardAnalysisFigma — pixel-accurate rebuild of the Figma card-detail
@@ -135,7 +136,12 @@ export function CardAnalysisFigma({ uc, ptName, onSaveMore, onRowClick }: { uc: 
   const cardIndex = useMemo(() => CARDS.findIndex((c: any) => c.name === uc?.name), [uc?.name]);
   const cd = (CD?.[cardIndex] || {}) as any;
   const txns = (cd.txns || []) as any[];
-  const earned30d = useMemo(() => txns.reduce((s: number, t: any) => s + (t.saved || 0), 0), [txns]);
+  const convRate = USER_CARDS[cardIndex]?.conv_rate || 1;
+  const toDisplayUnit = (rupees: number) => isCash ? rupees : Math.round(rupees / convRate);
+  const earned30d = useMemo(() => {
+    const rupees = txns.reduce((s: number, t: any) => s + (t.saved || 0), 0);
+    return toDisplayUnit(rupees);
+  }, [txns, convRate, isCash]);
 
   const { dataset, capBars, totalEarned } = useMemo(() => {
     const txCountByBrand: Record<string, number> = {};
@@ -150,17 +156,18 @@ export function CardAnalysisFigma({ uc, ptName, onSaveMore, onRowClick }: { uc: 
     const rows = (Array.isArray(base) ? base : []).slice(0, 6).map((r: any) => {
       const name = r.name || "Other";
       const spend = Math.round(r.spend || 0);
-      const saved = Math.round(r.saved || 0);
+      const savedRaw = Math.round(r.saved || 0);
+      const savedDisplay = toDisplayUnit(savedRaw);
       const txnsCount = view === "categories" ? (txCountByCat[name] || 0) : (txCountByBrand[name] || 0);
       const img = IMG_MAP[name] || (view === "categories" ? "/categories/shopping.png" : null);
       return {
         name,
         img,
         icon: r.icon,
-        saved: `₹${f(saved)}`,
+        saved: isCash ? `₹${f(savedDisplay)}` : `${f(savedDisplay)}`,
         txns: `${txnsCount} Transactions`,
         spent: `${f(spend)} SPENT`,
-        _saved: saved,
+        _saved: savedDisplay,
       };
     });
 
@@ -185,8 +192,9 @@ export function CardAnalysisFigma({ uc, ptName, onSaveMore, onRowClick }: { uc: 
       };
     });
 
-    const earnedNum = Math.round(cd.totalSaved || 0);
-    const totalEarned = isCash ? `₹${f(earnedNum)}` : `${f(earnedNum)}`;
+    const earnedRupees = Math.round(cd.totalSaved || 0);
+    const earnedDisplay = toDisplayUnit(earnedRupees);
+    const totalEarned = isCash ? `₹${f(earnedDisplay)}` : `${f(earnedDisplay)}`;
     return { dataset: withBars, capBars: caps, totalEarned };
   }, [txns, cd, view, isCash]);
 

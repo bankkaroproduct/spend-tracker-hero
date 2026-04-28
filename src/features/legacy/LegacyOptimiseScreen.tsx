@@ -251,7 +251,7 @@ function CardOptimizations({ onViewDetails }) {
     ? dinersImg
     : (CARD_PROMO?.image || `${ASSET_BASE}/opt/swiggy-blck-card.webp`);
   return (
-    <div style={{ padding: "32px 16px 4px", background: "rgb(245,249,250)" }}>
+    <div id="opt-card-optimizations" style={{ padding: "32px 16px 4px", background: "rgb(245,249,250)" }}>
       <h2 className="legacy-serif" style={{ margin: 0, textAlign: "center", fontSize: 24, fontWeight: 700, color: "rgba(54,64,96,0.9)", letterSpacing: "-0.01em" }}>Card Optimizations</h2>
       <div style={{ position: "relative", marginTop: 20, borderRadius: 16, overflow: "hidden", paddingBottom: 24 }}>
         <img src={`${ASSET_BASE}/opt/card-opt-bg.webp`} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} />
@@ -954,7 +954,7 @@ export function LegacyOptimiseScreen() {
       <div data-scroll="1" style={{ flex: 1, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", background: "rgb(245,249,250)", paddingBottom: 100, scrollbarWidth: "none", msOverflowStyle: "none" }}>
 
         <OptHero onBack={() => setScreen("home")} />
-        <HereIsHow onUltimate={() => setScreen("bestcards")} onExisting={openCalc} onRedeem={openRedeem} />
+        <HereIsHow onUltimate={() => setScreen("bestcards")} onExisting={() => { document.getElementById("opt-card-optimizations")?.scrollIntoView({ behavior: "smooth" }); }} onRedeem={openRedeem} />
 
         <div style={{ height: 10, background: "rgba(23,73,47,0.06)", marginTop: 20 }} />
 

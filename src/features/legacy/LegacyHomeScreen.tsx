@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { NavBar } from "@/components/shared/NavBar";
 import { BottomSheets } from "@/components/sheets/BottomSheets";
-import { ACTIONS } from "@/data/actions";
 import { CONSIDER_HOOKS } from "@/data/actionsConsider";
 import { ConsiderSheet } from "@/features/actions/ActionsConsiderScreen";
 import { useAppContext } from "@/store/AppContext";
