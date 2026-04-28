@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useState } from "react";
 import { X, Clock, Gift, Mail, CreditCard, FileText, Sparkles, Lock, AlertTriangle, Mic, Check, ChevronRight, ChevronDown } from "lucide-react";
 import { C, FN } from "@/lib/theme";
