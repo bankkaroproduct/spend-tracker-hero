@@ -4,7 +4,7 @@
 
 import { C } from "@/lib/theme";
 import { USER_CARDS, TOTAL_ANNUAL_SPEND, BUCKET_TO_MERCHANT, BUCKET_TO_CATEGORY, MERCHANT_ICONS } from "./inputs";
-import { calculateResponses, recommendResponse, getBestCardForBucket, getBestMarketCardForBucket, getFirstEligibleMarketCard, getEligibleMarketCards } from "./mockApi";
+import { calculateResponses, recommendResponse, getBestCardForBucket, getBestMarketCardForBucket, getFirstEligibleMarketCard, getEligibleMarketCards, isInviteOnlyMarketCard } from "./mockApi";
 import {
   computeCurrentSavings, computeOptimizedSavings, computeUltimateSavings,
   getSavingsBars, computeCombinedSavings, computeMatchScore, computeCardQuality,
@@ -206,6 +206,8 @@ export const SPEND_DIST_WITHOUT_ULTIMATE = computeSpendDistribution(false);
 
 function cleanCardName(n: string) { return (n || "").trim().replace(/\s+credit\s+card$/i, "").replace(/\s+/g, " ").trim(); }
 function parseFee(s: any): number { if (!s) return 0; const m = String(s).replace(/[₹,\s]/g, "").match(/\d+/); return m ? parseInt(m[0]) : 0; }
+function parseMoney(s: any): number { if (typeof s === "number") return s; if (!s) return 0; const cleaned = String(s).replace(/[^0-9.]/g, ""); return cleaned ? Math.round(parseFloat(cleaned)) : 0; }
+function marketYearlySavings(card: any): number { return Math.round(card?.total_savings_yearly || parseMoney(card?.annual_rewards_value) || parseMoney(card?.net_annual_savings) || 0); }
 
 export const BEST_CARDS = (recommendResponse?.savings || []).map((card, i) => ({
   name: cleanCardName(card.card_name),
@@ -213,9 +215,9 @@ export const BEST_CARDS = (recommendResponse?.savings || []).map((card, i) => ({
   color: i === 0 ? "#111827" : i === 1 ? "#0c2340" : "#333",
   accent: "#666",
   annualFee: parseFee(card.annual_fees || card.annual_fee) || Math.round((parseFee(card.annual_fee_without_gst) || 0) * 1.18),
-  savings: Math.round(card.total_savings_yearly || 0),
+  savings: marketYearlySavings(card),
   match: computeMatchScore(i),
-  tags: (card.invite_only ? ["Invite Only"] : []).concat(
+  tags: (isInviteOnlyMarketCard(card) ? ["Invite Only"] : []).concat(
     parseFee(card.annual_fees || card.annual_fee) === 0 ? ["Lifetime Free"] : [],
     (card.annual_fee_waiver_toggle || card.annual_fee_waiver) ? ["Fee Waiver"] : []
   ),
