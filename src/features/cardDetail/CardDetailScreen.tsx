@@ -353,7 +353,7 @@ export function CardDetailScreen(){
       </div>
       <div style={{display:"flex",gap:10,marginTop:16}}>
         <div onClick={()=>setShowGmailNudgeSheet(true)} style={{flex:1,padding:"12px",borderRadius:12,background:"#1a2233",color:"#fff",textAlign:"center",fontSize:12,fontWeight:700,cursor:"pointer"}}>Connect Gmail</div>
-        <div onClick={()=>{setShowCardMappingUI(true);setMappingStep(ci);setMappingSearchQ("");setScreen("building");}} style={{flex:1,padding:"12px",borderRadius:12,background:C.white,border:`1.5px solid ${C.brd}`,color:C.text,textAlign:"center",fontSize:12,fontWeight:700,cursor:"pointer"}}>Add manually</div>
+        <div onClick={()=>{setMappingStep(ci);setMappingSearchQ("");setScreen("manual-entry");}} style={{flex:1,padding:"12px",borderRadius:12,background:C.white,border:`1.5px solid ${C.brd}`,color:C.text,textAlign:"center",fontSize:12,fontWeight:700,cursor:"pointer"}}>Add manually</div>
       </div>
     </div>
     <div style={{fontSize:10,fontWeight:700,color:C.sub,letterSpacing:2,textTransform:"uppercase",margin:"20px 0 12px"}}>Recent Transactions</div>
