@@ -1,11 +1,9 @@
 // @ts-nocheck
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CreditCard } from "lucide-react";
 import { FN } from "@/lib/theme";
 import { FL } from "@/components/shared/FontLoader";
 import { useAppContext } from "@/store/AppContext";
-import { f } from "@/lib/format";
-import { ALL_TXNS, SEMI_CARDS, CARDS } from "@/data/simulation/legacy";
 
 /**
  * Transaction Evaluation Cinematic
@@ -28,76 +26,56 @@ const CARD_IMGS = [
   "/legacy-assets/cards/hsbc-live.png",
 ];
 
-function merchantIconPath(name?: string) {
-  const n = (name || "").toLowerCase();
-  if (n.includes("flipkart")) return "/brands/flipkart.png";
-  if (n.includes("amazon")) return "/brands/amazon.png";
-  if (n.includes("swiggy")) return "/brands/swiggy.png";
-  if (n.includes("zomato")) return "/brands/zomato.png";
-  if (n.includes("bigbasket")) return "/brands/bb.png";
-  if (n.includes("myntra")) return "/brands/myntra.png";
-  return "";
-}
-
-function cardDisplayNameFromTxn(t: any) {
-  if (!t) return "";
-  if (t.via === "UPI") return "via UPI";
-  const idx = typeof t.card_index === "number" ? t.card_index : typeof t.card === "number" ? t.card : null;
-  const name = (idx !== null && idx >= 0 && CARDS?.[idx]) ? CARDS[idx].name : "";
-  return name || t.card || "";
-}
-
-function buildTxnCardsFromSimulation() {
-  const all = Array.isArray(ALL_TXNS) ? ALL_TXNS : [];
-  const best = all.find((t: any) => (t.saved || 0) > 0 && (t.missed || 0) === 0 && (t.via || "") !== "UPI") || all[0];
-  const missed = all.find((t: any) => (t.missed || 0) > 0 && (t.via || "") !== "UPI") || all.find((t: any) => (t.saved || 0) > 0) || all[1];
-  const upi = all.find((t: any) => (t.via || "") === "UPI") || all.find((t: any) => (t.card || "").toLowerCase().includes("upi")) || all[2];
-
-  const pick = [best, missed, upi].filter(Boolean).slice(0, 3);
-  return pick.map((t: any, i: number) => {
-    const brand = t.brand || "Transaction";
-    const iconPath = merchantIconPath(brand) || "";
-    const icon = iconPath || t.icon || "";
-    const fallbackInitial = (brand || "t")[0]?.toLowerCase() || "t";
-    const amount = `₹${f(Math.round(t.amt || 0))}`;
-    const savedNum = Math.round(t.saved || 0);
-    const missedNum = Math.round(t.missed || 0);
-    const savedColor = savedNum > 0 ? "#078146" : "#B56D3C";
-    const card = cardDisplayNameFromTxn(t);
-    const date = (t.date || "").split(" ").slice(0, 2).join(" ");
-
-    const isBest = savedNum > 0 && missedNum === 0 && (t.via || "") !== "UPI";
-    const headline = isBest
-      ? "Great Job! Keep it up"
-      : (t.via || "") === "UPI"
-        ? "Your card can save you more than UPI"
-        : "No worries, use the right card next time";
-
-    const tagText = isBest
-      ? "USED BEST CARD FOR THIS"
-      : missedNum > 0
-        ? `YOU MISSED ₹${f(missedNum)}`
-        : "USE A CARD AND SAVE MORE";
-
-    return {
-      key: t?.id || `${brand}-${i}`,
-      brand,
-      icon,
-      fallbackBg: t.tagBg || (isBest ? "#E0F8E9" : "#F9F9E0"),
-      fallbackInitial,
-      card,
-      date,
-      amount,
-      saved: `SAVED ₹${f(savedNum)}`,
-      savedColor,
-      headline,
-      tagText,
-      tagColor: isBest ? "#078146" : "#CF7908",
-      tagBg: isBest ? "#E0F8E9" : "#F9F9E0",
-      tagBorder: isBest ? "#9FE0B8" : "transparent",
-    };
-  });
-}
+const TXNS = [
+  {
+    brand: "Flipkart",
+    icon: "/brands/flipkart.png",
+    fallbackBg: "#FFC500",
+    fallbackInitial: "f",
+    card: "Axis Flipkart",
+    date: "27 Jan",
+    amount: "₹1,000",
+    saved: "SAVED ₹15",
+    savedColor: "#078146",
+    headline: "Great Job! Keep it up",
+    tagText: "USED BEST CARD FOR THIS",
+    tagColor: "#078146",
+    tagBg: "#E0F8E9",
+    tagBorder: "#9FE0B8",
+  },
+  {
+    brand: "Swiggy",
+    icon: "/brands/swiggy.png",
+    fallbackBg: "#FC8019",
+    fallbackInitial: "s",
+    card: "HSBC Live +",
+    date: "27 Jan",
+    amount: "₹500",
+    saved: "SAVED ₹5",
+    savedColor: "#078146",
+    headline: "No worries, use the right card next time",
+    tagText: "USE AXIS FLIPKART AND SAVE ₹15",
+    tagColor: "#CF7908",
+    tagBg: "#F9F9E0",
+    tagBorder: "transparent",
+  },
+  {
+    brand: "BigBasket",
+    icon: "/brands/bb.png",
+    fallbackBg: "#84B135",
+    fallbackInitial: "b",
+    card: "via UPI",
+    date: "",
+    amount: "₹500",
+    saved: "SAVED ₹0",
+    savedColor: "#B56D3C",
+    headline: "Your card can save you more than UPI",
+    tagText: "USE AXIS FLIPKART AND SAVE ₹15",
+    tagColor: "#CF7908",
+    tagBg: "#F9F9E0",
+    tagBorder: "transparent",
+  },
+];
 
 // Per-stage durations (ms).
 //   enter → readRow → tag → readTag → headline → readAll → exit
@@ -115,14 +93,20 @@ const FINAL_HOLD_MS = 600;
 export function TxnEvalScreen() {
   const ctx: any = useAppContext();
   const { setScreen } = ctx;
-  const TXNS = useMemo(() => buildTxnCardsFromSimulation(), []);
 
   // 0 = intro orb, 1..3 = txn N, 4 = exit fade
   const [stage, setStage] = useState(0);
   // 'enter' | 'tagged' | 'headlined' | 'exit'
   const [stageStep, setStageStep] = useState<"enter" | "tagged" | "headlined" | "exit">("enter");
+  // Skip pill is hidden for first 5s so users actually watch the cinematic
+  const [showSkip, setShowSkip] = useState(false);
 
   const skipRef = useRef(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setShowSkip(true), 5000);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     const timers: any[] = [];
@@ -178,6 +162,7 @@ export function TxnEvalScreen() {
         @keyframes teRowOut  { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -12px); } }
         @keyframes teTagIn   { from { opacity: 0; transform: translateY(-8px) scale(0.94); clip-path: inset(0 0 100% 0); } to { opacity: 1; transform: translateY(0) scale(1); clip-path: inset(0 0 0 0); } }
         @keyframes teTagOut  { from { opacity: 1; } to { opacity: 0; transform: translateY(-4px); } }
+        @keyframes txeSkipIn { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
         @keyframes teHeadIn  { from { opacity: 0; transform: translate(-50%, 6px); } to { opacity: 1; transform: translate(-50%, 0); } }
         @keyframes teHeadOut { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -6px); } }
       `}</style>
@@ -416,10 +401,11 @@ export function TxnEvalScreen() {
         );
       })}
 
-      {/* ─────────── BOTTOM SKIP PILL ─────────── */}
-      <div style={{
+      {/* ─────────── BOTTOM SKIP PILL — appears after 5s ─────────── */}
+      {showSkip && <div style={{
         position: "absolute", left: "50%", bottom: 36, transform: "translateX(-50%)",
         zIndex: 6,
+        animation: "txeSkipIn 0.4s cubic-bezier(0.16,1,0.3,1) both",
       }}>
         <button
           onClick={onSkip}
@@ -436,7 +422,7 @@ export function TxnEvalScreen() {
         >
           Skip Tutorial
         </button>
-      </div>
+      </div>}
     </div>
   );
 }

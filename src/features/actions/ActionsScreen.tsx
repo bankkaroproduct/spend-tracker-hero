@@ -10,12 +10,8 @@ import {
   GmailNudgeSheet, RetroOverlay, VoiceFlowOverlay, CapBS, CatBS, FilterSheet,
 } from "@/components/sheets/BottomSheets";
 import { ActionsConsiderScreen } from "./ActionsConsiderScreen";
-import { ACTIONS_DATA } from "@/data/simulation/legacy";
+import { ACTIONS_DATA as SIM_ACTIONS_DATA } from "@/data/simulation/legacy";
 
-// ────────────────────────────────────────────────────────────
-// Feature flag: new "Actions to consider" flow.
-// Set to `false` to revert to the legacy actions screen below.
-// ────────────────────────────────────────────────────────────
 const USE_NEW_FLOW = true;
 
 const TABS = [
@@ -24,6 +20,8 @@ const TABS = [
   { key: "points", label: "Points Expiring" },
   { key: "milestone", label: "Milestones" },
 ];
+
+const ACTIONS_DATA = SIM_ACTIONS_DATA;
 
 function matchesTab(action, tab) {
   if (tab === "All") return true;

@@ -7,6 +7,7 @@ import { FN } from "@/lib/theme";
 import { FL } from "@/components/shared/FontLoader";
 import { useAppContext } from "@/store/AppContext";
 import { CONSIDER_HOOKS, TABS } from "@/data/actionsConsider";
+import { HOOK_CAT_ICON } from "@/features/legacy/LegacyShared";
 import "@/features/legacy/legacy.css";
 
 // ─── Brand mark for list rows ───
@@ -505,7 +506,7 @@ export function ActionsConsiderScreen() {
     if (hook.cat === "fee" || hook.cat === "cap" || hook.cat === "milestone") {
       // Send to savings finder / calc
       setOpenHook(null);
-      setScreen("calc");
+      setScreen("calculate");
       return;
     }
     if (hook.cat === "benefit") {
@@ -601,16 +602,22 @@ export function ActionsConsiderScreen() {
                   display: "flex", alignItems: "flex-start", gap: 14,
                   cursor: "pointer",
                 }}>
-                  {/* Avatar 40×40 */}
+                  {/* Avatar 40×40 — category icon (rounded line, 1.5 stroke) */}
                   <div style={{ display: "flex", alignItems: "flex-start", padding: "2px 0", flexShrink: 0 }}>
-                    <div style={{
-                      boxSizing: "border-box",
-                      width: 40, height: 40, borderRadius: "50%",
-                      background: "#FFFFFF", border: "1.45px solid rgba(35,99,225,0.08)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      <BrandIcon brand={hook.cardBrand}/>
-                    </div>
+                    {(() => {
+                      const ci = HOOK_CAT_ICON[hook.cat] || { Icon: null, color: "#36405E" };
+                      return (
+                        <div style={{
+                          boxSizing: "border-box",
+                          width: 40, height: 40, borderRadius: "50%",
+                          background: "#FFFFFF", border: `1.45px solid ${ci.color}1F`,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          color: ci.color,
+                        }}>
+                          {ci.Icon ? <ci.Icon size={20} strokeWidth={1.5} color={ci.color}/> : <BrandIcon brand={hook.cardBrand}/>}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Body */}

@@ -2,10 +2,10 @@
 import { useEffect, useRef, useState } from "react";
 import { CreditCard } from "lucide-react";
 import { FN } from "@/lib/theme";
+import { f } from "@/lib/format";
 import { FL } from "@/components/shared/FontLoader";
 import { useAppContext } from "@/store/AppContext";
 import { SPEND_CATS, TOTAL_ACC } from "@/data/simulation/legacy";
-import { f } from "@/lib/format";
 
 /**
  * Phase A — Spend Analysis (post-SMS, pre-Card-Identification)
@@ -22,19 +22,19 @@ import { f } from "@/lib/format";
  *                          Bottom countdown ticks 5→0 then advances to /building.
  */
 
-const CAT_IMG_MAP: Record<string,string> = { Shopping:"/categories/shopping.png", Groceries:"/categories/groceries.png", Bills:"/categories/bills.png", Travel:"/categories/travel.png", Insurance:"/categories/milestones.png", Fuel:"/categories/fuel.png", Entertainment:"/categories/entertainment.png", Dining:"/categories/dining.png", Rent:"/categories/shopping.png", Education:"/categories/shopping.png" };
-const CATS = SPEND_CATS.slice(0, 8).map((c, i) => {
+const CAT_IMG_MAP = { "Shopping": "Shopping", "Groceries": "Groceries", "Bills": "Bills", "Food Ordering": "Food Ordering", "Flights": "Flights", "Travel": "Flights", "Friends and Family": "Friends and Family", "Dining Out": "Dining Out", "Dining": "Dining Out", "Hotels": "Hotels", "Insurance": "Insurance", "Fuel": "Fuel", "Rent": "Rent", "Entertainment": "Entertainment", "Cab Rides": "Shopping", "Education": "Bills" };
+const CATS = SPEND_CATS.slice(0, 7).map((c, i) => {
   const pct = Math.round((c.amt / TOTAL_ACC) * 100);
   const maxBarW = 155;
-  const barW = i === 0 ? maxBarW : Math.max(9, Math.round(maxBarW * (c.amt / SPEND_CATS[0].amt)));
-  return { name: `${c.name} — ${pct}%`, amount: `₹${f(c.amt)}`, barW, img: CAT_IMG_MAP[c.name] || "/categories/shopping.png" };
+  const topAmt = SPEND_CATS[0]?.amt || 1;
+  return { name: `${c.name} - ${pct}%`, amount: `₹${f(c.amt)}`, barW: Math.round((c.amt / topAmt) * maxBarW), img: `/cdn/categories/${CAT_IMG_MAP[c.name] || c.name}.webp` };
 });
 
 const HEADLINES = [
   "Let me first fetch your spends over the past 365 days and analyse them",
   // Phase 1: ₹16,40,250 rendered bold via JSX in render
   null,
-  `Majority of them in ${SPEND_CATS[0]?.name || "Shopping"}, followed by ${(SPEND_CATS[1]?.name || "groceries").toLowerCase()} and so on...`,
+  "Majority of them in Shopping, followed by groceries and so on...",
 ];
 
 const TotalAccountedText = () => (
@@ -57,6 +57,7 @@ export function SpendAnalysisScreen() {
   const [countdownPct, setCountdownPct]   = useState(0);
   const [seconds, setSeconds]             = useState(7);
   const [paused, setPaused]               = useState(false);
+  const pausedRef = useRef(false);
   const lastTapRef = useRef(0);
 
   // Master timeline — paced for comfortable reading (~16s end-to-end)
@@ -81,33 +82,43 @@ export function SpendAnalysisScreen() {
 
   // Bottom countdown begins ~3s after headline 2 ("Majority of them…") arrives,
   // giving the user time to read the categories before auto-advancing.
+  // Tracks elapsed via delta-per-frame so pausing genuinely freezes progress
+  // instead of letting wall-clock time keep accruing while paused.
   useEffect(() => {
     if (headlineIdx !== 2) return;
+    let raf = 0;
     const startDelay = setTimeout(() => {
-      const startedAt = performance.now();
-      let raf = 0;
+      let elapsed = 0;
+      let last = performance.now();
       const tick = () => {
-        if (paused) { raf = requestAnimationFrame(tick); return; }
-        const elapsed = performance.now() - startedAt;
-        const pct = Math.min(100, (elapsed / 7000) * 100);
-        setCountdownPct(pct);
-        setSeconds(Math.max(0, Math.ceil((7000 - elapsed) / 1000)));
-        if (pct >= 100) {
-          setScreen && setScreen("card-id");
-          return;
+        const now = performance.now();
+        const dt = now - last;
+        last = now;
+        if (!pausedRef.current) {
+          elapsed += dt;
+          const pct = Math.min(100, (elapsed / 7000) * 100);
+          setCountdownPct(pct);
+          setSeconds(Math.max(0, Math.ceil((7000 - elapsed) / 1000)));
+          if (pct >= 100) {
+            setScreen && setScreen("card-id");
+            return;
+          }
         }
         raf = requestAnimationFrame(tick);
       };
       raf = requestAnimationFrame(tick);
     }, 3000);
-    return () => clearTimeout(startDelay);
+    return () => { clearTimeout(startDelay); cancelAnimationFrame(raf); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [headlineIdx]);
 
-  // Double-tap to pause / resume
+  // Double-tap anywhere to pause / resume. pausedRef mirrors state so the rAF
+  // loop reads the latest value without needing to re-subscribe.
   const handleTap = () => {
     const now = Date.now();
-    if (now - lastTapRef.current < 350) setPaused(p => !p);
+    if (now - lastTapRef.current < 350) {
+      setPaused(p => { pausedRef.current = !p; return !p; });
+    }
     lastTapRef.current = now;
   };
 
@@ -245,23 +256,25 @@ export function SpendAnalysisScreen() {
         <>
           <div style={{
             position: "absolute", left: "50%", bottom: 18, transform: "translateX(-50%)",
-            width: 320, textAlign: "center",
+            whiteSpace: "nowrap", textAlign: "center",
             fontFamily: "'Google Sans',sans-serif", fontWeight: 400, fontSize: 12,
             lineHeight: "140%", color: "#808387",
-            opacity: countdownPct > 0 ? 1 : 0, transition: "opacity 0.4s ease", zIndex: 3,
+            opacity: countdownPct > 0 || paused ? 1 : 0, transition: "opacity 0.4s ease", zIndex: 3,
           }}>
-            Fetching your credit cards in {seconds}.{" "}
-            <span style={{ fontWeight: 600, color: "#364060" }}>
-              {paused ? "Tap to resume" : "Double tap to pause"}
-            </span>
+            {paused
+              ? <span style={{ fontWeight: 600, color: "#364060" }}>Double tap to play</span>
+              : <>Fetching your credit cards in {seconds}. <span style={{ fontWeight: 600, color: "#364060" }}>Double tap to pause and read</span></>
+            }
           </div>
-          <div style={{
-            position: "absolute", left: 0, bottom: 0, height: 4,
-            width: `${countdownPct}%`, background: "#11477E",
-            borderRadius: "0px 2px 2px 0px",
-            transition: paused ? "none" : "width 0.05s linear",
-            zIndex: 3,
-          }} />
+          {!paused && (
+            <div style={{
+              position: "absolute", left: 0, bottom: 0, height: 4,
+              width: `${countdownPct}%`, background: "#11477E",
+              borderRadius: "0px 2px 2px 0px",
+              transition: "width 0.05s linear",
+              zIndex: 3,
+            }} />
+          )}
         </>
       )}
     </div>

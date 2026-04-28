@@ -8,10 +8,15 @@ import "./legacy.css";
 import {
   ASSET_BASE,
   ChevronRight,
+  HOOK_CAT_ICON,
+  SavingsInfoIcon,
+  SavingsBreakdownSheet as SharedSavingsBreakdownSheet,
 } from "./LegacyShared";
+import { CONSIDER_HOOKS } from "@/data/actionsConsider";
+import { ConsiderSheet } from "@/features/actions/ActionsConsiderScreen";
 import { SAVINGS_BARS, CARD_PROMO, SPEND_DIST_WITH_ULTIMATE, SPEND_DIST_WITHOUT_ULTIMATE, TOTAL_ACC, ALL_ACTIONS, OPT_BRANDS, SPEND_CATS } from "@/data/simulation/legacy";
 import { f } from "@/lib/format";
-import { ALL_INPUT_BUCKETS, ANNUAL_BUCKETS, LOUNGE_BUCKETS, RESPONSE_ONLY_BUCKETS, BUCKET_TO_CATEGORY, SPEND_PROFILE, BUCKET_TO_MERCHANT } from "@/data/simulation/inputs";
+import { ALL_INPUT_BUCKETS, ANNUAL_BUCKETS, LOUNGE_BUCKETS, RESPONSE_ONLY_BUCKETS, BUCKET_TO_CATEGORY, SPEND_PROFILE, BUCKET_TO_MERCHANT, USER_CARDS } from "@/data/simulation/inputs";
 import { calculateResponses, getBestCardForBucket, getBestMarketCardForBucket } from "@/data/simulation/mockApi";
 
 const HapticCtx = createContext({ trigger: () => {} });
@@ -124,9 +129,9 @@ function OptHero({ onBack }) {
           <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 4, background: "linear-gradient(180deg, rgba(200,255,210,0.65) 0%, rgba(200,255,210,0) 100%)", pointerEvents: "none" }} />
           <div style={{ position: "absolute", left: 0, top: 2, bottom: 2, width: 24, background: "linear-gradient(90deg, rgba(255,255,255,0.12), rgba(255,255,255,0))", pointerEvents: "none" }} />
           <div style={{ position: "absolute", right: 0, top: 2, bottom: 2, width: 24, background: "linear-gradient(270deg, rgba(255,255,255,0.08), rgba(255,255,255,0))", pointerEvents: "none" }} />
-          <div style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, display: "flex", alignItems: "center" }}>
+          <div style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, display: "flex", alignItems: "flex-start", paddingTop: 12 }}>
             {[{ w: 82, left: 34, label: ["Current", "Savings"] }, { w: 82, left: 154, label: ["Spends", "Optimized"] }, { w: 82, left: 274, label: ["Optimized +", "Ultimate Card"] }].map((c, i) =>
-              <div key={i} style={{ position: "absolute", left: c.left, width: c.w, textAlign: "center", color: "rgba(200,255,210,0.95)", fontFamily: "var(--legacy-sans)", fontSize: 11.5, fontWeight: 500, lineHeight: 1.3, textShadow: "0 1px 2px rgba(0,40,20,0.5)" }}>
+              <div key={i} style={{ position: "absolute", top: 12, left: c.left, width: c.w, textAlign: "center", color: "rgba(200,255,210,0.95)", fontFamily: "var(--legacy-sans)", fontSize: 11.5, fontWeight: 500, lineHeight: 1.3, textShadow: "0 1px 2px rgba(0,40,20,0.5)" }}>
                 {c.label.map((l, j) => <div key={j}>{l}</div>)}
               </div>
             )}
@@ -251,7 +256,7 @@ function CardOptimizations({ onViewDetails }) {
     ? dinersImg
     : (CARD_PROMO?.image || `${ASSET_BASE}/opt/swiggy-blck-card.webp`);
   return (
-    <div id="opt-card-optimizations" style={{ padding: "32px 16px 4px", background: "rgb(245,249,250)" }}>
+    <div style={{ padding: "32px 16px 4px", background: "rgb(245,249,250)" }}>
       <h2 className="legacy-serif" style={{ margin: 0, textAlign: "center", fontSize: 24, fontWeight: 700, color: "rgba(54,64,96,0.9)", letterSpacing: "-0.01em" }}>Card Optimizations</h2>
       <div style={{ position: "relative", marginTop: 20, borderRadius: 16, overflow: "hidden", paddingBottom: 24 }}>
         <img src={`${ASSET_BASE}/opt/card-opt-bg.webp`} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} />
@@ -320,11 +325,23 @@ function SegmentedDistBar({ segments }) {
   );
 }
 
-function CategoryChip({ label }) {
+function CategoryChip({ label, onClick }: { label: string; onClick?: (label: string) => void }) {
+  const clickable = !!onClick;
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 9px 5px 11px", border: "1px solid rgba(54,64,96,0.18)", borderRadius: 6, background: "#fff", fontFamily: "var(--legacy-sans)", fontSize: 11, fontWeight: 500, color: "rgb(54,64,96)", whiteSpace: "nowrap" }}>
+    <span
+      onClick={clickable ? (e) => { e.stopPropagation(); onClick!(label); } : undefined}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "6px 12px",
+        border: "1px solid rgba(54,64,96,0.16)", borderRadius: 999, background: "#fff",
+        fontFamily: "var(--legacy-sans)", fontSize: 11, fontWeight: 600, color: "#36405E",
+        whiteSpace: "nowrap",
+        cursor: clickable ? "pointer" : "default",
+        boxShadow: clickable ? "0 1px 2px rgba(63,66,70,0.04)" : "none",
+      }}
+    >
       {label}
-      <svg width="9" height="6" viewBox="0 0 9 6" fill="none"><path d="M1 1l3.5 3.5L8 1" stroke="rgba(54,64,96,0.75)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      <svg width="9" height="6" viewBox="0 0 9 6" fill="none"><path d="M1 1l3.5 3.5L8 1" stroke="rgba(54,64,96,0.7)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
     </span>
   );
 }
@@ -333,32 +350,48 @@ function CardDot({ color }) {
   return <span style={{ width: 8, height: 8, borderRadius: 2, background: color, display: "inline-block" }} />;
 }
 
-function DistRow({ cardImg, cardName, dotColor, spend, save, categories, highlight, crownAfter }) {
+// Local alias — the actual icon lives in LegacyShared so it can be reused.
+const InfoIcon = SavingsInfoIcon;
+
+function DistRow({ cardImg, cardName, dotColor, spend, save, categories, highlight, crownAfter, breakdown, onInfoClick, onCategoryClick }) {
   return (
-    <div style={{ background: highlight ? "linear-gradient(90deg, rgba(231,226,255,0.5), rgba(243,240,255,0.2))" : "transparent", padding: "20px 16px" }}>
+    <div style={{ background: highlight ? "linear-gradient(90deg, rgba(231,226,255,0.5), rgba(243,240,255,0.2))" : "transparent", padding: "18px 16px" }}>
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-        <img src={cardImg} alt={cardName} style={{ borderRadius: 3, objectFit: "cover", boxShadow: "0 2px 4px rgba(0,0,0,0.15)", flexShrink: 0, width: 56, height: 36 }} />
+        <img src={cardImg} alt={cardName} style={{ borderRadius: 4, objectFit: "cover", boxShadow: "0 2px 4px rgba(0,0,0,0.15)", flexShrink: 0, width: 56, height: 36 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <CardDot color={dotColor} />
-            <span style={{ fontFamily: "var(--legacy-sans)", fontSize: 13, fontWeight: 600, color: "rgb(54,64,96)" }}>{cardName}</span>
+            <span style={{ fontFamily: "var(--legacy-sans)", fontSize: 13, fontWeight: 600, color: "#36405E", letterSpacing: "-0.005em" }}>{cardName}</span>
             {crownAfter && <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 8l3.5 3L12 5l5.5 6L21 8l-2 10H5L3 8z" fill="rgba(54,64,96,0.5)" /></svg>}
           </div>
-          <div style={{ marginTop: 4, fontFamily: "var(--legacy-sans)", color: "rgb(34,41,65)", fontSize: 14, fontWeight: 600, margin: "8px 0px 0px", letterSpacing: "-0.2px" }}>₹{spend}</div>
+          <div style={{ marginTop: 6, fontFamily: "var(--legacy-sans)", color: "#36405E", fontSize: 14, fontWeight: 500, letterSpacing: "-0.01em" }}>₹{spend}</div>
         </div>
-        <div style={{ fontFamily: "var(--legacy-sans)", fontSize: 13, fontWeight: 700, color: "rgb(19,147,102)", whiteSpace: "nowrap", paddingTop: 14 }}>Save ₹{save}</div>
+        <div style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap", paddingTop: 14 }}>
+          <span style={{ fontFamily: "var(--legacy-sans)", fontSize: 13, fontWeight: 600, color: "#139366" }}>Save ₹{save}</span>
+          {breakdown && onInfoClick && <InfoIcon onClick={(e) => { e.stopPropagation(); onInfoClick(); }} />}
+        </div>
       </div>
       {categories && categories.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10, paddingLeft: 60, padding: "3px 0px 0px 60px" }}>
-          {categories.map((c, i) => <CategoryChip key={i} label={c} />)}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "10px 0 0 68px" }}>
+          {categories.map((c, i) => <CategoryChip key={i} label={c} onClick={onCategoryClick} />)}
         </div>
       )}
     </div>
   );
 }
 
-function SpendsDistribution() {
-  const [ultimate, setUltimate] = useState(true);
+// SavingsBreakdownSheet now lives in LegacyShared (imported as SharedSavingsBreakdownSheet).
+const SavingsBreakdownSheet = SharedSavingsBreakdownSheet;
+
+function SpendsDistribution({ ultimate: ultimateProp, onUltimateChange, onInfoClick, onCategoryClick }: { ultimate?: boolean; onUltimateChange?: (v: boolean) => void; onInfoClick?: (data: any) => void; onCategoryClick?: (label: string) => void } = {}) {
+  // Optionally controlled by parent (so the page can flip the toggle off when
+  // the user lands here from "See Optimization"). Otherwise self-managed.
+  const [internalUltimate, setInternalUltimate] = useState(true);
+  const ultimate = ultimateProp ?? internalUltimate;
+  const setUltimate = (v: boolean) => {
+    if (onUltimateChange) onUltimateChange(v);
+    else setInternalUltimate(v);
+  };
 
   const distGrads = ["linear-gradient(180deg, #9d7ff0 0%, #6a42d1 100%)", "linear-gradient(180deg, #38c774 0%, #0f8a48 100%)", "linear-gradient(180deg, #4ea6ff 0%, #1a6cd6 100%)", "linear-gradient(180deg, #ffb040 0%, #e08a14 100%)", "linear-gradient(180deg, #b27cff 0%, #7a3dd9 100%)"];
   const distDots = ["#8b5cf6", "#17a35a", "#3d8dff", "#f0a020", "#b27cff"];
@@ -366,12 +399,62 @@ function SpendsDistribution() {
   const distData = ultimate ? SPEND_DIST_WITH_ULTIMATE : SPEND_DIST_WITHOUT_ULTIMATE;
   const segments = distData.map((d, i) => ({ pct: d.pct, grad: distGrads[i % distGrads.length] }));
   const _cleanName = (n) => (n||"").trim().replace(/\s+credit\s+card$/i,"").replace(/\s+/g," ").trim();
-  const rows = distData.map((d, i) => ({
-    cardImg: distImgMap[_cleanName(d.name)] || distImgMap[d.name] || `${ASSET_BASE}/cards/HSBC TravelOne Credit Card.png`,
-    cardName: _cleanName(d.name), dotColor: distDots[i % distDots.length],
-    spend: f(d.spend), save: f(d.savings), categories: d.categories,
-    highlight: i === 0 && ultimate, crownAfter: i === 0 && ultimate,
-  }));
+
+  // Build breakdown data from simulation — match card name to calculateResponses or CARD_PROMO
+  const norm = (s: any) => String(s || "").toLowerCase().replace(/credit card/g, "").replace(/\s+/g, " ").trim();
+  const cardRespMap = useMemo(() => {
+    const m = new Map<string, any>();
+    for (let ci = 0; ci < calculateResponses.length; ci++) {
+      const r = calculateResponses[ci];
+      if (r?.card_name) m.set(norm(r.card_name), { resp: r, userCard: USER_CARDS[ci] });
+    }
+    return m;
+  }, []);
+
+  const rows = distData.map((d, i) => {
+    const cn = _cleanName(d.name);
+    const matched = cardRespMap.get(norm(cn));
+    const isPromo = !matched && norm(cn) === norm(CARD_PROMO?.name);
+
+    // Derive breakdown fields
+    let breakdown = null;
+    if (matched) {
+      const annualSavings = d.savings;
+      const milestoneBenefits = Math.round(matched.resp?.total_extra_benefits || 0);
+      const annualFee = Math.round(matched.userCard?.annual_fee || 0);
+      const savingsOnSpends = annualSavings - milestoneBenefits + annualFee;
+      breakdown = {
+        last4: `XXXX ${matched.userCard?.last4 || "????"}`,
+        savingsOnSpends: Math.max(0, savingsOnSpends),
+        milestoneBenefits,
+        annualFee,
+      };
+    } else if (isPromo) {
+      const annualSavings = d.savings;
+      const milestoneBenefits = Math.round(CARD_PROMO?.total_extra_benefits || 0);
+      const annualFee = typeof CARD_PROMO?.annual_fee === "number" ? CARD_PROMO.annual_fee : 0;
+      const savingsOnSpends = annualSavings - milestoneBenefits + annualFee;
+      breakdown = {
+        last4: "NEW CARD",
+        newCard: true,
+        savingsOnSpends: Math.max(0, savingsOnSpends),
+        milestoneBenefits,
+        annualFee,
+      };
+    }
+
+    return {
+      cardImg: distImgMap[cn] || distImgMap[d.name] || (isPromo ? (CARD_PROMO?.image || "") : "") || `${ASSET_BASE}/cards/HSBC TravelOne Credit Card.png`,
+      cardName: cn, dotColor: distDots[i % distDots.length],
+      spend: f(d.spend), save: f(d.savings), categories: d.categories,
+      highlight: i === 0 && ultimate, crownAfter: i === 0 && ultimate,
+      breakdown,
+    };
+  });
+
+  const totalSpend = rows.reduce((acc, r) => acc + Number(r.spend.replace(/,/g, "")), 0);
+  const totalSave = rows.reduce((acc, r) => acc + Number(r.save.replace(/,/g, "")), 0);
+  const fmtIN = (n: number) => "₹" + n.toLocaleString("en-IN");
 
   return (
     <div style={{ padding: "28px 0 8px" }}>
@@ -379,24 +462,52 @@ function SpendsDistribution() {
       <div style={{ padding: "21px 16px 0px" }}>
         <UltimateToggle on={ultimate} onChange={setUltimate} saveExtra={f(SAVINGS_BARS.ultimate_uplift)} />
       </div>
-      <div style={{ padding: "30px 16px 6px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, padding: "0px 2px 0px 6px", margin: "0px 0px 10px" }}>
-          <span style={{ fontFamily: "var(--legacy-sans)", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", color: "rgba(54,64,96,0.65)" }}>SPEND DISTRIBUTION</span>
-          <span style={{ fontFamily: "var(--legacy-sans)", fontSize: 10, color: "rgba(54,64,96,0.85)", fontWeight: 800, letterSpacing: "0.6px" }}>₹{f(TOTAL_ACC)}/yr</span>
+      <div style={{ padding: "24px 16px 8px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "0 0 12px", padding: "0 4px" }}>
+          <span style={{ fontFamily: "var(--legacy-sans)", fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "rgba(54,64,96,0.65)" }}>SPEND DISTRIBUTION</span>
+          <span style={{ fontFamily: "var(--legacy-sans)", fontSize: 11, color: "#36405E", fontWeight: 600, letterSpacing: "-0.01em" }}>₹{f(TOTAL_ACC)}/yr</span>
         </div>
         <SegmentedDistBar segments={segments} />
       </div>
-      <div style={{ marginTop: 10 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 20px", background: "rgb(243,246,247)", borderTop: "1px solid rgb(231,236,239)", borderBottom: "1px solid rgb(231,236,239)" }}>
-          <span style={{ fontFamily: "var(--legacy-sans)", fontWeight: 700, fontSize: 10, letterSpacing: "0.14em", color: "rgb(80,88,108)" }}>YOU SPEND</span>
-          <span style={{ fontFamily: "var(--legacy-sans)", fontWeight: 700, fontSize: 10, letterSpacing: "0.14em", color: "rgb(80,88,108)" }}>SAVINGS</span>
+      <div style={{ marginTop: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 20px", background: "rgb(243,246,247)", borderTop: "1px solid rgb(231,236,239)", borderBottom: "1px solid rgb(231,236,239)" }}>
+          <span style={{ fontFamily: "var(--legacy-sans)", fontWeight: 700, fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", color: "rgba(54,64,96,0.65)" }}>You Spend</span>
+          <span style={{ fontFamily: "var(--legacy-sans)", fontWeight: 700, fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", color: "rgba(54,64,96,0.65)" }}>Savings</span>
         </div>
         {rows.map((r, i) => (
           <div key={i}>
-            <DistRow {...r} />
+            <DistRow
+              {...r}
+              onInfoClick={onInfoClick ? () => onInfoClick({
+                cardName: (r.cardName + " Credit Card").toUpperCase(),
+                last4: r.breakdown?.last4 || "",
+                cardImg: r.cardImg,
+                newCard: r.breakdown?.newCard,
+                spend: "₹" + r.spend + " / yr",
+                save: "₹" + r.save + "/yr",
+                savingsOnSpends: r.breakdown?.savingsOnSpends || 0,
+                milestoneBenefits: r.breakdown?.milestoneBenefits || 0,
+                annualFee: r.breakdown?.annualFee || 0,
+              }) : undefined}
+              onCategoryClick={onCategoryClick}
+            />
             {i < rows.length - 1 && <div style={{ borderTop: "1px dashed rgba(54,64,96,0.12)", margin: "0 16px" }} />}
           </div>
         ))}
+        {/* Total row — sums per-card spend and save (mirrors CardDetailV2 layout) */}
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: "14px 20px",
+          background: "linear-gradient(90deg, #F5F9FA 0%, #F0FFEB 100%)",
+          borderTop: "1px solid rgba(19,147,102,0.2)",
+          borderBottom: "1px solid rgba(19,147,102,0.2)",
+        }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+            <span style={{ fontFamily: "var(--legacy-sans)", fontSize: 14, fontWeight: 500, lineHeight: "140%", letterSpacing: "-0.01em", color: "rgba(54,64,96,0.6)" }}>Total:</span>
+            <span style={{ fontFamily: "var(--legacy-sans)", fontSize: 14, fontWeight: 700, lineHeight: "150%", letterSpacing: "-0.01em", color: "#36405E" }}>{fmtIN(totalSpend)}/yr</span>
+          </div>
+          <span style={{ fontFamily: "var(--legacy-sans)", fontSize: 14, fontWeight: 700, lineHeight: "100%", color: "#139366" }}>{fmtIN(totalSave)}/yr</span>
+        </div>
       </div>
     </div>
   );
@@ -491,22 +602,53 @@ function CatFood() {
 }
 
 const CATS = [
-  { key: "milestones", label: "Milestones", Glyph: CatStar },
-  { key: "shopping", label: "Shopping", Glyph: CatShopping },
-  { key: "groceries", label: "Groceries", Glyph: CatGroceries },
-  { key: "bills", label: "Bills", Glyph: CatBills },
-  { key: "fuel", label: "Fuel", Glyph: CatFuel },
-  { key: "travel", label: "Travel", Glyph: CatTravel },
-  { key: "food", label: "Food Ordering", Glyph: CatFood },
+  // Card-usable category set (Milestones + 11 canonical). Friends and Family is
+  // excluded — no card maps to it. Glyphs come from /cdn/categories/<Name>.webp.
+  { key: "milestones",    label: "Milestones",    Glyph: CatStar, img: null },
+  { key: "shopping",      label: "Shopping",      Glyph: null,    img: "/cdn/categories/Shopping.webp" },
+  { key: "groceries",     label: "Groceries",     Glyph: null,    img: "/cdn/categories/Groceries.webp" },
+  { key: "dining-out",    label: "Dining Out",    Glyph: null,    img: "/cdn/categories/Dining Out.webp" },
+  { key: "bills",         label: "Bills",         Glyph: null,    img: "/cdn/categories/Bills.webp" },
+  { key: "fuel",          label: "Fuel",          Glyph: null,    img: "/cdn/categories/Fuel.webp" },
+  { key: "flights",       label: "Flights",       Glyph: null,    img: "/cdn/categories/Flights.webp" },
+  { key: "hotels",        label: "Hotels",        Glyph: null,    img: "/cdn/categories/Hotels.webp" },
+  { key: "entertainment", label: "Entertainment", Glyph: null,    img: "/cdn/categories/Entertainment.webp" },
+  { key: "rent",          label: "Rent",          Glyph: null,    img: "/cdn/categories/Rent.webp" },
+  { key: "insurance",     label: "Insurance",     Glyph: null,    img: "/cdn/categories/Insurance.webp" },
+  { key: "food",          label: "Food Ordering", Glyph: null,    img: "/cdn/categories/Food Ordering.webp" },
 ];
 
 function CatChip({ cat, active, onClick }) {
   return (
-    <button onClick={onClick} className="legacy-tap" style={{ padding: "8px 10px 10px", border: "none", cursor: "pointer", minWidth: 64, background: active ? "rgba(234,238,255,0.9)" : "transparent", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, borderRadius: "10px 10px 0px 1px" }}>
-      <cat.Glyph />
+    <button data-cat={cat.key} onClick={onClick} className="legacy-tap" style={{ padding: "8px 10px 10px", border: "none", cursor: "pointer", minWidth: 64, background: active ? "rgba(234,238,255,0.9)" : "transparent", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, borderRadius: "10px 10px 0px 1px" }}>
+      {cat.Glyph
+        ? <cat.Glyph />
+        : <img src={cat.img} alt="" style={{ width: 36, height: 36, objectFit: "contain" }} />}
       <span style={{ fontFamily: "var(--legacy-sans)", fontSize: 11, fontWeight: active ? 700 : 500, color: active ? "rgb(14,102,210)" : "rgb(54,64,96)", lineHeight: 1.2, textAlign: "center" }}>{cat.label}</span>
     </button>
   );
+}
+
+// Expanded keyForBucket mapping for 12 category tabs
+function keyForBucket(bucket: string): string | null {
+  // Specific overrides first
+  if (bucket === "online_food_ordering") return "food";
+  if (bucket === "dining_or_going_out") return "dining-out";
+  if (bucket === "flights_annual") return "flights";
+  if (bucket === "hotels_annual") return "hotels";
+  if (bucket === "rent") return "rent";
+  if (bucket === "insurance_health_annual" || bucket === "insurance_car_or_bike_annual" || bucket === "life_insurance") return "insurance";
+
+  // Fall back to BUCKET_TO_CATEGORY
+  const cat = BUCKET_TO_CATEGORY[bucket] || "";
+  if (cat === "Shopping") return "shopping";
+  if (cat === "Groceries") return "groceries";
+  if (cat === "Bills") return "bills";
+  if (cat === "Fuel") return "fuel";
+  if (cat === "Cab Rides") return null; // No dedicated tab — exclude from category totals
+  if (cat === "Entertainment") return "entertainment";
+  if (cat === "Education") return null; // No tab for education
+  return null;
 }
 
 function CardsToUsePanel({ includeUltimate, shownDist, rightLabel = "YOU SPEND" }: { includeUltimate: boolean; shownDist: any[]; rightLabel?: string }) {
@@ -604,16 +746,6 @@ function HowToSpendTimeline({ includeUltimate, allowedCards, tabKey }: { include
   const [period, setPeriod] = useState("Monthly");
   const items = useMemo(() => {
     const rowsByCard: Record<string, any> = {};
-    const keyForBucket = (bucket: string) => {
-      if (bucket === "online_food_ordering" || bucket === "dining_or_going_out") return "food";
-      const cat = BUCKET_TO_CATEGORY[bucket] || "";
-      if (cat === "Shopping") return "shopping";
-      if (cat === "Groceries") return "groceries";
-      if (cat === "Bills") return "bills";
-      if (cat === "Fuel") return "fuel";
-      if (cat === "Travel") return "travel";
-      return null;
-    };
     for (const bucket of ALL_INPUT_BUCKETS) {
       if (LOUNGE_BUCKETS.includes(bucket) || RESPONSE_ONLY_BUCKETS.includes(bucket)) continue;
       const raw = SPEND_PROFILE[bucket];
@@ -678,23 +810,38 @@ function HowToSpendTimeline({ includeUltimate, allowedCards, tabKey }: { include
   );
 }
 
-function CardsUsage() {
-  const [showUltimate, setShowUltimate] = useState(true);
-  const [tab, setTab] = useState("shopping");
+function CardsUsage({ ultimate: ultimateProp, onUltimateChange, tab: tabProp, onTabChange }: { ultimate?: boolean; onUltimateChange?: (v: boolean) => void; tab?: string; onTabChange?: (k: string) => void } = {}) {
+  // Optionally controlled by parent so the page can flip the toggle off when
+  // the user lands here from "See Optimization".
+  const [internalUltimate, setInternalUltimate] = useState(true);
+  const showUltimate = ultimateProp ?? internalUltimate;
+  const setShowUltimate = (v: boolean) => {
+    if (onUltimateChange) onUltimateChange(v);
+    else setInternalUltimate(v);
+  };
+  // Optionally controlled by the page so a category-chip tap can switch the tab.
+  const [internalTab, setInternalTab] = useState("shopping");
+  const tab = tabProp ?? internalTab;
+  const setTab = (k: string) => { if (onTabChange) onTabChange(k); else setInternalTab(k); };
+  const railRef = useRef<HTMLDivElement | null>(null);
+  // Auto-scroll the rail HORIZONTALLY so the active CatChip is centered when
+  // the tab changes. Use rail.scrollTo (not scrollIntoView) so this never
+  // hijacks the page's vertical scroll while we're also scrolling the page.
+  useEffect(() => {
+    const rail = railRef.current; if (!rail) return;
+    const target = rail.querySelector(`[data-cat="${tab}"]`) as HTMLElement | null;
+    if (!target) return;
+    const rR = rail.getBoundingClientRect();
+    const tR = target.getBoundingClientRect();
+    const offsetInRail = (tR.left - rR.left) + rail.scrollLeft;
+    const desired = Math.max(0, offsetInRail - (rR.width - tR.width) / 2);
+    try { rail.scrollTo({ left: desired, behavior: "smooth" }); } catch { rail.scrollLeft = desired; }
+  }, [tab]);
+
   const dist = showUltimate ? SPEND_DIST_WITH_ULTIMATE : SPEND_DIST_WITHOUT_ULTIMATE;
   const distForTab = useMemo(() => {
     const norm = (s: any) => String(s || "").toLowerCase().replace(/credit card/g, "").replace(/\s+/g, " ").trim();
     const getMonthlySpend = (bucket: string) => (ANNUAL_BUCKETS.includes(bucket) ? (SPEND_PROFILE[bucket] || 0) / 12 : (SPEND_PROFILE[bucket] || 0));
-    const keyForBucket = (bucket: string) => {
-      if (bucket === "online_food_ordering" || bucket === "dining_or_going_out") return "food";
-      const cat = BUCKET_TO_CATEGORY[bucket] || "";
-      if (cat === "Shopping") return "shopping";
-      if (cat === "Groceries") return "groceries";
-      if (cat === "Bills") return "bills";
-      if (cat === "Fuel") return "fuel";
-      if (cat === "Travel") return "travel";
-      return null;
-    };
 
     // Milestones: rank by annual extra benefits (owned + ultimate card if present).
     if (tab === "milestones") {
@@ -750,16 +897,6 @@ function CardsUsage() {
     for (const r of calculateResponses || []) cardNameToResp.set(norm(r?.card_name), r);
 
     const getMonthlySpend = (bucket: string) => (ANNUAL_BUCKETS.includes(bucket) ? (SPEND_PROFILE[bucket] || 0) / 12 : (SPEND_PROFILE[bucket] || 0));
-    const keyForBucket = (bucket: string) => {
-      if (bucket === "online_food_ordering" || bucket === "dining_or_going_out") return "food";
-      const cat = BUCKET_TO_CATEGORY[bucket] || "";
-      if (cat === "Shopping") return "shopping";
-      if (cat === "Groceries") return "groceries";
-      if (cat === "Bills") return "bills";
-      if (cat === "Fuel") return "fuel";
-      if (cat === "Travel") return "travel";
-      return null;
-    };
 
     const totalAnnualSavingsFor = (cards: any[]) => {
       const allowed = new Set((cards || []).map((c: any) => norm(c?.name)));
@@ -793,16 +930,6 @@ function CardsUsage() {
 
   const savings = useMemo(() => {
     const map: any = {};
-    const keyForBucket = (bucket: string) => {
-      if (bucket === "online_food_ordering" || bucket === "dining_or_going_out") return "food";
-      const cat = BUCKET_TO_CATEGORY[bucket] || "";
-      if (cat === "Shopping") return "shopping";
-      if (cat === "Groceries") return "groceries";
-      if (cat === "Bills") return "bills";
-      if (cat === "Fuel") return "fuel";
-      if (cat === "Travel") return "travel";
-      return null;
-    };
 
     for (const bucket of ALL_INPUT_BUCKETS) {
       if (LOUNGE_BUCKETS.includes(bucket) || RESPONSE_ONLY_BUCKETS.includes(bucket)) continue;
@@ -827,9 +954,14 @@ function CardsUsage() {
     const labels: any = {
       shopping: "Shopping",
       groceries: "Groceries",
+      "dining-out": "Dining Out",
       bills: "Bills",
       fuel: "Fuel",
-      travel: "Travel",
+      flights: "Flights",
+      hotels: "Hotels",
+      entertainment: "Entertainment",
+      rent: "Rent",
+      insurance: "Insurance",
       food: "Food Ordering",
     };
     for (const k of Object.keys(labels)) {
@@ -848,32 +980,17 @@ function CardsUsage() {
 
   return (
     <div style={{ paddingBottom: 28, background: "linear-gradient(180deg, rgb(237,242,252) 0%, rgb(245,249,250) 40%)" }}>
-      <h2 className="legacy-serif" style={{ margin: 0, padding: "26px 20px 14px", fontSize: 22, fontWeight: 700, color: "rgba(54,64,96,0.95)", letterSpacing: "0.1px" }}>Cards Usage</h2>
+      <h2 className="legacy-serif" style={{ margin: 0, padding: "28px 20px 16px", fontSize: 22, fontWeight: 700, color: "rgba(54,64,96,0.95)", letterSpacing: "-0.005em" }}>Cards Usage</h2>
       <div style={{ padding: "0 16px" }}>
         <UltimateToggle on={showUltimate} onChange={setShowUltimate} saveExtra={f(SAVINGS_BARS.ultimate_uplift)} />
       </div>
-      <div
-        className="legacy-h-rail"
-        style={{
-          padding: "16px 10px 0",
-          gap: 2,
-          position: "relative",
-          width: "100%",
-          overflowX: "auto",
-          overflowY: "visible",
-          WebkitOverflowScrolling: "touch",
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
-          overscrollBehaviorX: "contain",
-          touchAction: "pan-x",
-        }}
-      >
+      <div ref={railRef} className="legacy-h-rail" style={{ padding: "20px 10px 0", gap: 2, position: "relative" }}>
         {CATS.map((c) => <CatChip key={c.key} cat={c} active={tab === c.key} onClick={() => setTab(c.key)} />)}
       </div>
-      <div style={{ margin: 0, padding: "22px 18px 22px", background: "linear-gradient(180deg, rgba(221,230,252,0.9) 0%, rgba(237,243,253,0.55) 100%)", textAlign: "center" }}>
-        <div style={{ fontFamily: "var(--legacy-sans)", fontSize: 13, fontWeight: 500, color: "rgba(54,64,96,0.75)" }}>Save Upto</div>
-        <div className="legacy-serif" style={{ marginTop: 4, fontSize: 32, fontWeight: 700, color: "rgb(14,102,210)", letterSpacing: "-0.02em" }}>₹{s.total}/yr</div>
-        <div style={{ marginTop: 4, fontFamily: "var(--legacy-sans)", fontSize: 12, fontWeight: 500, color: "rgba(54,64,96,0.7)" }}>Based on {s.catLabel} Spends of ₹{s.base}/yr</div>
+      <div style={{ margin: 0, padding: "24px 20px 28px", background: "linear-gradient(180deg, rgba(221,230,252,0.9) 0%, rgba(237,243,253,0.55) 100%)", textAlign: "center" }}>
+        <div style={{ fontFamily: "var(--legacy-sans)", fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(54,64,96,0.65)" }}>Save Upto</div>
+        <div className="legacy-serif" style={{ marginTop: 6, fontSize: 32, fontWeight: 700, color: "rgb(14,102,210)", letterSpacing: "-0.02em", lineHeight: "120%" }}>₹{s.total}/yr</div>
+        <div style={{ marginTop: 8, fontFamily: "var(--legacy-sans)", fontSize: 12, fontWeight: 500, color: "rgba(54,64,96,0.7)", lineHeight: "150%" }}>Based on {s.catLabel} Spends of ₹{s.base}/yr</div>
       </div>
       <CardsToUsePanel includeUltimate={showUltimate} shownDist={shownDist} rightLabel={tab === "milestones" ? "VALUE" : "YOU SPEND"} />
       <HowToSpendTimeline includeUltimate={showUltimate} allowedCards={shownDist.map((d: any) => d.name)} tabKey={tab} />
@@ -885,23 +1002,65 @@ function CardsUsage() {
    CLAIM & REDEEM — Benefit cards
    ═══════════════════════════════════════════════════════════ */
 
-function BenefitCard({ bankInitial, bankColor, text, days, tone, ctaLabel = "Redeem", onCta }) {
-  const tones = {
-    green: { bg: "linear-gradient(180deg, rgb(226,249,224), rgba(226,249,224,0))", fg: "rgb(30,135,20)" },
-    amber: { bg: "linear-gradient(180deg, rgb(255,237,198), rgba(255,237,198,0))", fg: "rgb(181,117,31)" },
-    red: { bg: "linear-gradient(180deg, rgb(255,224,224), rgba(255,224,224,0))", fg: "rgb(200,50,50)" },
-  };
-  const t = tones[tone] || tones.green;
+// Single row matching the Actions-to-consider list style (40px circular icon
+// avatar, title + sub, DaysLeftPill + CTA pill). Tap opens ConsiderSheet.
+function ConsiderActionRow({ hook, onOpen }) {
+  const ci = HOOK_CAT_ICON[hook.cat] || { Icon: null, color: "#36405E" };
   return (
-    <div style={{ padding: 14, background: "#fff", borderRadius: 10, boxShadow: "0 1px 6px rgba(63,66,70,0.08), 0 0 0 1px rgba(36,45,74,0.04)", display: "flex", gap: 14 }}>
-      <div style={{ width: 40, height: 40, borderRadius: 20, flexShrink: 0, background: bankColor || "#eef2ff", border: "1.5px solid rgba(35,99,225,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--legacy-sans)", fontWeight: 800, fontSize: 15, color: "#fff", letterSpacing: "-0.02em" }}>{bankInitial}</div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: "var(--legacy-sans)", fontSize: 13.5, fontWeight: 500, color: "rgb(54,64,94)", lineHeight: 1.45 }}>{text}</div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
-          <span style={{ padding: "5px 8px", background: t.bg, borderRadius: 4, fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", color: t.fg }}>IN {days.toUpperCase()}</span>
-          <button onClick={onCta} className="legacy-tap" style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid rgba(17,52,172,0.15)", background: "#fff", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "var(--legacy-sans)", fontSize: 11, fontWeight: 700, color: "rgb(34,41,65)", cursor: "pointer" }}>
-            {ctaLabel}
-            <svg width="7" height="10" viewBox="0 0 10 14" fill="none"><path d="M1 1l6 6-6 6" stroke="rgb(34,41,65)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+    <div
+      className="legacy-tap"
+      onClick={() => onOpen(hook)}
+      style={{
+        background: "#FFFFFF",
+        boxShadow: "0px 0.62px 4.35px rgba(63,66,70,0.11)",
+        borderRadius: 8,
+        padding: "14px 12px",
+        display: "flex", alignItems: "flex-start", gap: 14,
+        cursor: "pointer",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "flex-start", padding: "2px 0", flexShrink: 0 }}>
+        <div style={{
+          boxSizing: "border-box",
+          width: 40, height: 40, borderRadius: "50%",
+          background: "#FFFFFF", border: `1.45px solid ${ci.color}1F`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: ci.color,
+        }}>
+          {ci.Icon ? <ci.Icon size={20} strokeWidth={1.5} color={ci.color}/> : null}
+        </div>
+      </div>
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ fontFamily: "var(--legacy-sans)", fontSize: 14, fontWeight: 500, lineHeight: "21px", color: "#36405E" }}>{hook.title}</div>
+          {hook.sub && <div style={{ fontFamily: "var(--legacy-sans)", fontSize: 12, fontWeight: 400, lineHeight: "155%", color: "#808387" }}>{hook.sub}</div>}
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+          {hook.urgencyLabel && (
+            <span style={{
+              boxSizing: "border-box",
+              display: "inline-flex", alignItems: "center", padding: "5px 8px",
+              background: "linear-gradient(180deg, rgb(226,249,224), rgba(226,249,224,0))",
+              borderRadius: 4,
+              fontFamily: "var(--legacy-sans)", fontSize: 9, fontWeight: 700,
+              letterSpacing: "0.1em", color: "rgb(30,135,20)",
+              textTransform: "uppercase",
+            }}>{hook.urgencyLabel}</span>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); onOpen(hook); }}
+            className="legacy-tap"
+            style={{
+              boxSizing: "border-box",
+              display: "inline-flex", alignItems: "center", gap: 4,
+              padding: "6px 8px", height: 27, borderRadius: 5.43,
+              border: "1px solid rgba(17,52,172,0.15)", background: "transparent",
+              fontFamily: "var(--legacy-sans)", fontSize: 10, fontWeight: 600,
+              color: "#222941", cursor: "pointer",
+            }}
+          >
+            {hook.cat === "benefit" ? (hook.cta || "Use Now") : "Redeem"}
+            <svg width="6" height="10" viewBox="0 0 6 10" fill="none"><path d="M1 1l4 4-4 4" stroke="#222941" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
         </div>
       </div>
@@ -909,26 +1068,25 @@ function BenefitCard({ bankInitial, bankColor, text, days, tone, ctaLabel = "Red
   );
 }
 
-function ClaimRedeem({ onRedeem, onTrack }) {
-  const redeemActions = ALL_ACTIONS.filter(a => a.type === "points" || a.type === "fee" || a.type === "milestone").slice(0, 4);
-  const tones = ["green", "amber", "red", "green"];
-  const colors = ["linear-gradient(135deg, #d44 0%, #a11 100%)", "linear-gradient(135deg, #b71 0%, #842 100%)", "linear-gradient(135deg, #7b5cd6 0%, #4d2ea8 100%)", "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)"];
+function ClaimRedeem({ onOpenHook }) {
+  // Only points expiring + benefits expiring — same data + bottom sheet as
+  // the Actions-to-consider list, just filtered.
+  const items = useMemo(
+    () => CONSIDER_HOOKS.filter((h) => h.cat === "points" || h.cat === "benefit"),
+    []
+  );
+  const pointsCount = items.filter((h) => h.cat === "points").length;
+  const benefitCount = items.filter((h) => h.cat === "benefit").length;
+
   return (
     <div style={{ padding: "32px 16px 28px" }}>
       <h2 className="legacy-serif" style={{ margin: 0, textAlign: "center", fontSize: 22, fontWeight: 700, color: "rgba(54,64,96,0.95)", letterSpacing: "-0.015em" }}>Claim and Redeem Benefits</h2>
-      <p style={{ margin: "6px 0 16px", textAlign: "center", fontFamily: "var(--legacy-sans)", fontSize: 12, color: "rgba(54,64,96,0.7)" }}>You have {redeemActions.length} benefits to track</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {redeemActions.map((a, i) => (
-          <BenefitCard
-            key={i}
-            bankInitial={a.title.charAt(0)}
-            bankColor={colors[i % colors.length]}
-            text={<>{a.title}. <strong style={{ color: "rgb(14,102,210)" }}>{a.cta}</strong></>}
-            days={a.badge}
-            tone={tones[i % tones.length]}
-            ctaLabel={a.type === "points" ? "Redeem" : "Track"}
-            onCta={a.type === "points" ? onRedeem : () => onTrack(a)}
-          />
+      <p style={{ margin: "6px 0 16px", textAlign: "center", fontFamily: "var(--legacy-sans)", fontSize: 12, color: "rgba(54,64,96,0.7)" }}>
+        You have {pointsCount} points to claim and {benefitCount} expiring benefits
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {items.map((hook) => (
+          <ConsiderActionRow key={hook.id} hook={hook} onOpen={onOpenHook} />
         ))}
       </div>
     </div>
@@ -940,13 +1098,121 @@ function ClaimRedeem({ onRedeem, onTrack }) {
    ═══════════════════════════════════════════════════════════ */
 
 export function LegacyOptimiseScreen() {
-  const { setScreen, setRedeemCard, setRedeemPts, setRedeemResult, setRedeemPref, setSelBrand, setCalcAmt, setCalcResult, setSearchQ, setActSheet } = useAppContext();
+  const ctx: any = useAppContext();
+  const { setScreen, setRedeemCard, setRedeemPts, setRedeemResult, setRedeemPref, setSelBrand, setCalcAmt, setCalcResult, setSearchQ, setBestCardDetail, openCard } = ctx;
+
+  // Anchor for the "See Your Ultimate Card" footer in HereIsHow — scrolls
+  // smoothly down to the CardOptimizations section instead of leaving the page.
+  const cardOptRef = useRef<HTMLDivElement | null>(null);
+  const scrollToCardOpt = () => {
+    cardOptRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // Anchor for the "See Optimization" footer in HereIsHow — scrolls to the
+  // Spends Distribution section AND flips BOTH Ultimate toggles off (the one
+  // inside Spends Distribution and the one inside Cards Usage), since this
+  // path is about optimising the user's existing cards, not the upgrade flow.
+  const distRef = useRef<HTMLDivElement | null>(null);
+  const [distUltimate, setDistUltimate] = useState(true);
+  const [usageUltimate, setUsageUltimate] = useState(true);
+  const scrollToDistribution = () => {
+    setDistUltimate(false);
+    setUsageUltimate(false);
+    distRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // Anchor for the "See Expiring Benefits" footer — scrolls to ClaimRedeem.
+  const claimRef = useRef<HTMLDivElement | null>(null);
+  const scrollToClaim = () => {
+    claimRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // Per-row savings-breakdown bottom sheet (opened from the (i) icon).
+  const [breakdownOpen, setBreakdownOpen] = useState<any>(null);
+
+  // Cards Usage tab + scroll target for the CategoryChip → tab jump.
+  const cardsUsageRef = useRef<HTMLDivElement | null>(null);
+  const [usageTab, setUsageTab] = useState<string>("shopping");
+  const CHIP_LABEL_TO_KEY: Record<string, string> = {
+    "Shopping": "shopping",
+    "Groceries": "groceries",
+    "Dining Out": "dining-out",
+    "Food Ordering": "food",
+    "Bills": "bills",
+    "Fuel": "fuel",
+    "Flights": "flights",
+    "Hotels": "hotels",
+    "Entertainment": "entertainment",
+    "Rent": "rent",
+    "Insurance": "insurance",
+    // Legacy aliases (just in case any older string slips through)
+    "Online Shopping": "shopping",
+    "Travel": "flights",
+    "Dining": "dining-out",
+    "Cab": "food",
+    "Cab Rides": "food",
+    "Education": "shopping",
+    "Flipkart": "shopping",
+    "Swiggy": "food",
+  };
+  const onCategoryChipClick = (label: string) => {
+    const key = CHIP_LABEL_TO_KEY[label] || "shopping";
+    setUsageTab(key);
+    // Scroll the MobileMock scroll-parent so the Cards Usage TAB STRIP sits
+    // near the top — pushes h2 + Toggle out of view but reveals the active
+    // tab, Save Upto, Cards to Use list AND the Spend Distribution bar.
+    requestAnimationFrame(() => {
+      const rail = cardsUsageRef.current?.querySelector(".legacy-h-rail") as HTMLElement | null;
+      const target = rail || cardsUsageRef.current;
+      if (!target) return;
+      // Find the nearest scrolling ancestor (MobileMock body has overflow-y:auto)
+      let scroller: HTMLElement | null = target.parentElement;
+      while (scroller && scroller !== document.body) {
+        const oy = getComputedStyle(scroller).overflowY;
+        if ((oy === "auto" || oy === "scroll") && scroller.scrollHeight > scroller.clientHeight) break;
+        scroller = scroller.parentElement;
+      }
+      if (!scroller) scroller = (document.scrollingElement || document.documentElement) as HTMLElement;
+      const tgtRect = target.getBoundingClientRect();
+      const scRect = scroller.getBoundingClientRect();
+      const desiredTop = scroller.scrollTop + (tgtRect.top - scRect.top) - 8;
+      try { scroller.scrollTo({ top: Math.max(0, desiredTop), behavior: "smooth" }); } catch { scroller.scrollTop = Math.max(0, desiredTop); }
+    });
+  };
+
+  // Bottom-sheet hook (mirrors ActionsConsiderScreen behaviour)
+  const [openHook, setOpenHook] = useState<any>(null);
+  const handleConsiderPrimary = (hook: any) => {
+    if (!hook) return;
+    if (hook.cat === "points") {
+      setRedeemCard(null); setRedeemPts(""); setRedeemResult(null); setRedeemPref(null);
+      setOpenHook(null); setScreen("redeem"); return;
+    }
+    if (hook.cat === "benefit") {
+      setOpenHook(null);
+      // Open card detail Benefits tab (HSBC Travel One = card index 2)
+      openCard?.(2); return;
+    }
+    setOpenHook(null);
+  };
 
   const openRedeem = () => { setScreen("redeem"); setRedeemCard(null); setRedeemPts(""); setRedeemResult(null); setRedeemPref(null); };
   const openCalc = () => { setScreen("calc"); setSelBrand(null); setCalcAmt(""); setCalcResult(null); setSearchQ(""); };
-  const openTrack = (a: any) => {
-    // Fee waivers / milestones are "action" items: open the action sheet (not redeem screen).
-    setActSheet(a);
+
+  // Open the recommended Ultimate Card detail screen.
+  // Uses CARD_PROMO data from simulation so it stays in sync with /recommend_cards.
+  const openUltimateCardDetail = () => {
+    const promoName = CARD_PROMO?.name || "Recommended Card";
+    const nameParts = promoName.split(" ");
+    const ultimateCard = {
+      bank: nameParts[0] || "Bank",
+      name: nameParts.slice(1).join(" ") || promoName,
+      fullName: promoName,
+      benefit: "",
+      color: "#ea580c",
+    };
+    setBestCardDetail?.(ultimateCard);
+    setScreen("bestcards");
   };
 
   return (
@@ -954,20 +1220,28 @@ export function LegacyOptimiseScreen() {
       <div data-scroll="1" style={{ flex: 1, overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", background: "rgb(245,249,250)", paddingBottom: 100, scrollbarWidth: "none", msOverflowStyle: "none" }}>
 
         <OptHero onBack={() => setScreen("home")} />
-        <HereIsHow onUltimate={() => setScreen("bestcards")} onExisting={() => { document.getElementById("opt-card-optimizations")?.scrollIntoView({ behavior: "smooth" }); }} onRedeem={openRedeem} />
+        <HereIsHow onUltimate={scrollToCardOpt} onExisting={scrollToDistribution} onRedeem={scrollToClaim} />
 
         <div style={{ height: 10, background: "rgba(23,73,47,0.06)", marginTop: 20 }} />
 
-        <CardOptimizations onViewDetails={() => setScreen("bestcards")} />
-        <SpendsDistribution />
+        <div ref={cardOptRef} style={{ scrollMarginTop: 12 }}>
+          <CardOptimizations onViewDetails={openUltimateCardDetail} />
+        </div>
+        <div ref={distRef} style={{ scrollMarginTop: 12 }}>
+          <SpendsDistribution ultimate={distUltimate} onUltimateChange={setDistUltimate} onInfoClick={setBreakdownOpen} onCategoryClick={onCategoryChipClick} />
+        </div>
 
         <div style={{ height: 10, background: "rgba(23,73,47,0.06)", marginTop: 20 }} />
 
-        <CardsUsage />
+        <div ref={cardsUsageRef} style={{ scrollMarginTop: 12 }}>
+          <CardsUsage ultimate={usageUltimate} onUltimateChange={setUsageUltimate} tab={usageTab} onTabChange={setUsageTab} />
+        </div>
 
         <div style={{ height: 10, background: "rgba(23,73,47,0.06)" }} />
 
-        <ClaimRedeem onRedeem={openRedeem} onTrack={openTrack} />
+        <div ref={claimRef} style={{ scrollMarginTop: 12 }}>
+          <ClaimRedeem onOpenHook={setOpenHook} />
+        </div>
 
         <div style={{ height: 36 }} />
       </div>
@@ -976,6 +1250,16 @@ export function LegacyOptimiseScreen() {
         <div style={{ pointerEvents: "auto" }}><NavBar /></div>
       </div>
       <BottomSheets />
+      {openHook && (
+        <ConsiderSheet
+          hook={openHook}
+          onClose={() => setOpenHook(null)}
+          onPrimary={() => handleConsiderPrimary(openHook)}
+        />
+      )}
+      {breakdownOpen && (
+        <SavingsBreakdownSheet data={breakdownOpen} onClose={() => setBreakdownOpen(null)} />
+      )}
     </div>
   );
 }

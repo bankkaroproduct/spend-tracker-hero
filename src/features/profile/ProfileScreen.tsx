@@ -5,7 +5,6 @@ import { FL } from "@/components/shared/FontLoader";
 import { DotDiv } from "@/components/shared/Primitives";
 import { NavBar } from "@/components/shared/NavBar";
 import { CARDS, ALL_TXNS, SAVINGS_BARS } from "@/data/simulation/legacy";
-import { f } from "@/lib/format";
 import { useAppContext } from "@/store/AppContext";
 import { Toast, InfoBS, TxnSheet, ActSheet, GmailNudgePopup, GmailNudgeSheet, RetroOverlay, VoiceFlowOverlay, CatBS, FilterSheet } from "@/components/sheets/BottomSheets";
 
@@ -22,7 +21,7 @@ export const ProfileScreen = () => {
   ];
   const settingsItems=[
     {Ic:Lock,label:"Security & Privacy",desc:"Biometric lock, data encryption"},
-    {Ic:BarChart3,label:"Data & Storage",desc:"Cache: 12MB · Synced at startup"},
+    {Ic:BarChart3,label:"Data & Storage",desc:"Cache: 12MB · Last sync: 2 min ago"},
     {Ic:HelpCircle,label:"Help & Support",desc:"FAQs, contact support"},
     {Ic:FileText,label:"Terms & Conditions",desc:"Privacy policy, terms of use"},
   ];
@@ -35,8 +34,8 @@ export const ProfileScreen = () => {
       </div>
       <div style={{display:"flex",gap:10,marginTop:20}}>
         <div style={{flex:1,padding:"14px",borderRadius:14,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.18)",backdropFilter:"blur(12px)",textAlign:"center"}}><div style={{fontSize:18,fontWeight:700}}>{CARDS.length}</div><div style={{fontSize:10,opacity:0.5,marginTop:2}}>Cards</div></div>
-        <div style={{flex:1,padding:"14px",borderRadius:14,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.18)",backdropFilter:"blur(12px)",textAlign:"center"}}><div style={{fontSize:18,fontWeight:700}}>₹{f(SAVINGS_BARS.bar1)}</div><div style={{fontSize:10,opacity:0.5,marginTop:2}}>Saved</div></div>
-        <div style={{flex:1,padding:"14px",borderRadius:14,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.18)",backdropFilter:"blur(12px)",textAlign:"center"}}><div style={{fontSize:18,fontWeight:700}}>{ALL_TXNS.length}</div><div style={{fontSize:10,opacity:0.5,marginTop:2}}>Txns</div></div>
+        <div style={{flex:1,padding:"14px",borderRadius:14,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.18)",backdropFilter:"blur(12px)",textAlign:"center"}}><div style={{fontSize:18,fontWeight:700}}>₹50K</div><div style={{fontSize:10,opacity:0.5,marginTop:2}}>Saved</div></div>
+        <div style={{flex:1,padding:"14px",borderRadius:14,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.18)",backdropFilter:"blur(12px)",textAlign:"center"}}><div style={{fontSize:18,fontWeight:700}}>100</div><div style={{fontSize:10,opacity:0.5,marginTop:2}}>Txns</div></div>
       </div>
     </div>
     <div style={{padding:"0 24px 44px"}}>

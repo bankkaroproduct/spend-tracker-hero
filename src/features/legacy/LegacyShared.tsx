@@ -1,6 +1,134 @@
 import { useEffect, useMemo, useState } from "react";
 import { CreditCard, Gauge, Receipt, Trophy, Plane, Sparkles } from "lucide-react";
 import { SCENARIO_PILL, SCENARIO_SAVED_COLOR, tagText } from "@/data/simulation/txnScenario";
+import { SAVINGS_BARS } from "@/data/simulation/legacy";
+
+// ───────────────────────────────────────────────────────────────────────────
+// SAVINGS BREAKDOWN — shared (i) tooltip + bottom-sheet that explains a single
+// card's savings number as a tally:
+//   total = savingsOnSpends + milestoneBenefits − annualFee
+// Used by the Spends Distribution rows in LegacyOptimiseScreen, CardDetailV2
+// and PortfolioResultsScreen so the math always reconciles.
+// ───────────────────────────────────────────────────────────────────────────
+export function SavingsInfoIcon({ onClick }: { onClick: (e: any) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Savings breakdown"
+      style={{
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        width: 16, height: 16, marginLeft: 6, padding: 0,
+        background: "rgba(11,146,81,0.12)", border: "none", borderRadius: "50%",
+        color: "rgb(11,146,81)", cursor: "pointer", flexShrink: 0,
+      }}
+    >
+      <svg width="9" height="9" viewBox="0 0 12 12" fill="none">
+        <circle cx="6" cy="6" r="5" stroke="rgb(11,146,81)" strokeWidth="1" fill="none"/>
+        <text x="6" y="9" textAnchor="middle" fontSize="8" fontWeight="700" fill="rgb(11,146,81)" fontFamily="Georgia, serif">i</text>
+      </svg>
+    </button>
+  );
+}
+
+export type SavingsBreakdownData = {
+  cardName: string;            // displayed uppercase
+  last4?: string;              // "XXXX 1234" or null
+  cardImg: string;
+  newCard?: boolean;           // shows "NEW CARD" badge instead of last4
+  spend: string;               // pre-formatted: "₹8,00,000 / yr"
+  save: string;                // pre-formatted: "₹15,000/yr"
+  savingsOnSpends: number;
+  milestoneBenefits: number;
+  annualFee: number;
+};
+
+export function SavingsBreakdownSheet({ data, onClose }: { data: SavingsBreakdownData | null; onClose: () => void }) {
+  if (!data) return null;
+  const { cardName, last4, cardImg, newCard, spend, save, savingsOnSpends, milestoneBenefits, annualFee } = data;
+  const total = savingsOnSpends + milestoneBenefits - annualFee;
+  const fmt = (n: number) => "₹" + Math.abs(n).toLocaleString("en-IN");
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)", zIndex: 200, animation: "legacy-fade-in 0.2s ease both" }} />
+      <div style={{
+        position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 201,
+        background: "linear-gradient(360deg, #FFFFFF 87.42%, #FFFFFF 100%)",
+        borderRadius: "24px 24px 0 0",
+        padding: "60px 16px 24px",
+        animation: "legacy-sheet-up 350ms cubic-bezier(0.32,0.72,0,1) both",
+        fontFamily: "var(--legacy-sans)",
+      }}>
+        <div style={{
+          position: "absolute", left: "50%", top: -57, transform: "translateX(-50%)",
+          width: 150, height: 100, borderRadius: 7.5, overflow: "hidden",
+          border: "0.625px solid rgba(255,255,255,0.2)",
+          filter: "drop-shadow(0 22px 9px rgba(20,21,72,0.03)) drop-shadow(0 12px 7px rgba(20,21,72,0.1)) drop-shadow(0 5.5px 5.5px rgba(20,21,72,0.17)) drop-shadow(0 1px 2.7px rgba(20,21,72,0.2))",
+        }}>
+          <img src={cardImg} alt={cardName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        </div>
+        <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, marginBottom: 24 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, lineHeight: "140%", letterSpacing: "0.02em", textTransform: "uppercase", color: "#000" }}>{cardName}</div>
+          {newCard ? (
+            <div style={{ display: "inline-block", padding: "4px 10px", borderRadius: 6, background: "#E0F9ED", fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", color: "#0B9251", textTransform: "uppercase" }}>NEW CARD</div>
+          ) : (
+            <div style={{ fontSize: 11, fontWeight: 700, lineHeight: "140%", letterSpacing: "0.04em", textTransform: "uppercase", color: "#6E7891" }}>{last4 || "Linked Card"}</div>
+          )}
+        </div>
+        <div style={{
+          padding: "16px 24px", display: "flex", alignItems: "center", gap: 16,
+          background: "linear-gradient(0deg, #FBFBFE, #FBFBFE)",
+          border: "1px solid #DADCEB", borderRadius: 8, marginBottom: 18,
+        }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+            <span style={{ fontSize: 10, fontWeight: 400, lineHeight: "140%", color: "rgba(0,0,0,0.6)" }}>You spend</span>
+            <span style={{ fontSize: 14, fontWeight: 700, lineHeight: "135%", letterSpacing: "-0.02em", color: "#3E4561" }}>{spend}</span>
+          </div>
+          <div style={{ width: 1, height: 37, background: "rgba(0,0,0,0.06)" }} />
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+            <span style={{ fontSize: 10, fontWeight: 400, lineHeight: "140%", color: "rgba(0,0,0,0.6)" }}>You save</span>
+            <span style={{ fontSize: 14, fontWeight: 700, lineHeight: "135%", letterSpacing: "-0.02em", color: "#0B9251" }}>{save}</span>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 14 }}>
+          <span style={{ height: 1, flex: 1, background: "rgba(132,140,160,0.4)" }} />
+          <span style={{ width: 4, height: 4, transform: "rotate(45deg)", background: "rgba(132,140,160,0.6)" }} />
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.2em", color: "#8A92A7", textTransform: "uppercase" }}>SAVINGS BREAKDOWN</span>
+          <span style={{ width: 4, height: 4, transform: "rotate(45deg)", background: "rgba(132,140,160,0.6)" }} />
+          <span style={{ height: 1, flex: 1, background: "rgba(132,140,160,0.4)" }} />
+        </div>
+        <div style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+            <span style={{ fontSize: 11, fontWeight: 400, lineHeight: "155%", color: "#46505F" }}>Savings on Spends</span>
+            <span style={{ fontSize: 12, fontWeight: 600, lineHeight: "140%", letterSpacing: "0.01em", color: "#46505F" }}>{fmt(savingsOnSpends)}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+            <span style={{ fontSize: 11, fontWeight: 400, lineHeight: "155%", color: "#46505F" }}>Milestone Benefits</span>
+            <span style={{ fontSize: 12, fontWeight: 600, lineHeight: "140%", letterSpacing: "0.01em", color: "#46505F" }}>+ {fmt(milestoneBenefits)}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+            <span style={{ fontSize: 11, fontWeight: 400, lineHeight: "155%", color: "#46505F" }}>Annual Fee</span>
+            <span style={{ fontSize: 12, fontWeight: 600, lineHeight: "140%", letterSpacing: "0.01em", color: "#46505F" }}>− {fmt(annualFee)}</span>
+          </div>
+          <svg width="100%" height="1" style={{ display: "block", margin: "4px 0" }}>
+            <line x1="0" y1="0.5" x2="100%" y2="0.5" stroke="rgba(0,0,0,0.3)" strokeWidth="0.5" strokeDasharray="2 2" />
+          </svg>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 4 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, lineHeight: "140%", letterSpacing: "0.01em", color: "#1C2A33" }}>Total Savings</span>
+            <span style={{ fontSize: 14, fontWeight: 600, lineHeight: "140%", letterSpacing: "0.01em", color: "#008846" }}>{fmt(total)}</span>
+          </div>
+        </div>
+        <button onClick={onClose} className="legacy-tap" style={{
+          marginTop: 22, width: "100%", height: 48.51,
+          background: "linear-gradient(90deg, #222941 0%, #101C43 100%)",
+          color: "#E8E8E8", fontSize: 12, fontWeight: 600, lineHeight: "150%",
+          border: "none", borderRadius: 10.17, cursor: "pointer",
+          boxShadow: "0.29px 0.29px 0.41px -0.49px rgba(0,0,0,0.26), 0.79px 0.79px 1.12px -0.98px rgba(0,0,0,0.247), 1.73px 1.73px 2.45px -1.47px rgba(0,0,0,0.23), 3.85px 3.85px 5.44px -1.96px rgba(0,0,0,0.192), 9.13px 9.13px 13.84px -2.45px rgba(0,0,0,0.2), inset 0.65px 0.65px 0.65px rgba(255,255,255,0.7), inset -0.65px -0.65px 0.65px rgba(0,0,0,0.23)",
+        }}>Got it</button>
+      </div>
+    </>
+  );
+}
 
 // Map a CONSIDER_HOOKS `cat` to a rounded-line icon + warm-toned stroke color.
 // Muted/desaturated tones so they sit gently against the soft pastel bgs.
@@ -465,70 +593,49 @@ export function TransactionAnalysis({ timeWindow = "Last 365 Days" }) {
   const [days, setDays] = useState(365);
   const factor = days / 365;
   const fmt = (n) => "₹" + n.toLocaleString("en-IN");
-  // 365-day baselines
-  const CURRENT_365 = 20845;
-  const IDEAL_365 = 40000;
-  const currentSavings = Math.round(CURRENT_365 * factor);
-  const idealSavings = Math.round(IDEAL_365 * factor);
-  // Bar heights scale linearly; clamp so bars stay visible at small windows.
-  const orangeH = Math.max(12, Math.round(50 * factor));
-  const greenH = Math.max(20, Math.round(140 * factor));
-  // Labels sit ~38px above each bar's top.
-  const orangeLabelTop = 220 - orangeH - 38;
-  const greenLabelTop = 220 - greenH - 48;
+  const fmtYr = (n) => "₹" + n.toLocaleString("en-IN") + " /yr";
+  const currentSavings = Math.round(SAVINGS_BARS.bar1 * factor);
+  const idealSavings = Math.round(SAVINGS_BARS.bar2 * factor);
+  const ultimateSavings = Math.round(SAVINGS_BARS.bar3 * factor);
+  const maxVal = Math.max(ultimateSavings, idealSavings, currentSavings, 1);
+  const maxBarH = 160;
+  const orangeH = Math.max(12, Math.round((currentSavings / maxVal) * maxBarH));
+  const greenH = Math.max(20, Math.round((idealSavings / maxVal) * maxBarH));
+  const blueH = Math.max(28, Math.round((ultimateSavings / maxVal) * maxBarH));
+  const chartH = 240;
+  const barW = 72;
+  const gap = 16;
+  const totalW = barW * 3 + gap * 2;
+  const startX = (368 - totalW) / 2;
+  const labelStyle = { fontFamily: "'Google Sans', system-ui, sans-serif", fontSize: 12, fontWeight: 500, lineHeight: "137%", letterSpacing: "-0.01em", color: "rgba(54,64,96,0.85)", textAlign: "center" as const };
+  const valStyle = { fontFamily: "'Google Sans', system-ui, sans-serif", fontSize: 12, fontWeight: 600, lineHeight: "150%", letterSpacing: "-0.01em", textAlign: "center" as const };
+  const barBase = { boxSizing: "border-box" as const, borderRadius: "8px 8px 0 0", transformOrigin: "bottom" as const, transition: "height 280ms ease-out", animation: "legacy-growY 600ms ease-out backwards", boxShadow: "inset 0 2px 0 rgba(255,255,255,0.4)" };
+  const oTop = chartH - orangeH - 46;
+  const gTop = chartH - greenH - 46;
+  const bTop = chartH - blueH - 46;
   return (
     <div style={{ padding: "32px 0 0" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", padding: "0 20px", marginBottom: 22 }}>
         <h2 className="legacy-serif" style={{ margin: 0, fontSize: 20, fontWeight: 600, color: "rgba(54,64,96,0.92)" }}>
           Transaction Analysis
         </h2>
-        <TimeFilter
-          label={`Last ${days} Days`}
-          options={TIME_WINDOW_OPTIONS}
-          value={days}
-          onSelect={setDays}
-        />
+        <TimeFilter label={`Last ${days} Days`} options={TIME_WINDOW_OPTIONS} value={days} onSelect={setDays} />
       </div>
-      {/* Container — 328 wide, taller to give bars visual presence; centered with stroke */}
-      <div style={{
-        position: "relative",
-        margin: "0 auto",
-        width: 328, height: 220,
-        background: "linear-gradient(0deg, #DBFCE5 0%, #F5F9FA 54.79%)",
-        border: "1px solid rgba(54,64,96,0.08)",
-        boxShadow: "0 2px 10px rgba(63,66,70,0.05)",
-        borderRadius: 12,
-        overflow: "hidden",
-      }}>
-        {/* Orange (Current savings) — short bar on the left, anchored bottom */}
-        <div style={{ position: "absolute", left: 50, top: orangeLabelTop, width: 100, fontFamily: "'Google Sans', system-ui, sans-serif", fontSize: 12, fontWeight: 600, lineHeight: "150%", letterSpacing: "-0.01em", color: "#EB8807", textAlign: "center" }}>{fmt(currentSavings)}</div>
-        <div style={{ position: "absolute", left: 50, top: orangeLabelTop + 20, width: 100, fontFamily: "'Google Sans', system-ui, sans-serif", fontSize: 12, fontWeight: 500, lineHeight: "137%", letterSpacing: "-0.01em", color: "rgba(54,64,96,0.85)", textAlign: "center" }}>Current savings</div>
-        <div style={{
-          position: "absolute", left: 64, width: 72, bottom: 0, height: orangeH,
-          background: "linear-gradient(180deg, #EB8807 0%, #FCAA3F 100%)",
-          border: "1px solid #F8A130",
-          boxShadow: "inset 0 2px 0 rgba(255,255,255,0.4)",
-          borderRadius: "6px 6px 0 0",
-          boxSizing: "border-box",
-          transformOrigin: "bottom",
-          transition: "height 280ms ease-out",
-          animation: "legacy-growY 600ms ease-out backwards",
-        }}/>
+      <div style={{ position: "relative", margin: "0 16px", height: chartH, background: "linear-gradient(0deg, #DBFCE5 0%, #F5F9FA 54.79%)", border: "1px solid rgba(54,64,96,0.08)", boxShadow: "0 2px 10px rgba(63,66,70,0.05)", borderRadius: 12, overflow: "hidden" }}>
+        {/* Orange — Current savings */}
+        <div style={{ position: "absolute", left: startX, top: oTop, width: barW, ...valStyle, color: "#EB8807" }}>{fmt(currentSavings)}</div>
+        <div style={{ position: "absolute", left: startX, top: oTop + 20, width: barW, ...labelStyle }}>Current savings</div>
+        <div style={{ position: "absolute", left: startX, width: barW, bottom: 0, height: orangeH, background: "linear-gradient(180deg, #EB8807 0%, #FCAA3F 100%)", border: "1px solid #F8A130", ...barBase }} />
 
-        {/* Green (If cards used right) — taller bar on the right, anchored bottom */}
-        <div style={{ position: "absolute", left: 178, top: greenLabelTop, width: 120, fontFamily: "'Google Sans', system-ui, sans-serif", fontSize: 12, fontWeight: 600, lineHeight: "150%", letterSpacing: "-0.01em", color: "#078146", textAlign: "center" }}>{fmt(idealSavings)}</div>
-        <div style={{ position: "absolute", left: 178, top: greenLabelTop + 20, width: 120, fontFamily: "'Google Sans', system-ui, sans-serif", fontSize: 12, fontWeight: 500, lineHeight: "137%", letterSpacing: "-0.01em", color: "rgba(54,64,96,0.85)", textAlign: "center" }}>If cards used right</div>
-        <div style={{
-          position: "absolute", left: 202, width: 72, bottom: 0, height: greenH,
-          background: "linear-gradient(180deg, #117E47 0%, #0AA759 100%)",
-          border: "1px solid #22AB66",
-          boxShadow: "inset 0 2px 0 rgba(255,255,255,0.4)",
-          borderRadius: "8px 8px 0 0",
-          boxSizing: "border-box",
-          transformOrigin: "bottom",
-          transition: "height 280ms ease-out",
-          animation: "legacy-growY 600ms ease-out backwards",
-        }}/>
+        {/* Green — If cards used right */}
+        <div style={{ position: "absolute", left: startX + barW + gap, top: gTop, width: barW, ...valStyle, color: "#078146" }}>{fmt(idealSavings)}</div>
+        <div style={{ position: "absolute", left: startX + barW + gap, top: gTop + 20, width: barW, ...labelStyle }}>If cards used right</div>
+        <div style={{ position: "absolute", left: startX + barW + gap, width: barW, bottom: 0, height: greenH, background: "linear-gradient(180deg, #117E47 0%, #0AA759 100%)", border: "1px solid #22AB66", ...barBase }} />
+
+        {/* Blue — With ultimate card */}
+        <div style={{ position: "absolute", left: startX + (barW + gap) * 2, top: bTop, width: barW, ...valStyle, color: "#1D6AE5" }}>{fmtYr(ultimateSavings)}</div>
+        <div style={{ position: "absolute", left: startX + (barW + gap) * 2, top: bTop + 20, width: barW + 16, marginLeft: -8, ...labelStyle }}>With ultimate card</div>
+        <div style={{ position: "absolute", left: startX + (barW + gap) * 2, width: barW, bottom: 0, height: blueH, background: "linear-gradient(180deg, #1D6AE5 0%, #5B9CF5 100%)", border: "1px solid #4B8DE8", ...barBase, borderRadius: "10px 10px 0 0" }} />
       </div>
     </div>
   );
@@ -542,14 +649,21 @@ export function CardPromo({ onClick }) {
   );
 }
 
+// 12 canonical categories — Friends and Family included (spend-analysis only).
+// Σ = ₹15,40,250  (matches the home Spend Analysis "Total Accounted Spends").
 const categoryData = [
-  { name: "Shopping", pct: 44, amount: "₹6,77,710" },
-  { name: "Groceries", pct: 20, amount: "₹3,08,050" },
-  { name: "Bills", pct: 14, amount: "₹2,15,635" },
-  { name: "Travel", pct: 8, amount: "₹1,23,220" },
-  { name: "Insurance", pct: 9, amount: "₹1,38,622" },
-  { name: "Fuel", pct: 4, amount: "₹61,610" },
-  { name: "Entertainment", pct: 1, amount: "₹15,403" },
+  { name: "Shopping",           pct: 25, amount: "₹3,85,000" },
+  { name: "Groceries",          pct: 15, amount: "₹2,30,000" },
+  { name: "Bills",              pct: 12, amount: "₹1,84,830" },
+  { name: "Food Ordering",      pct:  9, amount: "₹1,38,622" },
+  { name: "Flights",            pct:  7, amount: "₹1,07,818" },
+  { name: "Friends and Family", pct:  6, amount: "₹92,415" },
+  { name: "Dining Out",         pct:  6, amount: "₹92,415" },
+  { name: "Hotels",             pct:  5, amount: "₹77,012" },
+  { name: "Insurance",          pct:  5, amount: "₹77,013" },
+  { name: "Fuel",               pct:  4, amount: "₹61,610" },
+  { name: "Rent",               pct:  4, amount: "₹61,610" },
+  { name: "Entertainment",      pct:  2, amount: "₹30,805" },
 ];
 
 const brandData = [
@@ -562,15 +676,28 @@ const brandData = [
   { name: "Others", pct: 12, amount: "₹1,84,830" },
 ];
 
-// 3D category icons — same set used in the SpendAnalysis cinematic
+// Unified category icon helper — points to the new /cdn/categories/<Name>.webp set.
+// All 12 canonical categories supported (incl. Friends and Family for spend-analysis).
+export const CAT_IMG = (name: string): string =>
+  `/cdn/categories/${name}.webp`;
+
 const CATEGORY_IMG: Record<string, string> = {
-  Shopping:      "/categories/shopping.png",
-  Groceries:     "/categories/groceries.png",
-  Bills:         "/categories/bills.png",
-  Travel:        "/categories/travel.png",
-  Insurance:     "/categories/milestones.png",
-  Fuel:          "/categories/fuel.png",
-  Entertainment: "/categories/entertainment.png",
+  "Shopping":           CAT_IMG("Shopping"),
+  "Groceries":          CAT_IMG("Groceries"),
+  "Dining Out":         CAT_IMG("Dining Out"),
+  "Dining":             CAT_IMG("Dining Out"),
+  "Food Ordering":      CAT_IMG("Food Ordering"),
+  "Bills":              CAT_IMG("Bills"),
+  "Fuel":               CAT_IMG("Fuel"),
+  "Flights":            CAT_IMG("Flights"),
+  "Travel":             CAT_IMG("Flights"),
+  "Hotels":             CAT_IMG("Hotels"),
+  "Entertainment":      CAT_IMG("Entertainment"),
+  "Rent":               CAT_IMG("Rent"),
+  "Insurance":          CAT_IMG("Insurance"),
+  "Friends and Family": CAT_IMG("Friends and Family"),
+  "Cab Rides":          CAT_IMG("Shopping"),
+  "Education":          CAT_IMG("Bills"),
 };
 
 function CategoryIcon({ kind }) {
@@ -874,7 +1001,7 @@ function InlineScenarioCTA({ cta }) {
 }
 
 export function TransactionRow({ brand, merchant, cardLine, amount, saved, savedColor, cta, scenario, hideRewards = false, onClick }) {
-  const scenarioSaved = scenario ? `\u20B9${Math.round(scenario.actualSavings || 0).toLocaleString("en-IN")}` : saved;
+  const scenarioSaved = scenario ? `₹${Math.round(scenario.actualSavings || 0).toLocaleString("en-IN")}` : saved;
   const effectiveSaved = hideRewards ? null : scenarioSaved;
   const effectiveSavedColor = scenario ? SCENARIO_SAVED_COLOR[scenario.id] : savedColor;
   const effectiveCta = hideRewards ? null : ctaFromScenario(scenario) || cta;
@@ -924,12 +1051,15 @@ export function UnaccountedRow({ onClick }) {
 }
 
 export function TransactionsPreview({ transactions, onOpenTransactions, onSortClick, onFilterClick, onChipClick, activeChip, onRowClick, onUnaccountedClick }) {
-  const [activeTab, setActiveTab] = useState("Recent");
+  const [activeTab, setActiveTab] = useState<string | null>(null);
   const chips = ["Unaccounted", "via Axis Flipkart Card", "via HSBC Live +", "via HSBC Travel One"];
   const preview = transactions.slice(0, 4);
+  // Parent's activeChip (driven by global filters) wins; activeTab is a local
+  // fallback that mirrors clicks when no parent filter is wired.
   const effectiveChip = activeChip ?? activeTab;
   const handleChip = (chip) => {
-    setActiveTab(chip);
+    // Toggle locally so a second click on the same chip clears the highlight.
+    setActiveTab(prev => prev === chip ? null : chip);
     onChipClick?.(chip);
   };
   return (

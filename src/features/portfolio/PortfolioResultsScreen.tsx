@@ -1,11 +1,12 @@
 // @ts-nocheck
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Lock, Star } from "lucide-react";
 import { FN } from "@/lib/theme";
 import { f } from "@/lib/format";
 import { FL } from "@/components/shared/FontLoader";
 import { useAppContext } from "@/store/AppContext";
 import { CARDS } from "@/data/simulation/legacy";
+import { SavingsInfoIcon, SavingsBreakdownSheet } from "@/features/legacy/LegacyShared";
 
 // Lifted directly from CardDetailV2 — keeps tab section typography identical.
 const SECTION_TITLE = { fontFamily: "'Blacklist','Google Sans',serif", fontSize: 20, fontWeight: 700, lineHeight: "140%", color: "rgba(54,64,96,0.9)" };
@@ -30,47 +31,77 @@ const CARD_IMG_MAP: Record<string, string> = {
 
 // Per-portfolio card spend × save profile — totals tally to EXACTLY
 // ₹16,00,000/yr spend and ₹1,33,000/yr save (matches hero "SAVE UPTO ₹1,33,000/yr").
-type CardProfile = { name: string; spend: number; save: number; pct: number; c1: string; c2: string; tags: string[] };
+type CardProfile = {
+  name: string; spend: number; save: number; pct: number; c1: string; c2: string; tags: string[];
+  // Tally: save = savingsOnSpends + milestoneBenefits − annualFee
+  last4?: string; newCard?: boolean;
+  breakdown?: { savingsOnSpends: number; milestoneBenefits: number; annualFee: number };
+};
 const PORTFOLIO_PROFILE: CardProfile[] = [
-  { name: "Amex Travel Platinum", spend: 600000, save: 50400, pct: 37, c1: "#583598", c2: "#9359FE", tags: ["Bills", "Food Ordering", "Travel", "Dining"] },
-  { name: "Axis Magnus",          spend: 300000, save: 33000, pct: 19, c1: "#11257E", c2: "#0A44A7", tags: ["Travel", "Hotels", "Food Ordering"] },
-  { name: "HDFC Millennia",       spend: 280000, save: 20000, pct: 18, c1: "#4C98F4", c2: "#0862CF", tags: ["Online Shopping", "Groceries"] },
-  { name: "Axis Flipkart",        spend: 240000, save: 15000, pct: 15, c1: "#117E47", c2: "#0AA759", tags: ["Flipkart", "Swiggy", "Cab"] },
-  { name: "HSBC Live+",           spend: 140000, save:  9300, pct:  9, c1: "#EB8807", c2: "#FCAA3F", tags: ["Groceries", "Bills"] },
-  { name: "HSBC Travel One",      spend:  40000, save:  5300, pct:  2, c1: "#0c2340", c2: "#1a5276", tags: ["International Travel"] },
+  { name: "Amex Travel Platinum", spend: 600000, save: 50400, pct: 37, c1: "#583598", c2: "#9359FE", tags: ["Bills", "Food Ordering", "Flights", "Dining Out"],
+    last4: "NEW CARD", newCard: true, breakdown: { savingsOnSpends: 43400, milestoneBenefits: 8000, annualFee: 1000 } },
+  { name: "Axis Magnus",          spend: 300000, save: 33000, pct: 19, c1: "#11257E", c2: "#0A44A7", tags: ["Flights", "Hotels", "Food Ordering"],
+    last4: "NEW CARD", newCard: true, breakdown: { savingsOnSpends: 24000, milestoneBenefits: 12000, annualFee: 3000 } },
+  { name: "HDFC Millennia",       spend: 280000, save: 20000, pct: 18, c1: "#4C98F4", c2: "#0862CF", tags: ["Shopping", "Groceries"],
+    last4: "NEW CARD", newCard: true, breakdown: { savingsOnSpends: 19000, milestoneBenefits: 2000, annualFee: 1000 } },
+  { name: "Axis Flipkart",        spend: 240000, save: 15000, pct: 15, c1: "#117E47", c2: "#0AA759", tags: ["Shopping", "Food Ordering", "Entertainment"],
+    last4: "XXXX 2355", breakdown: { savingsOnSpends: 13000, milestoneBenefits: 3000, annualFee: 1000 } },
+  { name: "HSBC Live+",           spend: 140000, save:  9300, pct:  9, c1: "#EB8807", c2: "#FCAA3F", tags: ["Groceries", "Bills"],
+    last4: "XXXX 9945", breakdown: { savingsOnSpends: 7800, milestoneBenefits: 2000, annualFee: 500 } },
+  { name: "HSBC Travel One",      spend:  40000, save:  5300, pct:  2, c1: "#0c2340", c2: "#1a5276", tags: ["Flights", "Hotels"],
+    last4: "XXXX 7891", breakdown: { savingsOnSpends: 3800, milestoneBenefits: 3000, annualFee: 1500 } },
 ];
 // Sanity: Σspend = 16,00,000 · Σsave = 1,33,000 · Σpct = 100%
 
 // Cards Usage categories — realistic per-category spend split tied to PORTFOLIO_PROFILE
 // Σ across categories ≈ ₹16,00,000 spend / ₹1,33,000 save (matches headline & per-card list).
 type Cat = { key: string; icon: string; spend?: number; save?: number; cards?: { name: string; spend: number; share: number; caption: string; c1: string; c2: string }[] };
+// 11 card-usable categories + Milestones (Friends and Family is excluded — no
+// card maps to it). Σ category spend ≈ ₹16,00,000 / Σ save ≈ ₹1,33,000.
 const CATEGORIES: Cat[] = [
   { key: "Milestones", icon: "⭐" },
-  { key: "Shopping",   icon: "/categories/shopping.png", spend: 420000, save: 21000, cards: [
-    { name: "HDFC Millennia", spend: 240000, share: 57, caption: "5% on Amazon, Flipkart, Swiggy",  c1: "#4C98F4", c2: "#0862CF" },
-    { name: "Axis Flipkart",  spend: 180000, share: 43, caption: "5% on Flipkart, 4% on Myntra",     c1: "#117E47", c2: "#0AA759" },
+  { key: "Shopping",      icon: "/cdn/categories/Shopping.webp",      spend: 420000, save: 21000, cards: [
+    { name: "HDFC Millennia",        spend: 240000, share: 57, caption: "5% on Amazon, Flipkart, Swiggy",  c1: "#4C98F4", c2: "#0862CF" },
+    { name: "Axis Flipkart",         spend: 180000, share: 43, caption: "5% on Flipkart, 4% on Myntra",    c1: "#117E47", c2: "#0AA759" },
   ] },
-  { key: "Groceries",  icon: "/categories/groceries.png", spend: 120000, save: 4800, cards: [
-    { name: "HSBC Live+",     spend:  80000, share: 67, caption: "1.5% flat cashback",               c1: "#EB8807", c2: "#FCAA3F" },
-    { name: "HDFC Millennia", spend:  40000, share: 33, caption: "5% on Big Basket via SmartBuy",    c1: "#4C98F4", c2: "#0862CF" },
+  { key: "Groceries",     icon: "/cdn/categories/Groceries.webp",     spend: 120000, save: 4800, cards: [
+    { name: "HSBC Live+",            spend:  80000, share: 67, caption: "1.5% flat cashback",             c1: "#EB8807", c2: "#FCAA3F" },
+    { name: "HDFC Millennia",        spend:  40000, share: 33, caption: "5% on Big Basket via SmartBuy",  c1: "#4C98F4", c2: "#0862CF" },
   ] },
-  { key: "Bills",      icon: "/categories/bills.png",     spend: 230000, save: 9000, cards: [
-    { name: "Amex Travel Platinum", spend: 200000, share: 87, caption: "2X MR points on bills",     c1: "#583598", c2: "#9359FE" },
-    { name: "HSBC Live+",           spend:  30000, share: 13, caption: "1.5% flat cashback",         c1: "#EB8807", c2: "#FCAA3F" },
+  { key: "Dining Out",    icon: "/cdn/categories/Dining Out.webp",    spend: 100000, save: 8500, cards: [
+    { name: "Amex Travel Platinum",  spend:  80000, share: 80, caption: "5X MR on dining",                c1: "#583598", c2: "#9359FE" },
+    { name: "HSBC Live+",            spend:  20000, share: 20, caption: "1.5% flat cashback",             c1: "#EB8807", c2: "#FCAA3F" },
   ] },
-  { key: "Fuel",       icon: "/categories/fuel.png",      spend: 50000, save: 500, cards: [
-    { name: "Amex Travel Platinum", spend: 50000, share: 100, caption: "1% surcharge waiver only",   c1: "#583598", c2: "#9359FE" },
+  { key: "Food Ordering", icon: "/cdn/categories/Food Ordering.webp", spend: 230000, save: 21800, cards: [
+    { name: "Amex Travel Platinum",  spend: 100000, share: 43, caption: "5X MR on food delivery",         c1: "#583598", c2: "#9359FE" },
+    { name: "Axis Magnus",           spend:  50000, share: 22, caption: "12X via airline transfers",     c1: "#11257E", c2: "#0A44A7" },
+    { name: "Axis Flipkart",         spend:  30000, share: 13, caption: "4% on Swiggy",                  c1: "#117E47", c2: "#0AA759" },
+    { name: "HSBC Live+",            spend:  50000, share: 22, caption: "1.5% flat cashback",            c1: "#EB8807", c2: "#FCAA3F" },
   ] },
-  { key: "Travel",     icon: "/categories/travel.png",    spend: 390000, save: 70300, cards: [
-    { name: "Amex Travel Platinum", spend: 200000, share: 51, caption: "5X MR points on travel",     c1: "#583598", c2: "#9359FE" },
-    { name: "Axis Magnus",          spend: 150000, share: 39, caption: "12X via airline transfers",  c1: "#11257E", c2: "#0A44A7" },
-    { name: "HSBC Travel One",      spend:  40000, share: 10, caption: "3X via SmartBuy partners",   c1: "#0c2340", c2: "#1a5276" },
+  { key: "Bills",         icon: "/cdn/categories/Bills.webp",         spend: 230000, save: 9000, cards: [
+    { name: "Amex Travel Platinum",  spend: 200000, share: 87, caption: "2X MR points on bills",         c1: "#583598", c2: "#9359FE" },
+    { name: "HSBC Live+",            spend:  30000, share: 13, caption: "1.5% flat cashback",            c1: "#EB8807", c2: "#FCAA3F" },
   ] },
-  { key: "Food Ordering", icon: "/categories/food.png",   spend: 230000, save: 21800, cards: [
-    { name: "Amex Travel Platinum", spend: 100000, share: 43, caption: "5X MR on food delivery",    c1: "#583598", c2: "#9359FE" },
-    { name: "Axis Magnus",          spend:  50000, share: 22, caption: "12X via airline transfers",  c1: "#11257E", c2: "#0A44A7" },
-    { name: "Axis Flipkart",        spend:  30000, share: 13, caption: "4% on Swiggy",               c1: "#117E47", c2: "#0AA759" },
-    { name: "HSBC Live+",           spend:  50000, share: 22, caption: "1.5% flat cashback",         c1: "#EB8807", c2: "#FCAA3F" },
+  { key: "Fuel",          icon: "/cdn/categories/Fuel.webp",          spend: 50000,  save: 500, cards: [
+    { name: "Amex Travel Platinum",  spend:  50000, share: 100, caption: "1% surcharge waiver only",      c1: "#583598", c2: "#9359FE" },
+  ] },
+  { key: "Flights",       icon: "/cdn/categories/Flights.webp",       spend: 250000, save: 50000, cards: [
+    { name: "Axis Magnus",           spend: 130000, share: 52, caption: "12X via airline transfers",     c1: "#11257E", c2: "#0A44A7" },
+    { name: "Amex Travel Platinum",  spend:  90000, share: 36, caption: "5X MR on flights",              c1: "#583598", c2: "#9359FE" },
+    { name: "HSBC Travel One",       spend:  30000, share: 12, caption: "3X via SmartBuy partners",      c1: "#0c2340", c2: "#1a5276" },
+  ] },
+  { key: "Hotels",        icon: "/cdn/categories/Hotels.webp",        spend: 140000, save: 14000, cards: [
+    { name: "Axis Magnus",           spend:  80000, share: 57, caption: "10X on hotel bookings",         c1: "#11257E", c2: "#0A44A7" },
+    { name: "Amex Travel Platinum",  spend:  60000, share: 43, caption: "Lounge + 3X on hotels",         c1: "#583598", c2: "#9359FE" },
+  ] },
+  { key: "Entertainment", icon: "/cdn/categories/Entertainment.webp", spend:  40000, save: 1900, cards: [
+    { name: "Axis Flipkart",         spend:  40000, share: 100, caption: "4% on PVR/Bookmyshow",          c1: "#117E47", c2: "#0AA759" },
+  ] },
+  { key: "Rent",          icon: "/cdn/categories/Rent.webp",          spend:  60000, save: 0, cards: [
+    { name: "—",                     spend:      0, share: 100, caption: "No card rewards rent",          c1: "#94A3B8", c2: "#475569" },
+  ] },
+  { key: "Insurance",     icon: "/cdn/categories/Insurance.webp",     spend:  60000, save: 1500, cards: [
+    { name: "HSBC Travel One",       spend:  60000, share: 100, caption: "0.67% base earn",              c1: "#0c2340", c2: "#1a5276" },
   ] },
 ];
 // Sanity: Σ category spend = 4,20,000 + 1,20,000 + 2,30,000 + 50,000 + 3,90,000 + 2,30,000 + (Hotels+Cab+Dining ~1,60,000) ≈ ₹16,00,000
@@ -237,6 +268,42 @@ export const PortfolioResultsScreen = () => {
   const [activeCard, setActiveCard] = useState<string>(newCards[0] || allPortfolioCards[0]);
   const [period, setPeriod] = useState<"monthly" | "yearly">("monthly");
   const [activeCat, setActiveCat] = useState<string>("Shopping");
+  // Per-row savings-breakdown bottom sheet (opened from the (i) icon).
+  const [breakdownOpen, setBreakdownOpen] = useState<any>(null);
+  // Anchor + handler for tag → CardsUsage scroll + tab switch.
+  const cardsUsageRef = useRef<HTMLDivElement | null>(null);
+  const catsRailRef = useRef<HTMLDivElement | null>(null);
+  const onCategoryTagClick = (tag: string) => {
+    if (CATEGORIES.find((c: any) => c.key === tag)) setActiveCat(tag);
+    requestAnimationFrame(() => {
+      const target = catsRailRef.current || cardsUsageRef.current;
+      if (!target) return;
+      let scroller: HTMLElement | null = target.parentElement;
+      while (scroller && scroller !== document.body) {
+        const oy = getComputedStyle(scroller).overflowY;
+        if ((oy === "auto" || oy === "scroll") && scroller.scrollHeight > scroller.clientHeight) break;
+        scroller = scroller.parentElement;
+      }
+      if (!scroller) scroller = (document.scrollingElement || document.documentElement) as HTMLElement;
+      const tR = target.getBoundingClientRect();
+      const sR = scroller.getBoundingClientRect();
+      const desired = Math.max(0, scroller.scrollTop + (tR.top - sR.top) - 8);
+      try { scroller.scrollTo({ top: desired, behavior: "smooth" }); } catch { scroller.scrollTop = desired; }
+    });
+  };
+  // Auto-scroll horizontal category strip — horizontal-only via scrollTo so
+  // vertical page scroll is never hijacked.
+  useEffect(() => {
+    const rail = catsRailRef.current;
+    if (!rail) return;
+    const target = rail.querySelector(`[data-cat="${activeCat}"]`) as HTMLElement | null;
+    if (!target) return;
+    const rR = rail.getBoundingClientRect();
+    const tR = target.getBoundingClientRect();
+    const offsetInRail = (tR.left - rR.left) + rail.scrollLeft;
+    const desired = Math.max(0, offsetInRail - (rR.width - tR.width) / 2);
+    try { rail.scrollTo({ left: desired, behavior: "smooth" }); } catch { rail.scrollLeft = desired; }
+  }, [activeCat]);
   const cat = CATEGORIES.find(c => c.key === activeCat) || CATEGORIES[1];
   // Spotlight position over active cat tab (matches CardDetailV2 — Milestones=72px, Shopping=82px, others=75px)
   const catWidth = (key: string) => key === "Milestones" ? 72 : key === "Shopping" ? 82 : 75;
@@ -397,12 +464,27 @@ export const PortfolioResultsScreen = () => {
                     </div>
                     <span style={{ fontFamily: FN, fontSize: 14, fontWeight: 500, lineHeight: "145%", color: "#364060" }}>₹{f(w.spend)}</span>
                   </div>
-                  <span style={{ fontFamily: FN, fontSize: 14, fontWeight: 500, lineHeight: "145%", color: "#139366", whiteSpace: "nowrap" }}>{w.save > 0 ? `Save ₹${f(w.save)}` : "-"}</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}>
+                    <span style={{ fontFamily: FN, fontSize: 14, fontWeight: 500, lineHeight: "145%", color: "#139366" }}>{w.save > 0 ? `Save ₹${f(w.save)}` : "-"}</span>
+                    {w.breakdown && w.save > 0 && (
+                      <SavingsInfoIcon onClick={(e: any) => { e.stopPropagation(); setBreakdownOpen({
+                        cardName: (w.name + " Credit Card").toUpperCase(),
+                        last4: w.last4,
+                        cardImg: wImg || CARD_IMG_MAP[w.name],
+                        newCard: !!w.newCard,
+                        spend: "₹" + f(w.spend) + " / yr",
+                        save: "₹" + f(w.save) + "/yr",
+                        savingsOnSpends: w.breakdown.savingsOnSpends,
+                        milestoneBenefits: w.breakdown.milestoneBenefits,
+                        annualFee: w.breakdown.annualFee,
+                      }); }} />
+                    )}
+                  </span>
                 </div>
                 {w.tags.length > 0 && (
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {w.tags.map((t, j) => (
-                      <div key={j} style={{ padding: "4px 8px", background: isFirst ? "#FFFFFF" : "linear-gradient(105.22deg, rgba(76,66,222,0.02) 9.46%, rgba(242,247,253,0.02) 57.36%)", border: "0.86px solid #C7D1FF", borderRadius: 6, fontFamily: "'SF Pro Display',sans-serif", fontSize: 11, fontWeight: 600, lineHeight: "150%", color: "#6560A1" }}>{t}</div>
+                      <div key={j} onClick={() => onCategoryTagClick(t)} style={{ padding: "6px 12px", background: "#FFFFFF", border: "1px solid rgba(99,90,200,0.18)", borderRadius: 999, fontFamily: FN, fontSize: 11, fontWeight: 600, lineHeight: "140%", letterSpacing: "-0.005em", color: "#6560A1", cursor: "pointer", boxShadow: "0 1px 2px rgba(63,66,70,0.04)" }}>{t}</div>
                     ))}
                   </div>
                 )}
@@ -420,13 +502,13 @@ export const PortfolioResultsScreen = () => {
           </div>
 
           {/* ── SECTION B: CARDS USAGE ── (left-aligned title, T-shape spotlight band) */}
-          <div style={{ padding: "32px 16px 16px" }}>
+          <div ref={cardsUsageRef} style={{ padding: "32px 16px 16px", scrollMarginTop: 12 }}>
             <div style={SECTION_TITLE}>See how to spend on</div>
           </div>
           <div style={{ position: "relative", height: 200, overflow: "hidden" }}>
             <div style={{ position: "absolute", left: 0, right: 0, top: 91, height: 109, backgroundImage: "linear-gradient(180deg, rgba(69,137,255,0.3) 0%, rgba(184,202,247,0.3) 45%, rgba(245,249,250,0.3) 100%)", backgroundSize: "100% 218px", backgroundPosition: "0 -91px", backgroundRepeat: "no-repeat", zIndex: 0 }} />
             <div className="cards-usage-spotlight" style={{ position: "absolute", top: 0, left: spotlightLeft, width: 78, height: 94, borderTopLeftRadius: 8, borderTopRightRadius: 8, backgroundImage: "linear-gradient(180deg, rgba(69,137,255,0.3) 0%, rgba(184,202,247,0.3) 45%, rgba(245,249,250,0.3) 100%)", backgroundSize: "100% 218px", backgroundPosition: "0 0", backgroundRepeat: "no-repeat", transition: "left 220ms cubic-bezier(0.32,0.72,0,1)", zIndex: 0 }} />
-            <div data-scroll="1" style={{ position: "absolute", top: 12, left: 0, right: 0, display: "flex", gap: 2, padding: "0 10px", overflowX: "auto", zIndex: 1 }}>
+            <div ref={catsRailRef} data-scroll="1" style={{ position: "absolute", top: 12, left: 0, right: 0, display: "flex", gap: 2, padding: "0 10px", overflowX: "auto", zIndex: 1 }}>
               {CATEGORIES.map((c, i) => {
                 const active = activeCat === c.key;
                 return (
@@ -779,6 +861,9 @@ export const PortfolioResultsScreen = () => {
             <button onClick={() => setShowApply(false)} style={{ width: "100%", height: 48, borderRadius: 10, border: "none", background: "linear-gradient(90deg, #222941 0%, #101C43 100%)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FN }}>Take me to the application page →</button>
           </div>
         </div>
+      )}
+      {breakdownOpen && (
+        <SavingsBreakdownSheet data={breakdownOpen} onClose={() => setBreakdownOpen(null)} />
       )}
     </div>
   );

@@ -36,40 +36,35 @@ type ToolDef = {
   id: "savings" | "best" | "redeem";
   label: string;
   img: string;
-  iconSize: number;
-  iconTop: number;
-  iconLeftOffset?: number;
-  rotate?: number;
+  bg: string;
+  ellipse: string;
   description: string;
 };
 
-// Order in the row: LEFT, CENTRE, RIGHT
+// Order in the row: LEFT (1), CENTRE (2), RIGHT (3) — matches LegacyHomeScreen ToolsSection
 const TOOLS: ToolDef[] = [
   {
     id: "savings",
     label: "Savings\nFinder",
-    img: "/tools/savings-finder.webp",
-    iconSize: 106,
-    iconTop: -7,
-    iconLeftOffset: 0.5,
+    img: "/cdn/tool-savings.webp",
+    bg: "#D6ECFF",
+    ellipse: "#B8DCFF",
     description: "Suggests the right card for your next spend",
   },
   {
     id: "best",
     label: "Best Cards\nfor you",
-    img: "/tools/best-cards.webp",
-    iconSize: 97,
-    iconTop: -9,
-    rotate: -2.88,
+    img: "/cdn/tool-best-cards.webp",
+    bg: "#FFDBEE",
+    ellipse: "rgba(255,195,224,0.7)",
     description: "Suggests the next best credit card for you",
   },
   {
     id: "redeem",
     label: "Redeem\nReward Points",
-    img: "/tools/redeem.webp",
-    iconSize: 121,
-    iconTop: -19,
-    iconLeftOffset: 0,
+    img: "/cdn/tool-redeem.webp",
+    bg: "#FFEBB3",
+    ellipse: "rgba(252,217,140,0.7)",
     description: "Suggests the best way to redeem your points",
   },
 ];
@@ -86,34 +81,68 @@ export function ToolsIntroScreen() {
   const { setScreen } = ctx;
 
   const [phase, setPhase] = useState(0);
+  // Final 10s loading bar (starts once user has seen the last tool — phase 3)
+  const [finalPct, setFinalPct] = useState(0);
   const skipRef = useRef(false);
+  const manualRef = useRef(false);
+  const timersRef = useRef<any[]>([]);
+  const finalStartedRef = useRef(false);
 
   useEffect(() => {
     const timers: any[] = [];
-    timers.push(setTimeout(() => { if (!skipRef.current) setPhase(1); }, INTRO_MS));
-    timers.push(setTimeout(() => { if (!skipRef.current) setPhase(2); }, INTRO_MS + TOOL_1_MS));
-    timers.push(setTimeout(() => { if (!skipRef.current) setPhase(3); }, INTRO_MS + TOOL_1_MS + TOOL_2_MS));
-    timers.push(setTimeout(() => { if (!skipRef.current) setPhase(4); }, INTRO_MS + TOOL_1_MS + TOOL_2_MS + TOOL_3_MS));
-    timers.push(setTimeout(() => { if (!skipRef.current) setScreen && setScreen("final-loading"); },
-      INTRO_MS + TOOL_1_MS + TOOL_2_MS + TOOL_3_MS + EXIT_MS));
+    timers.push(setTimeout(() => { if (!skipRef.current && !manualRef.current) setPhase(1); }, INTRO_MS));
+    timers.push(setTimeout(() => { if (!skipRef.current && !manualRef.current) setPhase(2); }, INTRO_MS + TOOL_1_MS));
+    timers.push(setTimeout(() => { if (!skipRef.current && !manualRef.current) setPhase(3); }, INTRO_MS + TOOL_1_MS + TOOL_2_MS));
+    timersRef.current = timers;
     return () => timers.forEach(clearTimeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Once phase 3 (the last tool) is reached — auto OR manual — start the 10s
+  // footer loading bar before auto-transitioning to /final-loading. Triggers
+  // exactly once; user can keep jumping between tools while it ticks.
+  useEffect(() => {
+    if (phase !== 3 || finalStartedRef.current) return;
+    finalStartedRef.current = true;
+    const startedAt = performance.now();
+    let raf = 0;
+    const tick = () => {
+      if (skipRef.current) return;
+      const elapsed = performance.now() - startedAt;
+      const pct = Math.min(100, (elapsed / 10000) * 100);
+      setFinalPct(pct);
+      if (pct >= 100) {
+        setScreen && setScreen("final-loading");
+        return;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   const onSkip = () => {
     skipRef.current = true;
     setScreen && setScreen("home");
   };
 
-  // active tool by phase: 1=savings, 2=redeem, 3=best
+  // Manual jump via progress dot OR tile tap — stops the auto cycle and parks on the chosen phase
+  const onDotClick = (idx: number) => {
+    manualRef.current = true;
+    timersRef.current.forEach(clearTimeout);
+    setPhase(idx + 1);
+  };
+
+  // active tool by phase: 1=savings, 2=best, 3=redeem  (matches row order)
   const activeId: ToolDef["id"] | null =
     phase === 1 ? "savings" :
-    phase === 2 ? "redeem"  :
-    phase === 3 ? "best"    : null;
+    phase === 2 ? "best"    :
+    phase === 3 ? "redeem"  : null;
 
   const activeTool = TOOLS.find(t => t.id === activeId) ?? null;
 
-  // Progress dot index follows tutorial order (savings → redeem → best)
+  // Progress dot index follows tutorial order (savings → best → redeem)
   const activeDotIdx = phase === 1 ? 0 : phase === 2 ? 1 : phase === 3 ? 2 : -1;
 
   const introVisible = phase === 0;
@@ -248,57 +277,60 @@ export function ToolsIntroScreen() {
             animation: "tiRowIn 0.65s cubic-bezier(0.16,1,0.3,1) both",
             zIndex: 4,
           }}>
-            {TOOLS.map((tool) => {
+            {TOOLS.map((tool, idx) => {
               const active = activeId === tool.id;
-              const iconLeftCalc = tool.iconLeftOffset
-                ? `calc(50% - ${tool.iconSize}px/2 + ${tool.iconLeftOffset}px)`
-                : `calc(50% - ${tool.iconSize}px/2)`;
               return (
                 <div
                   key={tool.id}
+                  onClick={() => onDotClick(idx)}
+                  role="button"
+                  aria-label={tool.label.replace("\n", " ")}
                   style={{
-                    position: "relative",
-                    width: 101, height: 133,
-                    background: active ? "#FFFFFF" : "transparent",
-                    border: active ? "1px solid #7D7CF3" : "1px solid transparent",
-                    borderRadius: 8,
+                    flex: 1,
+                    height: 107,
+                    background: tool.bg,
+                    border: active ? "1px solid #7D7CF3" : "1px solid rgba(255,255,255,0.9)",
                     boxShadow: active
-                      ? "0px 4px 12px rgba(0,0,0,0.1), 0px 0.621951px 4.35366px rgba(63,66,70,0.11)"
-                      : "none",
-                    overflow: "visible",
-                    transition: "background 0.45s ease, border-color 0.45s ease, box-shadow 0.45s ease",
+                      ? "0px 4px 12px rgba(0,0,0,0.1), 0 1px 3px rgba(9,84,171,0.10)"
+                      : "0 1px 3px rgba(9,84,171,0.10)",
+                    borderRadius: 12,
+                    position: "relative",
+                    overflow: "hidden",
+                    opacity: active ? 1 : 0.85,
+                    cursor: "pointer",
+                    transition: "border-color 0.45s ease, box-shadow 0.45s ease, opacity 0.45s ease",
                   }}
                 >
-                  {/* Icon — overflows above the card per Figma offsets */}
+                  {/* Background ellipse */}
+                  <div style={{
+                    position: "absolute",
+                    width: 98, height: 98,
+                    right: -20, bottom: -28,
+                    borderRadius: "50%",
+                    background: tool.ellipse,
+                    pointerEvents: "none",
+                  }}/>
+                  {/* Label at top */}
+                  <div style={{
+                    position: "absolute", top: 10, left: 10, right: 10,
+                    fontFamily: "'Google Sans', system-ui, sans-serif",
+                    fontSize: 11, fontWeight: 500, lineHeight: "16px",
+                    letterSpacing: "0.02em", color: "#000000",
+                    whiteSpace: "pre-line",
+                  }}>{tool.label}</div>
+                  {/* 3D icon — anchored bottom-right, overlapping the ellipse */}
                   <img
                     src={tool.img}
                     alt=""
                     style={{
                       position: "absolute",
-                      width: tool.iconSize, height: tool.iconSize,
-                      left: iconLeftCalc,
-                      top: tool.iconTop,
-                      transform: tool.rotate ? `rotate(${tool.rotate}deg)` : undefined,
+                      width: 82, height: 82,
+                      right: -4, bottom: -4,
                       objectFit: "contain",
-                      opacity: active ? 1 : 0.85,
-                      filter: active ? "none" : "saturate(0.85)",
-                      transition: "opacity 0.4s ease, filter 0.4s ease",
+                      pointerEvents: "none",
                       animation: active ? "tiIconBob 3.6s ease-in-out infinite" : undefined,
                     }}
                   />
-
-                  {/* Label — top 87 inside the 133-tall card, 2 lines */}
-                  <div style={{
-                    position: "absolute",
-                    left: 0, right: 0, top: 87,
-                    textAlign: "center",
-                    fontFamily: "'Google Sans',sans-serif",
-                    fontWeight: 500, fontSize: 12, lineHeight: "18px",
-                    color: "rgba(54, 64, 94, 0.9)",
-                    whiteSpace: "pre-line",
-                  }}>
-                    {tool.label}
-                  </div>
                 </div>
               );
             })}
@@ -330,15 +362,44 @@ export function ToolsIntroScreen() {
             zIndex: 3,
           }}>
             {[0, 1, 2].map(i => (
-              <div key={i} style={{
-                width: i === activeDotIdx ? 22 : 6, height: 6,
-                borderRadius: 4,
-                background: i === activeDotIdx ? "#5856F6" : "rgba(54, 64, 96, 0.18)",
-                transition: "width 0.4s cubic-bezier(0.16,1,0.3,1), background 0.3s ease",
-              }} />
+              <div
+                key={i}
+                onClick={() => onDotClick(i)}
+                role="button"
+                aria-label={`Go to step ${i + 1}`}
+                style={{
+                  /* Larger transparent hit area for fingers, with the visible pill centered inside */
+                  padding: "10px 6px",
+                  cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  margin: "-10px -2px",
+                }}
+              >
+                <div style={{
+                  width: i === activeDotIdx ? 22 : 6, height: 6,
+                  borderRadius: 4,
+                  background: i === activeDotIdx ? "#5856F6" : "rgba(54, 64, 96, 0.18)",
+                  transition: "width 0.4s cubic-bezier(0.16,1,0.3,1), background 0.3s ease",
+                }} />
+              </div>
             ))}
           </div>
         </>
+      )}
+
+      {/* Footer 10s loading bar — appears once the last tool (phase 3) is reached */}
+      {finalStartedRef.current && (
+        <div style={{
+          position: "absolute", left: 0, right: 0, bottom: 0, height: 4,
+          background: "rgba(54,64,96,0.08)", zIndex: 5, pointerEvents: "none",
+        }}>
+          <div style={{
+            height: "100%", width: `${finalPct}%`,
+            background: "#5856F6",
+            borderRadius: "0 2px 2px 0",
+            transition: "width 0.05s linear",
+          }}/>
+        </div>
       )}
 
       {/* Bottom Skip Tutorial pill */}

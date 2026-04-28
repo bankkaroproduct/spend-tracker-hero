@@ -4,6 +4,7 @@ import { ChevronLeft, Star, Lock, ChevronRight as ChevR, CreditCard, Check } fro
 import { FN } from "@/lib/theme";
 import { f } from "@/lib/format";
 import { FL } from "@/components/shared/FontLoader";
+import { SavingsInfoIcon, SavingsBreakdownSheet } from "@/features/legacy/LegacyShared";
 
 /* Image map for known cards (falls back to gradient placeholder otherwise) */
 const IMG: Record<string,string> = {
@@ -17,175 +18,191 @@ const IMG: Record<string,string> = {
   "Amex Travel Platinum":"/legacy-assets/cards/amex-platinum-travel.png",
 };
 
-/* ── Helper ── */
-function parseMoney(s: any): number { if (typeof s === "number") return s; if (!s) return 0; const cleaned = String(s).replace(/[^0-9.]/g, ""); return cleaned ? Math.round(parseFloat(cleaned)) : 0; }
+/* Wallet (existing user cards) — single source of truth.
+   Per-card spend & save are calibrated so the four rows tally to the
+   stacked-bar segments and the headline "Save Upto" exactly. */
+const WALLET = [
+  // Each card carries a `breakdown` whose tally always satisfies:
+  //   save = savingsOnSpends + milestoneBenefits − annualFee
+  // The (i) tooltip in the spends-distribution rows opens a sheet that shows
+  // this tally per card.
+  {name:"Amex Travel Platinum", spend:800000, save:50000, pct:50, c1:"#583598", c2:"#9359FE", tags:["Bills","Food Ordering","Dining Out","Flights"],
+    last4:"NEW CARD", newCard:true, breakdown:{savingsOnSpends:43000, milestoneBenefits:8000, annualFee:1000}},
+  {name:"Axis Flipkart",        spend:400000, save:20000, pct:25, c1:"#117E47", c2:"#0AA759", tags:["Shopping"],
+    last4:"XXXX 2355", breakdown:{savingsOnSpends:18000, milestoneBenefits:3000, annualFee:1000}},
+  {name:"HSBC Live+",           spend:200000, save:10000, pct:13, c1:"#4C98F4", c2:"#0862CF", tags:["Groceries","Hotels"],
+    last4:"XXXX 9945", breakdown:{savingsOnSpends:8500, milestoneBenefits:2000, annualFee:500}},
+  {name:"HSBC Travel One",      spend:200000, save:10000, pct:12, c1:"#EB8807", c2:"#FCAA3F", tags:["Flights","Hotels"],
+    last4:"XXXX 7891", breakdown:{savingsOnSpends:8500, milestoneBenefits:3000, annualFee:1500}},
+];
+const TOTAL_SPEND = WALLET.reduce((s,w)=>s+w.spend,0);              // 16,00,000
+const TOTAL_SAVE  = WALLET.reduce((s,w)=>s+w.save,0);               // 90,000
 
-/* ── Bucket → Category mapping ── */
-const BUCKET_TO_CAT: Record<string, { key: string; icon: string; color: string }> = {
-  amazon_spends: { key: "Shopping", icon: "/categories/shopping.png", color: "#3B82F6" },
-  flipkart_spends: { key: "Shopping", icon: "/categories/shopping.png", color: "#3B82F6" },
-  other_online_spends: { key: "Shopping", icon: "/categories/shopping.png", color: "#3B82F6" },
-  other_offline_spends: { key: "Shopping", icon: "/categories/shopping.png", color: "#3B82F6" },
-  grocery_spends_online: { key: "Groceries", icon: "/categories/groceries.png", color: "#16A34A" },
-  offline_grocery: { key: "Groceries", icon: "/categories/groceries.png", color: "#16A34A" },
-  online_food_ordering: { key: "Food Ordering", icon: "/categories/food.png", color: "#F97316" },
-  dining_or_going_out: { key: "Dining", icon: "/categories/dining.png", color: "#EF4444" },
-  fuel: { key: "Fuel", icon: "/categories/fuel.png", color: "#EF4444" },
-  flights_annual: { key: "Travel", icon: "/categories/travel.png", color: "#06B6D4" },
-  hotels_annual: { key: "Travel", icon: "/categories/travel.png", color: "#06B6D4" },
-  mobile_phone_bills: { key: "Bills", icon: "/categories/bills.png", color: "#F59E0B" },
-  electricity_bills: { key: "Bills", icon: "/categories/bills.png", color: "#F59E0B" },
-  water_bills: { key: "Bills", icon: "/categories/bills.png", color: "#F59E0B" },
-  rent: { key: "Rent", icon: "/categories/bills.png", color: "#8B5CF6" },
-  insurance_health_annual: { key: "Insurance", icon: "/categories/bills.png", color: "#6366F1" },
-  insurance_car_or_bike_annual: { key: "Insurance", icon: "/categories/bills.png", color: "#6366F1" },
-  life_insurance: { key: "Insurance", icon: "/categories/bills.png", color: "#6366F1" },
-};
+/* Per-category breakdown for the "Cards Usage" section.
+   `share` percentages within each category MUST sum to 100. */
+// 11 card-usable categories + Milestones. Friends and Family is excluded —
+// no card maps to it. Per-category `share` percentages within each category MUST
+// sum to 100. Σ spend ≈ ₹16,00,000 / Σ save ≈ ₹85,500 (matches WALLET sums).
+const CATEGORIES = [
+  {key:"Milestones", icon:"⭐", color:"#FFD82C"},
+  {key:"Shopping",   icon:"/cdn/categories/Shopping.webp", color:"#3B82F6", spend:400000, save:20000, cards:[
+    {name:"Axis Flipkart", spend:340000, share:85, caption:"Gives 5% Cashback",              c1:"#117E47", c2:"#0AA759"},
+    {name:"HSBC Live+",    spend: 60000, share:15, caption:"4 Reward points per ₹100 spent", c1:"#4C98F4", c2:"#0862CF"},
+  ]},
+  {key:"Groceries",  icon:"/cdn/categories/Groceries.webp", color:"#16A34A", spend:200000, save:10000, cards:[
+    {name:"HSBC Live+",    spend:140000, share:70, caption:"3% Cashback on groceries",     c1:"#4C98F4", c2:"#0862CF"},
+    {name:"Axis Flipkart", spend: 60000, share:30, caption:"4% on Big Basket",              c1:"#117E47", c2:"#0AA759"},
+  ]},
+  {key:"Dining Out", icon:"/cdn/categories/Dining Out.webp", color:"#F472B6", spend:140000, save:9000, cards:[
+    {name:"Amex Travel Platinum", spend:140000, share:100, caption:"5X MR on dining",        c1:"#583598", c2:"#9359FE"},
+  ]},
+  {key:"Food Ordering", icon:"/cdn/categories/Food Ordering.webp", color:"#F97316", spend:120000, save:5400, cards:[
+    {name:"Amex Travel Platinum", spend:120000, share:100, caption:"3X MR on food apps",    c1:"#583598", c2:"#9359FE"},
+  ]},
+  {key:"Bills",      icon:"/cdn/categories/Bills.webp",     color:"#F59E0B", spend:180000, save:7200, cards:[
+    {name:"Amex Travel Platinum", spend:180000, share:100, caption:"2X MR points on bills", c1:"#583598", c2:"#9359FE"},
+  ]},
+  {key:"Fuel",       icon:"/cdn/categories/Fuel.webp",      color:"#EF4444", spend:96000, save:3800, cards:[
+    {name:"Amex Travel Platinum", spend:96000,  share:100, caption:"Fuel surcharge waiver", c1:"#583598", c2:"#9359FE"},
+  ]},
+  {key:"Flights",    icon:"/cdn/categories/Flights.webp",   color:"#06B6D4", spend:180000, save:14400, cards:[
+    {name:"HSBC Travel One", spend:120000, share:67, caption:"4X on flights via SmartBuy",  c1:"#EB8807", c2:"#FCAA3F"},
+    {name:"Amex Travel Platinum", spend: 60000, share:33, caption:"Lounge + 5X on travel",  c1:"#583598", c2:"#9359FE"},
+  ]},
+  {key:"Hotels",     icon:"/cdn/categories/Hotels.webp",    color:"#0EA5E9", spend:130000, save:6500, cards:[
+    {name:"HSBC Travel One", spend: 80000, share:62, caption:"3X on hotels via SmartBuy",   c1:"#EB8807", c2:"#FCAA3F"},
+    {name:"HSBC Live+",      spend: 50000, share:38, caption:"Lounge access at ₹1.5K trip", c1:"#4C98F4", c2:"#0862CF"},
+  ]},
+  {key:"Entertainment", icon:"/cdn/categories/Entertainment.webp", color:"#A855F7", spend:60000, save:3000, cards:[
+    {name:"Axis Flipkart", spend: 60000, share:100, caption:"4% on PVR/Bookmyshow",          c1:"#117E47", c2:"#0AA759"},
+  ]},
+  {key:"Rent",       icon:"/cdn/categories/Rent.webp",      color:"#94A3B8", spend:140000, save:0, cards:[
+    {name:"—",          spend:0,    share:100, caption:"No card rewards rent",                c1:"#94A3B8", c2:"#475569"},
+  ]},
+  {key:"Insurance",  icon:"/cdn/categories/Insurance.webp", color:"#6366F1", spend:154000, save:6200, cards:[
+    {name:"HSBC Travel One", spend:154000, share:100, caption:"0.67% base earn",            c1:"#EB8807", c2:"#FCAA3F"},
+  ]},
+];
 
-/* ── Dynamic data builders (all derive from card prop) ── */
+/* Milestone benefits — green-bordered cards with claimable badge or lock state */
+const MILESTONES = [
+  {points:"7500 reward points",  spend:"Spend ₹1,90,000 in 365 days", status:"claimable"},
+  {points:"10000 reward points", spend:"Spend ₹4,00,000 in 365 days", status:"claimable"},
+  {points:"22500 reward points", spend:"Spend ₹7,00,000 in 365 days", status:"claimable"},
+  {points:"Taj Experiences (Worth ~ ₹10,000)", spend:"Spend ₹2,00,000 on this card in 120 Days", status:"locked", lockText:"spend ₹32,750/yr more to unlock"},
+];
 
-function buildWallet(card: any) {
-  const bd = card.spending_breakdown;
-  if (!bd) return [{ name: card.name, spend: (card.savings || 0) * 10, save: card.savings || 0, pct: 100, c1: card.color || "#333", c2: card.accent || "#666", tags: ["All categories"] }];
-  let totalSavings = 0;
-  let totalSpend = 0;
-  for (const b of Object.values(bd)) { totalSavings += ((b as any).savings || 0) * 12; totalSpend += ((b as any).spend || 0) * 12; }
-  totalSavings = Math.round(totalSavings);
-  totalSpend = Math.round(totalSpend);
-  return [{ name: card.name, spend: totalSpend, save: totalSavings, pct: 100, c1: card.color || "#333", c2: card.accent || "#666", tags: ["Based on your spend profile"] }];
-}
+/* Lounge & additional benefits — white cards with subtle gradient */
+const LOUNGE = [
+  {t:"1 free airport lounge visit/quarter",   d:"Spend ₹75,000 in the previous quarter to unlock"},
+  {t:"1 free railway lounge visit/quarter",   d:"No minimum spend required"},
+  {t:"25% off movie tickets, 2x a month",     d:"Min. 2 tickets on BookMyShow or INOX, up to ₹100 off per booking"},
+  {t:"No International Lounge benefit availble on this card", d:"", muted:true},
+];
 
-function buildCategories(card: any) {
-  const bd = card.spending_breakdown;
-  if (!bd) return [{ key: "Milestones", icon: "⭐", color: "#FFD82C" }];
-  const catMap: Record<string, { spend: number; save: number; icon: string; color: string }> = {};
-  for (const [bucket, data] of Object.entries(bd)) {
-    const meta = BUCKET_TO_CAT[bucket];
-    if (!meta) continue;
-    const d = data as any;
-    if (!catMap[meta.key]) catMap[meta.key] = { spend: 0, save: 0, icon: meta.icon, color: meta.color };
-    catMap[meta.key].spend += ((d.spend || 0) * 12);
-    catMap[meta.key].save += ((d.savings || 0) * 12);
-  }
-  const catRows = Object.entries(catMap)
-    .filter(([, v]) => v.spend > 0)
-    .sort(([, a], [, b]) => b.save - a.save)
-    .map(([key, v]) => ({
-      key,
-      icon: v.icon,
-      color: v.color,
-      spend: Math.round(v.spend),
-      save: Math.round(v.save),
-      cards: [{ name: card.name, spend: Math.round(v.spend), share: 100, caption: `Earns on ${key.toLowerCase()}`, c1: card.color || "#333", c2: card.accent || "#666" }],
-    }));
-  return [{ key: "Milestones", icon: "⭐", color: "#FFD82C" } as any].concat(catRows);
-}
+/* Welcome benefit — single card */
+const WELCOME = [
+  {t:"Bookmyshow Voucher", d:"Bonus reward points awarded your first spend with this card"},
+];
 
-function buildMilestones(card: any) {
-  const milestones = card.milestone_benefits_str;
-  if (Array.isArray(milestones) && milestones.length > 0) {
-    return milestones.map((m: any) => {
-      const rpVal = parseMoney(m.rpBonus);
-      const voucherVal = parseMoney(m.voucherBonus);
-      const spendReq = parseMoney(m.minSpend);
-      const days = m.maxDays || "365";
-      const label = rpVal > 0 ? `${f(rpVal)} reward points` : voucherVal > 0 ? `₹${f(voucherVal)} cashback` : "Milestone reward";
-      return { points: label, spend: spendReq > 0 ? `Spend ₹${f(spendReq)} in ${days} days` : `Within ${days} days`, status: m.eligible ? "claimable" : "locked", lockText: m.eligible ? undefined : "Check bank website for thresholds" };
-    });
-  }
-  const milestoneVal = parseMoney(typeof milestones === "string" ? milestones : null);
-  if (milestoneVal > 0) {
-    return [{ points: `₹${f(milestoneVal)} in milestone rewards`, spend: "On annual spend milestones", status: "locked", lockText: "Check bank website for thresholds" }];
-  }
-  return [{ points: "No milestone benefits listed", spend: "Check bank website for details", status: "locked", lockText: "Check bank website" }];
-}
+/* Fees & Waivers — lounge-style cards */
+const FEES_WAIVERS = [
+  {t:"Annual Fee (₹500 + GST)",  d:"Spend ₹1,50,000 or more to waive the next year's annual fee", badge:"Can waive on existing spends"},
+  {t:"Joining Fee (₹500 + GST)", d:"Fee is mandatory and non-waivable"},
+];
 
-function buildLounge(card: any) {
-  const val = parseMoney(card.lounge_value);
-  if (val > 0) {
-    return [{ t: `Lounge access worth ₹${f(val)}/year`, d: "Check bank website for visit limits" }];
-  }
-  return [{ t: "No lounge benefit listed", d: "Check bank website", muted: true }];
-}
-
-function buildWelcome(card: any) {
-  const wb = card.welcome_benefits_raw;
-  if (wb && wb.length > 0) {
-    const w = wb[0];
-    const val = w.cash_value || parseMoney(w.voucher_bonus) || parseMoney(w.rp_bonus);
-    const desc = w.voucher_bonus && typeof w.voucher_bonus === "string" && w.voucher_bonus.length > 3 ? w.voucher_bonus : null;
-    const brands = (w.brands || []).map((b: any) => b.name || b).filter(Boolean).join(", ");
-    return [{ t: val > 0 ? `₹${f(val)} welcome benefit` : (desc || "Welcome benefit on first spend"), d: brands ? `Via ${brands}` : (w.maximum_days ? `Within ${w.maximum_days} days` : "On activation") }];
-  }
-  return [{ t: "Check bank website for welcome benefits", d: "" }];
-}
-
-function buildFees(card: any) {
-  const rows: any[] = [];
-  if (card.annualFee > 0) {
-    rows.push({ t: `Annual Fee (₹${f(card.annualFee)})`, d: "Check bank website for waiver conditions", badge: undefined });
-    rows.push({ t: `Joining Fee`, d: "Check bank website for joining fee details" });
-  } else {
-    rows.push({ t: "Annual Fee", d: "Lifetime Free", badge: "No annual fee" });
-  }
-  return rows;
-}
-
-/* Two-column fee tables — generic stubs (card-specific data not available from API) */
+/* Two-column fee tables */
 const ADDITIONAL_BANK_FEES: [string,string][] = [
-  ["Check bank website for detailed fee schedule", ""],
+  ["Forex Markups",            "3.50%"],
+  ["APR Fees",                 "3.75%"],
+  ["ATM Withdrawl",            "2.50%"],
+  ["Reward Redemption Fees",   "Not Applicable"],
+  ["Link for all T&Cs",        "0.054 g"],
+  ["Railway Surcharge",        "1%"],
+  ["Rent Payment Fee",         "1%"],
+  ["Cheque Payment Fee",       "N/A"],
+  ["Cash Payment Fees",        "₹100"],
 ];
 const LATE_PAYMENT_FEES: [string,string][] = [
-  ["Check bank website for late payment charges", ""],
+  ["Amount Due",        "Late Payment Fee"], // header row
+  ["₹0 - ₹100",         "₹0"],
+  ["₹101 - ₹500",       "₹100"],
+  ["₹501 - ₹5000",      "₹500"],
+  ["₹5001 - ₹10000",    "₹700"],
+  ["₹10001 - ₹25000",   "₹800"],
+  ["₹25001 And Above",  "₹1200"],
 ];
 
-/* Step-by-step "how to spend" timeline — built dynamically from category */
-function buildTimeline(card: any, cat: any) {
-  if (!cat || !cat.cards || cat.cards.length === 0) return [];
-  return cat.cards.map((cc: any) => ({
-    kind: "card" as const,
-    card: cc.name,
-    c1: cc.c1,
-    c2: cc.c2,
-    title: `Spend ₹${f(Math.round(cc.spend / 12))}/month on ${cc.name}`,
-    caption: `For ${cat.key}`,
-    monthly: Math.round(cat.save / 12),
-    yearly: cat.save,
-  }));
-}
+/* Step-by-step "how to spend" timeline for the active category */
+const TIMELINE = [
+  {kind:"card",  card:"Axis Flipkart", c1:"#117E47", c2:"#0AA759", title:"Spend ₹20,000/month on Axis Flipkart Card", caption:"via the Flipkart App", monthly:2200, yearly:26400},
+  {kind:"lock",  title:"Reward points cap reached on Axis Flipkart", caption:"Cap at 2,000 RP per month"},
+  {kind:"card",  card:"HSBC Live+",    c1:"#4C98F4", c2:"#0862CF", title:"Rest of ₹10,000/month on HSBC Live+",         caption:"via the Flipkart App", monthly:1200, yearly:14400},
+];
 
 const SECTION_TITLE = {fontFamily:"'Blacklist','Google Sans',serif", fontSize:20, fontWeight:700, lineHeight:"140%", color:"rgba(54,64,96,0.9)"};
 const TINY_LABEL = {fontFamily:FN, fontSize:10, fontWeight:500, lineHeight:"12px", letterSpacing:"0.1em", textTransform:"uppercase" as const};
 
 export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
   const {
-    setBestCardDetail, setBcEligSheet,
+    setBestCardDetail, setBcEligSheet, setScreen, setPortfolioEntryCard,
   } = ctx;
+  const onCreatePortfolio = () => {
+    if (typeof setPortfolioEntryCard === "function") setPortfolioEntryCard(card?.name || null);
+    if (typeof setScreen === "function") setScreen("portfolio-create");
+  };
   const [tab, setTab] = useState<"how"|"benefits"|"fees"|"elig">("how");
   const [eligType, setEligType] = useState<"salaried"|"self">("self");
   const [eligPin, setEligPin] = useState("");
   const [eligIncome, setEligIncome] = useState("");
+  const [activeCat, setActiveCat] = useState("Shopping");
+  // Anchor for the CardsUsage section — used by tag taps in SpendsDistribution
+  // to scroll down + switch the active category tab.
+  const cardsUsageRef = useRef<HTMLDivElement | null>(null);
+  const onCategoryTagClick = (tag: string) => {
+    // Tags in WALLET use canonical category keys directly (Shopping, Groceries, etc.)
+    if (CATEGORIES.find((c: any) => c.key === tag)) setActiveCat(tag);
+    requestAnimationFrame(() => {
+      // Scroll deeper — to the category strip — so user lands with the active
+      // tab at the top, exposing the Save Upto block + content below.
+      const strip = document.getElementById("cards-usage-cats");
+      const target = strip || cardsUsageRef.current;
+      if (!target) return;
+      let scroller: HTMLElement | null = target.parentElement;
+      while (scroller && scroller !== document.body) {
+        const oy = getComputedStyle(scroller).overflowY;
+        if ((oy === "auto" || oy === "scroll") && scroller.scrollHeight > scroller.clientHeight) break;
+        scroller = scroller.parentElement;
+      }
+      if (!scroller) scroller = (document.scrollingElement || document.documentElement) as HTMLElement;
+      const tR = target.getBoundingClientRect();
+      const sR = scroller.getBoundingClientRect();
+      const desired = Math.max(0, scroller.scrollTop + (tR.top - sR.top) - 8);
+      try { scroller.scrollTo({ top: desired, behavior: "smooth" }); } catch { scroller.scrollTop = desired; }
+    });
+  };
+  // Auto-scroll the horizontal category strip — horizontal-only via scrollTo
+  // so vertical page scroll is never hijacked.
+  useEffect(() => {
+    const rail = document.getElementById("cards-usage-cats");
+    if (!rail) return;
+    const target = rail.querySelector(`[data-cat="${activeCat}"]`) as HTMLElement | null;
+    if (!target) return;
+    const rR = rail.getBoundingClientRect();
+    const tR = target.getBoundingClientRect();
+    const offsetInRail = (tR.left - rR.left) + rail.scrollLeft;
+    const desired = Math.max(0, offsetInRail - (rR.width - tR.width) / 2);
+    try { rail.scrollTo({ left: desired, behavior: "smooth" }); } catch { rail.scrollLeft = desired; }
+  }, [activeCat]);
   const [period, setPeriod] = useState<"monthly"|"yearly">("monthly");
-
-  /* ── Compute all data from card prop ── */
-  const WALLET = buildWallet(card);
-  const TOTAL_SPEND = WALLET.reduce((s,w)=>s+w.spend,0);
-  const TOTAL_SAVE  = WALLET.reduce((s,w)=>s+w.save,0);
-  const CATEGORIES = buildCategories(card);
-  const firstCatKey = (CATEGORIES.find(c=>c.key!=="Milestones") || CATEGORIES[0])?.key || "Shopping";
-  const [activeCat, setActiveCat] = useState(firstCatKey);
-  const MILESTONES = buildMilestones(card);
-  const LOUNGE = buildLounge(card);
-  const WELCOME = buildWelcome(card);
-  const FEES_WAIVERS = buildFees(card);
-
-  const cat = CATEGORIES.find(c=>c.key===activeCat) || CATEGORIES[1] || CATEGORIES[0] || {} as any;
-  const TIMELINE = buildTimeline(card, cat);
-  const cardImg = card.image || card.card_bg_image || IMG[card.name];
+  // Per-row savings-breakdown bottom sheet (opened from the (i) icon).
+  const [breakdownOpen, setBreakdownOpen] = useState<any>(null);
+  const cat = CATEGORIES.find(c=>c.key===activeCat) || CATEGORIES[1];
+  const cardImg = IMG[card.name];
   const headlineSave = card.savings || 40000;
   /* Scale per-card saves so the row totals tally to headline exactly.
      Last row absorbs any rounding drift so Σ saves === headlineSave. */
-  const SAVE_BASE = TOTAL_SAVE || 1;
+  const SAVE_BASE = 90000; // base sum of WALLET[*].save
   const scaledSaves = WALLET.map((w,i)=>i===WALLET.length-1?0:Math.round(w.save*headlineSave/SAVE_BASE));
   scaledSaves[WALLET.length-1] = headlineSave - scaledSaves.reduce((s,v)=>s+v,0);
 
@@ -227,7 +244,7 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
             </div>
             {/* Card art — bridges dark + white */}
             <div style={{position:"absolute", top:131, left:"50%", transform:"translateX(-50%)", width:199, height:133, borderRadius:12, boxShadow:"0px 18px 36px rgba(0,0,0,0.35)", overflow:"hidden", background:`linear-gradient(135deg,${card.color || "#1a3a7a"},${card.accent || "#0c1f4a"})`, border:"0.83px solid rgba(255,255,255,0.2)", zIndex:2}}>
-              {cardImg ? <img src={cardImg} alt={card.name} style={{width:"100%", height:"100%", objectFit:"cover", display:"block"}} onError={(e:any)=>{e.target.style.display='none'}}/> : <div style={{width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center"}}><CreditCard size={48} strokeWidth={1} color="rgba(255,255,255,0.4)"/></div>}
+              {cardImg ? <img src={cardImg} alt={card.name} style={{width:"100%", height:"100%", objectFit:"cover", display:"block"}}/> : <div style={{width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center"}}><CreditCard size={48} strokeWidth={1} color="rgba(255,255,255,0.4)"/></div>}
               {/* shine */}
               <div style={{position:"absolute", top:-70, left:"50%", transform:"translateX(-50%)", width:235, height:119, background:"#FFFFFF", opacity:0.2, mixBlendMode:"plus-lighter", filter:"blur(26px)", pointerEvents:"none"}}/>
             </div>
@@ -241,7 +258,7 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
               <div style={{fontFamily:FN, fontSize:12, fontWeight:400, lineHeight:"150%", color:"rgba(0,0,0,0.6)", textAlign:"center", marginTop:4}}>Add this Card to your setup</div>
               {/* Two-button row — Create Portfolio + Apply Now */}
               <div ref={topApplyRef as any} style={{marginTop:16, width:328, display:"flex", gap:8}}>
-                <button onClick={()=>setBcEligSheet(card)} style={{flex:"0 0 162px", height:49, padding:"12px 20px", background:"#fff", border:"1px solid rgba(17,52,172,0.2)", borderRadius:8, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", gap:4}}>
+                <button onClick={onCreatePortfolio} style={{flex:"0 0 162px", height:49, padding:"12px 20px", background:"#fff", border:"1px solid rgba(17,52,172,0.2)", borderRadius:8, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", gap:4}}>
                   <span style={{fontFamily:FN, fontSize:12, fontWeight:500, lineHeight:"150%", color:"#222941"}}>Create Portfolio</span>
                   <span style={{fontFamily:FN, fontSize:14, fontWeight:500, lineHeight:"12px", color:"#222941"}}>+</span>
                 </button>
@@ -325,13 +342,38 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
                       </div>
                       <span style={{fontFamily:FN, fontSize:14, fontWeight:500, lineHeight:"145%", color:"#364060"}}>₹{f(w.spend)}</span>
                     </div>
-                    {/* Right: save */}
-                    <span style={{fontFamily:FN, fontSize:14, fontWeight:500, lineHeight:"145%", color:"#139366", whiteSpace:"nowrap"}}>Save ₹{f(scaledSaves[i])}</span>
+                    {/* Right: save + (i) tooltip */}
+                    <span style={{display:"inline-flex", alignItems:"center", whiteSpace:"nowrap"}}>
+                      <span style={{fontFamily:FN, fontSize:14, fontWeight:500, lineHeight:"145%", color:"#139366"}}>Save ₹{f(scaledSaves[i])}</span>
+                      {w.breakdown && (() => {
+                        // Keep annualFee fixed and split the remainder (save + fee) between
+                        // SoS and milestone in their original ratio so the tally always
+                        // reconciles to the displayed Save.
+                        const fee = w.breakdown.annualFee;
+                        const ratioSoS = w.breakdown.savingsOnSpends / (w.breakdown.savingsOnSpends + w.breakdown.milestoneBenefits);
+                        const remainder = scaledSaves[i] + fee;
+                        const sos = Math.round(remainder * ratioSoS);
+                        const ms = remainder - sos;
+                        return (
+                          <SavingsInfoIcon onClick={(e: any) => { e.stopPropagation(); setBreakdownOpen({
+                            cardName: (w.name + " Credit Card").toUpperCase(),
+                            last4: w.last4,
+                            cardImg: wImg || IMG[w.name],
+                            newCard: !!w.newCard,
+                            spend: "₹" + f(w.spend) + " / yr",
+                            save: "₹" + f(scaledSaves[i]) + "/yr",
+                            savingsOnSpends: sos,
+                            milestoneBenefits: ms,
+                            annualFee: fee,
+                          }); }} />
+                        );
+                      })()}
+                    </span>
                   </div>
-                  {/* Tags */}
+                  {/* Tags — clickable: scroll to CardsUsage and switch tab */}
                   <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
                     {w.tags.map((t,j)=>(
-                      <div key={j} style={{padding:"4px 8px", background:isFirst?"#FFFFFF":"linear-gradient(105.22deg, rgba(76,66,222,0.02) 9.46%, rgba(242,247,253,0.02) 57.36%)", border:"0.86px solid #C7D1FF", borderRadius:6, fontFamily:"'SF Pro Display',sans-serif", fontSize:11, fontWeight:600, lineHeight:"150%", color:"#6560A1"}}>{t}</div>
+                      <div key={j} onClick={() => onCategoryTagClick(t)} style={{padding:"6px 12px", background:"#FFFFFF", border:"1px solid rgba(99,90,200,0.18)", borderRadius:999, fontFamily:FN, fontSize:11, fontWeight:600, lineHeight:"140%", letterSpacing:"-0.005em", color:"#6560A1", cursor:"pointer", boxShadow:"0 1px 2px rgba(63,66,70,0.04)"}}>{t}</div>
                     ))}
                   </div>
                 </div>
@@ -348,7 +390,7 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
             </div>
 
             {/* ── SECTION B: CARDS USAGE ── */}
-            <div style={{padding:"24px 24px 12px"}}>
+            <div ref={cardsUsageRef} style={{padding:"24px 24px 12px", scrollMarginTop:12}}>
               <div style={SECTION_TITLE}>See how to spend on</div>
             </div>
             {/* T-shape band: small "tab" (78×94, rounded top) sits above wide rectangle (full×127),
@@ -509,17 +551,6 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
                 ))}
               </div>
 
-              {/* Promo upsell */}
-              <div style={{margin:"16px", borderRadius:10, padding:16, background:"linear-gradient(276deg, #FFFFFF 42.53%, #90B8F8 103.12%)", border:"1px solid #E8F0F1", boxShadow:"0 2px 6px rgba(190,203,206,0.15)", position:"relative", overflow:"hidden", minHeight:90}}>
-                <div style={{position:"relative", zIndex:2, maxWidth:200}}>
-                  <div style={{fontFamily:FN, fontSize:12, fontWeight:500, lineHeight:"140%", color:"#121E43"}}>Use Flipkart Pay Later for an extra 5% off</div>
-                  <div style={{fontFamily:FN, fontSize:11, fontWeight:400, lineHeight:"120%", color:"rgba(91,100,126,0.7)", marginTop:4}}>Auto-pay your bill in EMIs</div>
-                  <button style={{marginTop:12, padding:"6px 12px", background:"linear-gradient(90deg, #222941 0%, #101C43 100%)", border:"none", borderRadius:5, cursor:"pointer", display:"inline-flex", alignItems:"center", gap:5, color:"#fff"}}>
-                    <span style={{fontFamily:FN, fontSize:10, fontWeight:500, lineHeight:"140%"}}>Try now</span>
-                    <ChevR size={10} color="#fff" strokeWidth={2.5}/>
-                  </button>
-                </div>
-              </div>
             </div>
 
           </>}
@@ -769,26 +800,26 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
               <div style={{display:"flex",flexDirection:"row",gap:12,height:102}}>
                 <div style={{flex:1,background:"#FFFFFF",borderRadius:10,padding:"0 12px",display:"flex",flexDirection:"column",justifyContent:"center",gap:8,boxShadow:"0px 2px 5px rgba(0,0,0,0.04)"}}>
                   <div style={{fontFamily:FN,fontSize:12,fontWeight:500,lineHeight:"140%",color:"rgba(34,34,34,0.8)"}}>Age Criteria</div>
-                  <div style={{fontFamily:FN,fontSize:16,fontWeight:700,lineHeight:"140%",color:"#222222"}}>Check bank website</div>
+                  <div style={{fontFamily:FN,fontSize:16,fontWeight:700,lineHeight:"140%",color:"#222222"}}>21–60 yrs</div>
                 </div>
                 <div style={{flex:1,background:"#FFFFFF",borderRadius:12.75,padding:"0 12px",display:"flex",flexDirection:"column",justifyContent:"center",gap:8,boxShadow:"0px 2px 5px rgba(0,0,0,0.04)"}}>
                   <div style={{fontFamily:FN,fontSize:12,fontWeight:500,lineHeight:"140%",color:"rgba(34,34,34,0.8)"}}>Salary Criteria</div>
-                  <div style={{fontFamily:FN,fontSize:16,fontWeight:700,lineHeight:"140%",color:"#222222"}}>Check bank website</div>
+                  <div style={{fontFamily:FN,fontSize:16,fontWeight:700,lineHeight:"140%",color:"#222222"}}>₹1L+/mo</div>
                 </div>
               </div>
               {/* Row 2 — Credit Rating + New to Credit + Existing Bank Customer (3 cols) */}
               <div style={{display:"flex",flexDirection:"row",gap:12,height:118}}>
                 <div style={{flex:1,background:"#FFFFFF",borderRadius:12.75,padding:"9px 10px",display:"flex",flexDirection:"column",justifyContent:"space-between",boxShadow:"0px 2px 5px rgba(0,0,0,0.04)"}}>
                   <div style={{fontFamily:FN,fontSize:12,fontWeight:500,lineHeight:"140%",color:"rgba(34,34,34,0.8)"}}>Credit Rating</div>
-                  <div style={{fontFamily:"'Poppins','Google Sans',sans-serif",fontSize:16,fontWeight:600,lineHeight:"120%",color:"#222222"}}>Check bank website</div>
+                  <div style={{fontFamily:"'Poppins','Google Sans',sans-serif",fontSize:16,fontWeight:600,lineHeight:"120%",color:"#222222"}}>750+</div>
                 </div>
                 <div style={{flex:1,background:"#FFFFFF",borderRadius:12.75,padding:"9px 10px",display:"flex",flexDirection:"column",justifyContent:"space-between",boxShadow:"0px 2px 5px rgba(0,0,0,0.04)"}}>
                   <div style={{fontFamily:FN,fontSize:12,fontWeight:500,lineHeight:"140%",color:"rgba(34,34,34,0.8)"}}>New to Credit</div>
-                  <div style={{fontFamily:"'Poppins','Google Sans',sans-serif",fontSize:15.94,fontWeight:600,lineHeight:"120%",color:"#222222"}}>Check bank website</div>
+                  <div style={{fontFamily:"'Poppins','Google Sans',sans-serif",fontSize:15.94,fontWeight:600,lineHeight:"120%",color:"#222222"}}>No</div>
                 </div>
                 <div style={{flex:1,background:"#FFFFFF",borderRadius:12.75,padding:"6px 10px",display:"flex",flexDirection:"column",justifyContent:"space-between",boxShadow:"0px 2px 5px rgba(0,0,0,0.04)"}}>
                   <div style={{fontFamily:FN,fontSize:12,fontWeight:500,lineHeight:"140%",color:"rgba(34,34,34,0.8)"}}>Existing Bank Customer</div>
-                  <div style={{fontFamily:FN,fontSize:16,fontWeight:700,lineHeight:"140%",color:"#222222"}}>Check bank website</div>
+                  <div style={{fontFamily:FN,fontSize:16,fontWeight:700,lineHeight:"140%",color:"#222222"}}>Bonus</div>
                 </div>
               </div>
             </div>
@@ -877,7 +908,7 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
 
       {/* ── STICKY BOTTOM BAR — appears only after top Apply Now scrolls out ── */}
       <div style={{position:"absolute", left:0, right:0, bottom:0, height:79, background:"#FFFFFF", boxShadow:"0 -1px 8px rgba(0,0,0,0.06)", display:"flex", alignItems:"center", padding:"0 16px", gap:8, opacity: showSticky ? 1 : 0, transform: showSticky ? "translateY(0)" : "translateY(8px)", pointerEvents: showSticky ? "auto" : "none", transition:"opacity 200ms ease-out, transform 200ms ease-out"}}>
-        <button onClick={()=>setBcEligSheet(card)} style={{flex:"0 0 162px", height:49, padding:"12px 20px", background:"#fff", border:"1px solid rgba(17,52,172,0.2)", borderRadius:8, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", gap:4}}>
+        <button onClick={onCreatePortfolio} style={{flex:"0 0 162px", height:49, padding:"12px 20px", background:"#fff", border:"1px solid rgba(17,52,172,0.2)", borderRadius:8, cursor:"pointer", display:"inline-flex", alignItems:"center", justifyContent:"center", gap:4}}>
           <span style={{fontFamily:FN, fontSize:12, fontWeight:500, lineHeight:"150%", color:"#222941"}}>Create Portfolio</span>
           <span style={{fontFamily:FN, fontSize:14, fontWeight:500, lineHeight:"12px", color:"#222941"}}>+</span>
         </button>
@@ -886,6 +917,9 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
           <ChevR size={12} color="#fff" strokeWidth={2.5}/>
         </button>
       </div>
+      {breakdownOpen && (
+        <SavingsBreakdownSheet data={breakdownOpen} onClose={() => setBreakdownOpen(null)} />
+      )}
     </div>
   );
 };

@@ -124,7 +124,7 @@ export const BestCardsScreen = () => {
     };
 
     if(bestCardDetail && USE_NEW_CARD_DETAIL){
-      return <CardDetailV2 card={bestCardDetail} ctx={{setBestCardDetail, setBcEligSheet}}/>;
+      return <CardDetailV2 card={bestCardDetail} ctx={{setBestCardDetail, setBcEligSheet, setScreen, setPortfolioEntryCard}}/>;
     }
     if(bestCardDetail){const card=bestCardDetail;const netSavings=card.savings-(card.annualFee||0);const det=getCD(card.name);const _detIdx=BEST_CARDS.findIndex((c:any)=>c.name===card.name);const _detData=_detIdx>=0?getBestCardDetail(_detIdx):null;if(!card.brandFit&&_detData?.brandFit){card.brandFit=_detData.brandFit.map((bf:any)=>({name:bf.brand,icon:"📦",rate:parseFloat(bf.rate)||0,yourSave:bf.savings||0,spend:bf.spend||0}));}if(!card.brandFit)card.brandFit=[];return(
     <div style={{fontFamily:FN,maxWidth:400,margin:"0 auto",height:"100vh",display:"flex",flexDirection:"column",position:"relative"}}><div data-scroll="1" style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",background:C.bg,paddingBottom:100}}><div className="slide-in"><FL/>

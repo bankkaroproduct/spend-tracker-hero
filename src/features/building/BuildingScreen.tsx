@@ -37,15 +37,17 @@ export function BuildingScreen() {
     </div>
   );
 
-  const semiCards = SEMI_CARDS;
-  const fullCards = CARDS.map(c => ({ name: c.name, bank: c.name.split(" ")[0], last4: c.last4, color: c.color, accent: c.accent || c.color }));
+  const semiCards = [{ bank: "HSBC Bank", last4: "7891", color: "#0c2340" }, { bank: "Axis Bank", last4: "4521", color: "#5b2c8e" }, { bank: "HSBC Bank", last4: "3364", color: "#006d5b" }];
+  const fullCards = [{ name: "HSBC Travel One", bank: "HSBC", last4: "7891", color: "#0c2340", accent: "#1a5276" }, { name: "Axis Flipkart", bank: "Axis", last4: "4521", color: "#5b2c8e", accent: "#8b5cf6" }, { name: "HSBC Live+", bank: "HSBC", last4: "3364", color: "#006d5b", accent: "#00a086" }];
   const bCardName = (idx: number) => { const c = semiCards[idx]; if (!c) return "Card"; const mapped = cardMapping[idx] && cardMapping[idx] !== "Other"; return mapped ? c.bank.replace(" Bank", "") + " " + cardMapping[idx] : c.bank + " ••" + c.last4; };
   const bCard1 = bCardName(1);
-  const bTxns = ALL_TXNS.slice(0, 5).map(t => ({
-    brand: t.brand, icon: t.icon, amt: t.amt, date: t.date,
-    via: bCardName(t.card_index || 0), saved: t.saved, missed: t.missed,
-    tag: t.tag, tagColor: t.tagColor, tagBg: t.tagBg,
-  }));
+  const bTxns = [
+    { brand: "Amazon", icon: "📦", amt: 3500, date: "28 Jan", via: bCardName(0), saved: 80, missed: null, tag: "Best card for this brand", tagColor: C.dkGreen, tagBg: "#EAF3DE" },
+    { brand: "Flipkart", icon: "🛒", amt: 2800, date: "26 Jan", via: bCardName(1), saved: 140, missed: null, tag: "Best card for this brand", tagColor: C.dkGreen, tagBg: "#EAF3DE" },
+    { brand: "Swiggy", icon: "🍔", amt: 900, date: "25 Jan", via: bCardName(0), saved: 5, missed: 30, tag: "Use " + bCard1 + " — saves ₹30", tagColor: C.orange, tagBg: "#FAEEDA" },
+    { brand: "Uber", icon: "🚗", amt: 1200, date: "24 Jan", via: bCardName(2), saved: 18, missed: 30, tag: "Use " + bCard1 + " — saves ₹30", tagColor: C.orange, tagBg: "#FAEEDA" },
+    { brand: "MakeMyTrip", icon: "✈️", amt: 5000, date: "22 Jan", via: bCardName(0), saved: 150, missed: null, tag: "Best card for this brand", tagColor: C.dkGreen, tagBg: "#EAF3DE" },
+  ];
 
   /* Card Mapping UI (manual) */
   if (showCardMappingUI) {
@@ -214,7 +216,7 @@ export function BuildingScreen() {
         <div style={{ background: "linear-gradient(180deg,#1a3fc7 0%,#2563eb 40%,#3b82f6 100%)", borderRadius: 20, padding: "24px 20px", color: "#fff", textAlign: "center" }}>
           <div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.5 }}>You are saving<br />70% less than what you could save</div>
           <div style={{ display: "flex", justifyContent: "center", position: "relative", margin: "12px 0 0" }}><SemiGauge pct={30} /><div style={{ position: "absolute", bottom: 10, left: "50%", transform: "translateX(-50%)", textAlign: "center" }}><div style={{ fontSize: 32, fontWeight: 700 }}>30%</div><div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.4)", letterSpacing: 1 }}>Saving efficiency</div></div></div>
-          <div style={{ display: "flex", padding: "14px 4px", borderRadius: 14, background: "rgba(255,255,255,0.08)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.18)", marginTop: 16 }}><div style={{ flex: 1, textAlign: "center", borderRight: "1px solid rgba(255,255,255,0.12)" }}><div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 600 }}>You saved</div><div style={{ fontSize: 16, fontWeight: 700, marginTop: 4 }}>₹{f(SAVINGS_BARS.bar1)}</div></div><div style={{ flex: 1, textAlign: "center" }}><div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 600 }}>You could save</div><div style={{ fontSize: 16, fontWeight: 700, marginTop: 4 }}>₹{f(SAVINGS_BARS.bar3)}</div></div></div>
+          <div style={{ display: "flex", padding: "14px 4px", borderRadius: 14, background: "rgba(255,255,255,0.08)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.18)", marginTop: 16 }}><div style={{ flex: 1, textAlign: "center", borderRight: "1px solid rgba(255,255,255,0.12)" }}><div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 600 }}>You saved</div><div style={{ fontSize: 16, fontWeight: 700, marginTop: 4 }}>₹50,000</div></div><div style={{ flex: 1, textAlign: "center" }}><div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", fontWeight: 600 }}>You could save</div><div style={{ fontSize: 16, fontWeight: 700, marginTop: 4 }}>₹1,50,000</div></div></div>
         </div>
       </div>}
 
@@ -274,7 +276,7 @@ export function BuildingScreen() {
           <div style={{ display: "flex", justifyContent: "center", marginTop: -60, marginBottom: 28 }}><div style={{ width: 80, height: 80, borderRadius: "50%", background: "radial-gradient(circle,#60a5fa,#1d4ed8)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 40px rgba(29,78,216,0.3)", border: "4px solid rgba(255,255,255,0.4)" }}><span style={{ fontSize: 28, color: "#fff" }}>✉️</span></div></div>
           <div style={{ textAlign: "center", fontSize: 20, fontWeight: 700, color: C.text, lineHeight: 1.4, marginBottom: 12 }}>Allow us to access your Gmail to identify your cards accurately</div>
           <div style={{ textAlign: "center", fontSize: 13, color: C.sub, lineHeight: 1.6, marginBottom: 28 }}>To identify exact card names and benefits</div>
-          <div onClick={() => startGmailFlow("txn-eval")} style={{ padding: "18px", borderRadius: 16, background: "#1a2233", color: "#fff", textAlign: "center", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>📧 Allow Gmail Permissions</div>
+          <div onClick={() => startGmailFlow("building")} style={{ padding: "18px", borderRadius: 16, background: "#1a2233", color: "#fff", textAlign: "center", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>📧 Allow Gmail Permissions</div>
           <div onClick={() => { if (!hasGmail) setHasGmail(false); setUserFlag("PARTIAL"); setShowCardMappingUI(true); setMappingStep(0); setMappingSearchQ(""); }} style={{ textAlign: "center", padding: "16px 0 0", fontSize: 14, fontWeight: 600, color: C.sub, cursor: "pointer" }}>I'll add cards manually</div>
         </div>
       </div>}

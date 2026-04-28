@@ -201,11 +201,28 @@ export function OnboardScreen() {
           ))}
         </div>
 
-        {/* Blur overlay */}
-        <div className="onb-fade-in" style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", zIndex: 10 }} />
+        {/* Blur overlay — leaves the privacy footer (34px) exposed on the SMS step */}
+        <div className="onb-fade-in" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: onStep === 3 ? 34 : 0, background: "rgba(0,0,0,0.25)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", zIndex: 10 }} />
+
+        {/* SMS step — 3D phone hero illustration (above blur, behind sheet+orb) */}
+        {onStep === 3 && (
+          <img
+            src="/cdn/phoneSmsperm.png"
+            alt=""
+            className="onb-fade-in"
+            style={{
+              position: "absolute",
+              left: "50%", top: 70,
+              transform: "translateX(-50%)",
+              width: 320, height: "auto",
+              pointerEvents: "none",
+              zIndex: 11,
+            }}
+          />
+        )}
 
         {/* Bottom sheet */}
-        <div className="onb-sheet-up" style={{ position: "absolute", bottom: 16, left: 16, right: 16, zIndex: 20, background: "#fff", borderRadius: 28, boxShadow: "0 8px 60px rgba(0,0,0,0.15)", overflow: onStep === 3 ? "visible" : "hidden" }}>
+        <div className="onb-sheet-up" style={{ position: "absolute", bottom: onStep === 3 ? 50 : 16, left: 16, right: 16, zIndex: 20, background: "#fff", borderRadius: 28, boxShadow: "0 8px 60px rgba(0,0,0,0.15)", overflow: onStep === 3 ? "visible" : "hidden" }}>
 
           {/* Step 1: Phone */}
           {onStep === 1 && <div>
@@ -289,9 +306,9 @@ export function OnboardScreen() {
           </div>}
         </div>
 
-        {/* Privacy text outside sheet */}
-        {onStep === 3 && <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "14px 24px", textAlign: "center", zIndex: 5 }}>
-          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}>We don't use personal chats, OTPs & non-bank messages for analysis.</span>
+        {/* Privacy footer strip — Figma Frame 1991634266 */}
+        {onStep === 3 && <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 34, padding: "10px 12px", display: "flex", flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 12, background: "#F7F9FF", borderTop: "1px solid #DEE7FF", zIndex: 5 }}>
+          <span style={{ fontFamily: "'Google Sans', system-ui, sans-serif", fontWeight: 400, fontSize: 9, lineHeight: "150%", letterSpacing: "0.02em", textAlign: "center", color: "rgba(2, 40, 81, 0.6)" }}>We don't use personal chats, OTPs &amp; non-bank messages for analysis.</span>
         </div>}
 
         {/* Android-style permission dialog */}

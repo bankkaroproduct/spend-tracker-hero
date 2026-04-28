@@ -115,6 +115,16 @@
   }
 }
 
+@keyframes legacy-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes legacy-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
 @keyframes legacy-panelFadeIn {
   from {
     opacity: 0;

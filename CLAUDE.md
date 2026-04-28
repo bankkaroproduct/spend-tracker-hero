@@ -23,8 +23,13 @@ src/
       LegacyHomeScreen.tsx      ← Home dashboard with hero, actions, tools, transactions
       LegacyTransactionsScreen.tsx ← Full transaction log with filters + sort
       LegacyOptimiseScreen.tsx  ← Brand-by-brand optimization
-      LegacyShared.tsx          ← Shared components (MerchantLogo, ActionBar, TransactionRow, groupByDate, HeroSection, SpendAnalysis, etc.)
-    bestcards/                  ← Card comparison marketplace
+      LegacyShared.tsx          ← Shared components (MerchantLogo, ActionBar, TransactionRow, groupByDate, HeroSection, SpendAnalysis, TransactionAnalysis, SavingsInfoIcon, SavingsBreakdownSheet, HOOK_CAT_ICON, CAT_IMG, CardPromo, ToolsSection, etc.)
+    bestcards/
+      BestCardsScreen.tsx            ← Marketplace + floating "Card Portfolio" widget
+      CardDetailV2.tsx               ← Per-card detail (4 tabs: How to use / Benefits / Fee / Eligibility, T&C)
+    portfolio/
+      PortfolioCreateScreen.tsx      ← Pick 3 cards
+      PortfolioResultsScreen.tsx     ← Show savings + how-to-spend
     cardDetail/                 ← Individual card detail (8 tabs)
     onboard/                    ← Onboarding flow (phone + OTP + SMS/Gmail)
       CardIdentificationScreen.tsx   ← Card identification (Gmail/manual paths)
@@ -74,7 +79,7 @@ src/
 ```
 
 ## Routes
-`/` → onboard, `/home`, `/calculate`, `/redeem`, `/optimize`, `/optimise` (alias), `/actions`, `/transactions`, `/profile`, `/cards`, `/cards/:id`, `/gmail`, `/building`
+`/` → onboard, `/home`, `/calculate`, `/redeem`, `/optimize`, `/optimise` (alias), `/actions`, `/transactions`, `/profile`, `/cards`, `/cards/:id`, `/portfolio/create`, `/portfolio/results`, `/gmail`, `/building`
 
 All render `<Index />` which uses `useLocation()` to determine active screen.
 
@@ -430,7 +435,7 @@ Located in `public/brands/`:
 - `flipkart.png`, `amazon.png`, `swiggy.png`, `zomato.png`, `bb.png` (BigBasket)
 - `myntra.png`, `adiddas.png` (sic), `muscle-blaze.png`
 
-### 3D Category Icons
+### 3D Category Icons (legacy PNGs)
 Located in `public/categories/`:
 | Category | Asset |
 |----------|-------|
@@ -447,10 +452,18 @@ Located in `public/categories/`:
 | Hotels | `hotels.png` |
 | Milestones | `milestones.png` |
 
+### CDN Category WebP Icons (preferred)
+Located in `public/cdn/categories/` — 12 high-res webp icons used by SpendAnalysis and onboarding cinematic:
+`Bills.webp`, `Dining Out.webp`, `Entertainment.webp`, `Flights.webp`, `Food Ordering.webp`, `Friends and Family.webp`, `Fuel.webp`, `Groceries.webp`, `Hotels.webp`, `Insurance.webp`, `Rent.webp`, `Shopping.webp`
+
+Access via `CAT_IMG(name)` helper from LegacyShared. Simulation category names map: "Dining" → "Dining Out.webp", "Travel" → "Flights.webp".
+
 ### Tool Images
 Located in `public/tools/`:
 - `savings-finder.webp`, `best-cards.webp`, `redeem.webp` (old webp icons)
-- `tools-savings-finder.png`, `tools-best-cards.png`, `tools-redeem.png` (new 3D icons from Figma)
+
+Located in `public/cdn/`:
+- `tool-savings.webp`, `tool-best-cards.webp`, `tool-redeem.webp` (new 3D icons)
 
 ### Coin/Decoration Images
 Located in `public/ui/`:
@@ -605,7 +618,7 @@ The #1 card from `/recommend_cards` replaces ALL hardcoded market card reference
 | ACTIONS_DATA (7 actions) | ActionsScreen.tsx | 20-28 |
 | BEST_FOR_BRAND mapping | CardDetailScreen.tsx | 81 |
 | Hero savings values | LegacyShared.tsx | 700, 707, 711 |
-| Transaction analysis bars | LegacyShared.tsx | 310-312 |
+| Transaction analysis bars (3: current/optimized/ultimate) | LegacyShared.tsx | TransactionAnalysis component — uses SAVINGS_BARS.bar1/bar2/bar3 |
 | Spend analysis data | LegacyShared.tsx | 327-344, 385 |
 | Optimize hero + bars | LegacyOptimiseScreen.tsx | 110, 116-118 |
 | Spend distribution rows | LegacyOptimiseScreen.tsx | 355-370 |
