@@ -2,24 +2,13 @@
 import { useEffect, useRef, useState } from "react";
 import { CreditCard } from "lucide-react";
 import { FN } from "@/lib/theme";
-import { f } from "@/lib/format";
 import { FL } from "@/components/shared/FontLoader";
 import { useAppContext } from "@/store/AppContext";
 import { SPEND_CATS, TOTAL_ACC } from "@/data/simulation/legacy";
+import { f } from "@/lib/format";
 
 /**
  * Phase A — Spend Analysis (post-SMS, pre-Card-Identification)
- *
- * Choreography:
- *   phase 0 (0–2500ms)  : Orb fades-in to centre. "Let me first fetch your spends
- *                          over the past 365 days and analyse them" appears below.
- *   phase 1 (2500–4000ms): First text fades out. "We've accounted a total of
- *                          ₹16,40,250 in the past 365 days" rises in from below.
- *   phase 2 (4000ms+)    : Orb fades out. The current headline floats up to top of
- *                          card position and morphs into "Majority of them in
- *                          Shopping, followed by groceries and so on…". White
- *                          categories card slides in to centre. Rows + bars stagger.
- *                          Bottom countdown ticks 5→0 then advances to /building.
  */
 
 const CAT_IMG_MAP = { "Shopping": "Shopping", "Groceries": "Groceries", "Bills": "Bills", "Food Ordering": "Food Ordering", "Flights": "Flights", "Travel": "Flights", "Friends and Family": "Friends and Family", "Dining Out": "Dining Out", "Dining": "Dining Out", "Hotels": "Hotels", "Insurance": "Insurance", "Fuel": "Fuel", "Rent": "Rent", "Entertainment": "Entertainment", "Cab Rides": "Shopping", "Education": "Bills" };

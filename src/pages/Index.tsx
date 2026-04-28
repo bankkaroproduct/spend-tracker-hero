@@ -21,7 +21,7 @@ import { RedeemScreen } from "@/features/redeem/RedeemScreen";
 import { CalcScreen } from "@/features/calc/CalcScreen";
 import { CardDetailScreen } from "@/features/cardDetail/CardDetailScreen";
 import { GmailMockFlow } from "@/features/gmail/GmailMockFlow";
-
+import { BuildingScreen } from "@/features/building/BuildingScreen";
 import { SpendAnalysisScreen } from "@/features/onboard/SpendAnalysisScreen";
 import { CardIdentificationScreen } from "@/features/onboard/CardIdentificationScreen";
 import { ManualEntryScreen } from "@/features/onboard/ManualEntryScreen";
@@ -169,7 +169,7 @@ export default function App(){
   const [reminderStep,setReminderStep]=useState(0);
   const [finalLoad,setFinalLoad]=useState(0);
   const [savePhase,setSavePhase]=useState(false);
-  const [gmailReturnTo,setGmailReturnTo]=useState("analysis");
+  const [gmailReturnTo,setGmailReturnTo]=useState("building");
   const [gmailOtp,setGmailOtp]=useState(["","","",""]);
   const [gmailFirstName,setGmailFirstName]=useState("Aarav");
   const [gmailLastName,setGmailLastName]=useState("Sharma");
@@ -188,7 +188,8 @@ export default function App(){
     setGmailOtp(["","","",""]);
     // Honor the return target set by `startGmailFlow(returnTo)`.
     // (Onboarding wants to go through txn-eval/tools-intro; other entry points may return to home/detail.)
-    setScreen(gmailReturnTo);
+    if(gmailReturnTo==="building") setScreen("txn-eval");
+    else setScreen(gmailReturnTo);
   };
   const startGmailFlow=(returnTo)=>{
     setGmailReturnTo(returnTo);
@@ -299,6 +300,7 @@ export default function App(){
     if(s==="portfolio-results")return "/portfolio/results";
     if(s==="detail")return `/cards/${cardIdx ?? 0}`;
     if(s==="gmail")return "/gmail";
+    if(s==="building")return "/building";
     if(s==="analysis")return "/analysis";
     if(s==="card-id")return "/card-id";
     if(s==="manual-entry")return "/manual-entry";
@@ -310,7 +312,7 @@ export default function App(){
   };
   const pathToScreen=(p)=>{
     if(p==="/"||p==="/onboard")return {screen:"onboard"};
-    if(p==="/building")return {screen:"analysis"};
+    if(p==="/building")return {screen:"building"};
     if(p==="/analysis")return {screen:"analysis"};
     if(p==="/card-id")return {screen:"card-id"};
     if(p==="/manual-entry")return {screen:"manual-entry"};
@@ -339,7 +341,7 @@ export default function App(){
     if(!routeSyncedRef.current)return;
     const target=screenToPath(screen,ci);
     if(location.pathname!==target){
-      const replace=screen==="analysis"||screen==="home"&&prevScreenRef.current==="analysis";
+      const replace=screen==="building"||screen==="home"&&prevScreenRef.current==="building";
       console.log("[debug State→URL]", "screen=", screen, "target=", target, "current path=", location.pathname);
       navigate(target,{replace});
     }
@@ -387,15 +389,24 @@ export default function App(){
   /* Bottom sheets */
   const optCardClr={"HSBC Travel One":["#0c2340","#1a5276"],"Axis Flipkart":["#5b2c8e","#8b5cf6"],"HSBC Live+":["#006d5b","#00a086"],"HDFC Infinia":["#111827","#374151"]};
   const OptBS=()=>null;
-  // Legacy buildPhase-driven cinematic effects removed — the new cinematic
-  // (analysis → txn-eval → tools-intro → final-loading) is self-driven inside each screen.
+  useEffect(()=>{if(screen!=="building"||showCardMappingUI||showResolutionSummary)return;
+    const t={0:3000,1:4000,3:2500,4:4000,5:3000,6:6000,7:2000,8:4000,10:4000,11:4000,12:4000,13:3000};
+    const d=t[buildPhase];
+    if(d){const tm=setTimeout(()=>{setBuildSub(0);setBuildPhase(p=>p+1);},d);return()=>clearTimeout(tm);}
+  },[screen,buildPhase,showCardMappingUI,showResolutionSummary]);
+  useEffect(()=>{if(buildPhase!==9)return;if(buildSub<7){const t=setTimeout(()=>setBuildSub(s=>s+1),[0,1200,1200,1200,1200,2000,2500,2500][buildSub+1]||1200);return()=>clearTimeout(t);}else{const t=setTimeout(()=>{setBuildSub(0);setBuildPhase(10);},3000);return()=>clearTimeout(t);}},[buildPhase,buildSub]);
+  useEffect(()=>{if(screen==="building"&&buildPhase>=14)setScreen("home");},[buildPhase,screen]);
+  useEffect(()=>{if(screen==="building"&&buildRef.current){setTimeout(()=>buildRef.current.scrollTo({top:0,behavior:"smooth"}),200);}},[buildPhase]);
+  useEffect(()=>{if(screen==="building"&&buildRef.current&&buildPhase===9){setTimeout(()=>buildRef.current.scrollTo({top:0,behavior:"smooth"}),100);}},[buildSub]);
+  useEffect(()=>{if(buildPhase===1){setBuildCardReveal(-1);setCarouselIdx(0);const t0=setTimeout(()=>setBuildCardReveal(0),400);const t1=setTimeout(()=>{setBuildCardReveal(1);setCarouselIdx(1);},1400);const t2=setTimeout(()=>{setBuildCardReveal(2);setCarouselIdx(2);},2400);const t3=setTimeout(()=>setCarouselIdx(0),3200);return()=>{clearTimeout(t0);clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);};}if(buildPhase>1&&buildCardReveal<2)setBuildCardReveal(2);},[buildPhase]);
 
   const ctxValue={toast,setToast,infoSheet,setInfoSheet,txnSheet,setTxnSheet,actSheet,setActSheet,setScreen,redeemCard,setRedeemCard,redeemPts,setRedeemPts,redeemResult,setRedeemResult,redeemPref,setRedeemPref,redeemTab,setRedeemTab,howExpanded,setHowExpanded,openCard,hasGmail,setHasGmail,nudgePermanentlyDismissed,nudgeDismissals,setShowGmailNudgeSheet,showGmailNudge,setShowGmailNudge,retroEnrichFromGmail,dismissNudge,setNudgePermanentlyDismissed,showGmailNudgeSheet,relinkingGmail,showVoiceFlow,setShowVoiceFlow,setVoiceTranscript,setVoiceMatch,setIsListening,recognitionRef,voiceCardIndex,setVoiceCardIndex,isListening,beginListening,voiceTranscript,voiceMatch,confirmVoiceMatch,showCardMappingUI,setShowCardMappingUI,mappingStep,setMappingStep,mappingSearchQ,setMappingSearchQ,showSkipConfirm,setShowSkipConfirm,showResolutionSummary,setShowResolutionSummary,capSheet,setCapSheet,catSheet,setCatSheet,catStep,setCatStep,selCat,setSelCat,setRemovedTxns,removedTxns,filterSheet,setFilterSheet,filterTab,setFilterTab,setFilters,setSortBy,sortBy,filters,toggleFilter,multiToggle,isState1,isState2,isState3,cardMapping,setCardMapping,screen,ci,setCi,actFilter,setActFilter,getFilteredActions,selBrand,setSelBrand,calcAmt,setCalcAmt,calcPopup,setCalcPopup,calcResult,setCalcResult,searchQ,setSearchQ,calcTab,setCalcTab,calcFilter,setCalcFilter,optTab,setOptTab,optSheet,setOptSheet,optSheetFrom,setOptSheetFrom,optExpanded,setOptExpanded,bestCardDetail,setBestCardDetail,portfolioNew,setPortfolioNew,portfolioEntryCard,setPortfolioEntryCard,bcFilter,setBcFilter,bcSearch,setBcSearch,bcSearchOpen,setBcSearchOpen,bcDetTab,setBcDetTab,bcViewMode,setBcViewMode,bcSection,setBcSection,bcFavs,setBcFavs,bcSort,setBcSort,bcShowSort,setBcShowSort,bcListView,setBcListView,bcEligSheet,setBcEligSheet,bcFromScreen,getCardDisplayName,isCardMapped,detailTab,setDetailTab,txnPage,setTxnPage,usageCat,setUsageCat,usageMode,setUsageMode,timePeriod,setTimePeriod,timePeriodOpen,setTimePeriodOpen,chartPage,setChartPage,dRef,sentRef,tabSticky,spendTab,setSpendTab,showAllBrands,setShowAllBrands,activeTxnList,filtered,goTxns,gmailStep,setGmailStep,gmailReturnTo,completeGmailLink,gmailFirstName,setGmailFirstName,gmailLastName,setGmailLastName,gmailDob,setGmailDob,hsbcDigits1,setHsbcDigits1,hsbcDigits2,setHsbcDigits2,buildPhase,setBuildPhase,buildSub,buildCardReveal,savePhase,setSavePhase,toolStep,reminderStep,finalLoad,buildRef,setMappingCompleted,mappingCompleted,setUserFlag,userFlag,startGmailFlow,onStep,setOnStep,vpSlide,setVpSlide,phone,setPhone,otp,setOtp,otpTimer,setOtpTimer,smsStatus,setSmsStatus,welcomeTyped,touchStartX,txnCatOverrides,setTxnCatOverride};
   /* Mirror to module store as a fallback for any consumer outside the Provider tree. */
   setAppContext(ctxValue);
 
   let body=<HomeScreen/>;
-  if(screen==="analysis")body=<SpendAnalysisScreen/>;
+  if(screen==="building")body=<BuildingScreen/>;
+  else if(screen==="analysis")body=<SpendAnalysisScreen/>;
   else if(screen==="card-id")body=<CardIdentificationScreen/>;
   else if(screen==="manual-entry")body=<ManualEntryScreen/>;
   else if(screen==="gmail-extra")body=<GmailExtraInfoScreen/>;

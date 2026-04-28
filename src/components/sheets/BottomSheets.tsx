@@ -575,7 +575,7 @@ export function VoiceFlowOverlay(){
         <div onClick={()=>{setVoiceTranscript("");setVoiceMatch(null);beginListening();}} style={{flex:1,padding:"14px",borderRadius:12,background:C.white,border:`1.5px solid ${C.brd}`,textAlign:"center",fontSize:13,fontWeight:700,color:C.text,cursor:"pointer"}}>Try again</div>
         <div onClick={confirmVoiceMatch} style={{flex:1,padding:"14px",borderRadius:12,background:C.green,color:"#fff",textAlign:"center",fontSize:13,fontWeight:700,cursor:"pointer"}}>Yes, that's my card ✓</div>
       </div>}
-      {voiceTranscript&&!voiceMatch&&!isListening&&<div onClick={()=>{setShowVoiceFlow(false);setVoiceTranscript("");setVoiceMatch(null);setMappingStep(voiceCardIndex||0);setScreen("manual-entry");}} style={{padding:"14px",borderRadius:12,background:"#1a2233",color:"#fff",textAlign:"center",fontSize:13,fontWeight:700,cursor:"pointer"}}>Search manually instead</div>}
+      {voiceTranscript&&!voiceMatch&&!isListening&&<div onClick={()=>{setShowVoiceFlow(false);setVoiceTranscript("");setVoiceMatch(null);setShowCardMappingUI(true);setMappingStep(voiceCardIndex||0);setScreen("building");}} style={{padding:"14px",borderRadius:12,background:"#1a2233",color:"#fff",textAlign:"center",fontSize:13,fontWeight:700,cursor:"pointer"}}>Search manually instead</div>}
     </div>
   </div>);
 }

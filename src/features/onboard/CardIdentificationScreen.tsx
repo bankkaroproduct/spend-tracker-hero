@@ -121,7 +121,7 @@ export function CardIdentificationScreen() {
   }, []);
 
   const onGmail = () => {
-    startGmailFlow && startGmailFlow("analysis");
+    startGmailFlow && startGmailFlow("building");
   };
   const onManual = () => {
     setScreen && setScreen("manual-entry");

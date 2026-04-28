@@ -83,6 +83,27 @@ src/
 
 All render `<Index />` which uses `useLocation()` to determine active screen.
 
+## Onboarding Flow
+
+Both manual and Gmail paths converge at `txn-eval`:
+
+```
+onboard (phone→OTP→SMS)
+  → analysis (spend cinematic, 7s countdown)
+    → card-id (3 cards revealed, Gmail/Manual choice)
+      ├─ Manual: manual-entry (pick 3 cards) → txn-eval
+      └─ Gmail:  gmail → gmail-extra (DOB + HSBC digits) → txn-eval
+        → txn-eval (3 transaction evaluations, ~18s)
+          → tools-intro (3 tool cards, ~13s)
+            → final-loading (3 phases, ~6s)
+              → home
+```
+
+- Every screen has a skip option that jumps to `home`
+- `building` screen is NOT part of onboarding — only reachable from Card Detail "Add manually" or Voice flow fallback
+- `completeGmailLink()` in Index.tsx routes to `txn-eval` (not building)
+- DOB/HSBC logic lives in `GmailExtraInfoScreen.tsx` (preserved from production, not reference repo)
+
 ## Design System
 
 ### Font
