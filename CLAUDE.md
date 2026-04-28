@@ -101,7 +101,8 @@ onboard (phone→OTP→SMS)
 
 - Every screen has a skip option that jumps to `home`
 - `building` screen is NOT part of onboarding — only reachable from Card Detail "Add manually" or Voice flow fallback
-- `completeGmailLink()` in Index.tsx routes to `txn-eval` (not building)
+- `GmailExtraInfoScreen.handleProceed` sets state directly (hasGmail, userFlag, mappingCompleted, cardMapping) and calls `setScreen("txn-eval")` after 2s — does NOT call `completeGmailLink()`
+- `completeGmailLink()` in Index.tsx is only used by BuildingScreen's Gmail button (card detail "Add manually" flow)
 - DOB/HSBC logic lives in `GmailExtraInfoScreen.tsx` (preserved from production, not reference repo)
 
 ## Design System
