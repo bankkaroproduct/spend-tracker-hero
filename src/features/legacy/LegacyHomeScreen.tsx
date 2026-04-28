@@ -2,20 +2,21 @@
 import { NavBar } from "@/components/shared/NavBar";
 import { BottomSheets } from "@/components/sheets/BottomSheets";
 import { ACTIONS } from "@/data/simulation/legacy";
+import { getTransactionScenario } from "@/data/simulation/txnScenario";
 import { useAppContext } from "@/store/AppContext";
 import "./legacy.css";
 import { CardPromo, HeroSection, ImportantActions, SpendAnalysis, ToolsSection, TransactionAnalysis, TransactionsPreview } from "./LegacyShared";
 
 function toLegacyTxn(t, idx) {
+  const scenario = t.unaccounted ? null : getTransactionScenario(t);
   return {
     id: idx,
     brand: (t.brand || "").toLowerCase().replace(/\s+/g, ""),
     merchant: t.brand || "Transaction",
     cardLine: `${t.via || "Card"} | ${t.date || ""}`,
     amount: `₹${(t.amt || 0).toLocaleString("en-IN")}`,
-    saved: t.saved ? `₹${t.saved}` : null,
-    savedColor: t.saved ? "#078146" : "#eb8807",
-    cta: { variant: t.unaccounted ? "needsdata" : t.saved ? "best" : "switch", text: t.unaccounted ? "Need more details about this transaction" : (t.tag || "Used best card for this") },
+    saved: t.saved != null ? `₹${t.saved}` : null,
+    scenario,
     raw: t,
   };
 }
