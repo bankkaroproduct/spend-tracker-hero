@@ -207,7 +207,7 @@ export function OnboardScreen() {
         {/* SMS step — 3D phone hero illustration (above blur, behind sheet+orb) */}
         {onStep === 3 && (
           <img
-            src="/cdn/phoneSmsperm.png"
+            src="/cdn/phoneSmsperm.webp"
             alt=""
             className="onb-fade-in"
             style={{

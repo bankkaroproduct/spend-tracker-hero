@@ -15,9 +15,9 @@ import { useAppContext } from "@/store/AppContext";
  */
 
 const SLOTS = [
-  { bank: "Axis", name: "Axis Flipkart",   last4: "7945", img: "/legacy-assets/cards/axis-flipkart.png", tone: "linear-gradient(270deg, #0D0D0D 40.69%, #00C4FF 100%)" },
-  { bank: "HSBC", name: "HSBC Travel One", last4: "8234", img: "/legacy-assets/cards/hsbc-travel-one.png", tone: "linear-gradient(270deg, #1A1A1A 40.69%, #0E0E0E 100%)" },
-  { bank: "HSBC", name: "HSBC Live+",      last4: "9945", img: "/legacy-assets/cards/hsbc-live.png", tone: "linear-gradient(270deg, #C2233A 40.69%, #4F77B5 100%)" },
+  { bank: "Axis", name: "Axis Flipkart",   last4: "7945", img: "/legacy-assets/cards/axis-flipkart.webp", tone: "linear-gradient(270deg, #0D0D0D 40.69%, #00C4FF 100%)" },
+  { bank: "HSBC", name: "HSBC Travel One", last4: "8234", img: "/legacy-assets/cards/hsbc-travel-one.webp", tone: "linear-gradient(270deg, #1A1A1A 40.69%, #0E0E0E 100%)" },
+  { bank: "HSBC", name: "HSBC Live+",      last4: "9945", img: "/legacy-assets/cards/hsbc-live.webp", tone: "linear-gradient(270deg, #C2233A 40.69%, #4F77B5 100%)" },
 ];
 
 // ─── Slot card thumbnail (portrait) ───────────────────────────────────────

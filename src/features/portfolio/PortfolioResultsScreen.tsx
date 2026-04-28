@@ -13,20 +13,20 @@ const SECTION_TITLE = { fontFamily: "'Blacklist','Google Sans',serif", fontSize:
 const TINY_LABEL = { fontFamily: "'Google Sans', system-ui, sans-serif", fontSize: 10, fontWeight: 500, lineHeight: "12px", letterSpacing: "0.1em", textTransform: "uppercase" as const };
 
 const CARD_IMG_MAP: Record<string, string> = {
-  "Axis Flipkart": "/legacy-assets/cards/axis-flipkart.png",
-  "HSBC Travel One": "/legacy-assets/cards/hsbc-travel-one.png",
-  "HSBC Live+": "/legacy-assets/cards/hsbc-live.png",
-  "HDFC Infinia": "/legacy-assets/cards/hdfc-infinia.png",
-  "HDFC Millennia": "/legacy-assets/cards/Hdfc swiggy.png",
-  "HDFC Millenia": "/legacy-assets/cards/Hdfc swiggy.png",
-  "IDFC First Select": "/legacy-assets/cards/idfc select.png",
-  "Amex Travel Platinum": "/legacy-assets/cards/amex-platinum-travel.png",
-  "American Express Travel Platinum": "/legacy-assets/cards/amex-platinum-travel.png",
-  "Axis Magnus": "/legacy-assets/cards/AU-Zenith.png",
-  "AU Zenith": "/legacy-assets/cards/AU-Zenith.png",
-  "ICICI Emeralde": "/legacy-assets/cards/icici-emeralde.png",
-  "SBI Miles": "/legacy-assets/cards/sbi-miles.png",
-  "HDFC Swiggy": "/legacy-assets/cards/Hdfc swiggy.png",
+  "Axis Flipkart": "/legacy-assets/cards/axis-flipkart.webp",
+  "HSBC Travel One": "/legacy-assets/cards/hsbc-travel-one.webp",
+  "HSBC Live+": "/legacy-assets/cards/hsbc-live.webp",
+  "HDFC Infinia": "/legacy-assets/cards/hdfc-infinia.webp",
+  "HDFC Millennia": "/legacy-assets/cards/Hdfc swiggy.webp",
+  "HDFC Millenia": "/legacy-assets/cards/Hdfc swiggy.webp",
+  "IDFC First Select": "/legacy-assets/cards/idfc select.webp",
+  "Amex Travel Platinum": "/legacy-assets/cards/amex-platinum-travel.webp",
+  "American Express Travel Platinum": "/legacy-assets/cards/amex-platinum-travel.webp",
+  "Axis Magnus": "/legacy-assets/cards/AU-Zenith.webp",
+  "AU Zenith": "/legacy-assets/cards/AU-Zenith.webp",
+  "ICICI Emeralde": "/legacy-assets/cards/icici-emeralde.webp",
+  "SBI Miles": "/legacy-assets/cards/sbi-miles.webp",
+  "HDFC Swiggy": "/legacy-assets/cards/Hdfc swiggy.webp",
 };
 
 /* PORTFOLIO_PROFILE and CATEGORIES are now computed dynamically from

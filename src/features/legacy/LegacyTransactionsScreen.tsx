@@ -39,7 +39,7 @@ export function LegacyTransactionsScreen() {
     <div style={{ fontFamily: "var(--legacy-sans)", maxWidth: 400, margin: "0 auto", height: "100vh", display: "flex", flexDirection: "column", position: "relative" }}>
       <div data-scroll="1" style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch", background: "#f5f9fa", paddingBottom: 100 }}>
       <div style={{ background: "linear-gradient(180deg, #010411 -15.07%, #0B366B 112.18%)", color: "#eaedf7", padding: "12px 20px 22px", position: "relative" }}>
-        <img src="/ui/statusbar.png" alt="" style={{ width: "100%", height: "auto", display: "block", marginBottom: 10 }} />
+        <img src="/ui/statusbar.webp" alt="" style={{ width: "100%", height: "auto", display: "block", marginBottom: 10 }} />
         <div onClick={() => setScreen("home")} className="legacy-tap" aria-label="Back" style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
           <BackArrow />
         </div>

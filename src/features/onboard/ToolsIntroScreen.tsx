@@ -27,9 +27,9 @@ import { useAppContext } from "@/store/AppContext";
  */
 
 const CARD_IMGS = [
-  "/legacy-assets/cards/axis-flipkart.png",
-  "/legacy-assets/cards/hsbc-travel-one.png",
-  "/legacy-assets/cards/hsbc-live.png",
+  "/legacy-assets/cards/axis-flipkart.webp",
+  "/legacy-assets/cards/hsbc-travel-one.webp",
+  "/legacy-assets/cards/hsbc-live.webp",
 ];
 
 type ToolDef = {

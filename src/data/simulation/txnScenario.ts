@@ -6,12 +6,12 @@ import { USER_CARDS, BUCKET_TO_MERCHANT } from "./inputs";
 import { calculateResponses, getEligibleMarketCards, getCardRewardForSpend, getBestCardForSpend } from "./mockApi";
 
 const CARD_IMG_MAP: Record<string, string> = {
-  "Axis Flipkart": "/legacy-assets/cards/axis-flipkart.png",
-  "Axis Flipkart Card": "/legacy-assets/cards/axis-flipkart.png",
-  "HSBC Travel One": "/legacy-assets/cards/hsbc-travel-one.png",
-  "HSBC Live+": "/legacy-assets/cards/hsbc-live.png",
-  "HDFC Infinia": "/legacy-assets/cards/hdfc-infinia.png",
-  "IDFC First Select": "/legacy-assets/cards/idfc select.png",
+  "Axis Flipkart": "/legacy-assets/cards/axis-flipkart.webp",
+  "Axis Flipkart Card": "/legacy-assets/cards/axis-flipkart.webp",
+  "HSBC Travel One": "/legacy-assets/cards/hsbc-travel-one.webp",
+  "HSBC Live+": "/legacy-assets/cards/hsbc-live.webp",
+  "HDFC Infinia": "/legacy-assets/cards/hdfc-infinia.webp",
+  "IDFC First Select": "/legacy-assets/cards/idfc select.webp",
 };
 
 const merchantToBucket: Record<string, string> = {};
@@ -168,7 +168,7 @@ function marketCardRef(card: any, bucket: string, monthlySpend: number, monthlyS
     id: card.card_alias || comparableCardName(name),
     name,
     shortName: shortCardName(name),
-    image: card.image || card.card_bg_image || CARD_IMG_MAP[name] || "/legacy-assets/cards/hdfc-infinia.png",
+    image: card.image || card.card_bg_image || CARD_IMG_MAP[name] || "/legacy-assets/cards/hdfc-infinia.webp",
     rateLabel: formatRateFromBreakdown(name, breakdown, monthlySpend, monthlySavings),
     owned: false,
   };

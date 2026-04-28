@@ -144,8 +144,8 @@ export const HOOK_CAT_ICON: Record<string, { Icon: any; color: string }> = {
 export const ASSET_BASE = "/legacy-assets";
 
 /** Filenames under `public/legacy-assets/cards/` (spaces / `=` must be URL-encoded). */
-export const LEGACY_CARD_AMEX_TRAVEL_PLATINUM_FILENAME = "amex-platinum-travel.png";
-export const LEGACY_CARD_HDFC_INFINIA_FILENAME = "hdfc-infinia.png";
+export const LEGACY_CARD_AMEX_TRAVEL_PLATINUM_FILENAME = "amex-platinum-travel.webp";
+export const LEGACY_CARD_HDFC_INFINIA_FILENAME = "hdfc-infinia.webp";
 
 export function legacyCardAssetUrl(filename: string): string {
   return `${ASSET_BASE}/cards/${filename}`;
@@ -275,14 +275,14 @@ const FlagIcon = ({ size = 16, color = "#8a94a8" }) => (
 
 export const MerchantLogo = ({ brand }) => {
   const imgMap = {
-    flipkart: "/brands/flipkart.png",
-    amazon: "/brands/amazon.png",
-    swiggy: "/brands/swiggy.png",
-    zomato: "/brands/zomato.png",
-    bigbasket: "/brands/bb.png",
-    myntra: "/brands/myntra.png",
-    adidas: "/brands/adiddas.png",
-    muscleblaze: "/brands/muscle-blaze.png",
+    flipkart: "/brands/flipkart.webp",
+    amazon: "/brands/amazon.webp",
+    swiggy: "/brands/swiggy.webp",
+    zomato: "/brands/zomato.webp",
+    bigbasket: "/brands/bb.webp",
+    myntra: "/brands/myntra.webp",
+    adidas: "/brands/adiddas.webp",
+    muscleblaze: "/brands/muscle-blaze.webp",
   };
   const letterMap = {
     makemytrip: { letter: "MT", color: "#2196F3", bg: "#E3F2FD" },
@@ -625,7 +625,7 @@ export function TransactionAnalysis({ timeWindow = "Last 365 Days" }) {
 export function CardPromo({ onClick }) {
   return (
     <div className="legacy-tap" onClick={onClick} style={{ margin: "28px 20px 0", borderRadius: 12, overflow: "hidden", boxShadow: "0 0.6px 4.4px rgba(63,66,70,0.11)" }}>
-      <img src={`${ASSET_BASE}/amex-promo-banner.png`} alt="Getting an Amex Travel Platinum Card can help you save up to ₹1,00,845 /year" style={{ display: "block", width: "100%", height: "auto" }} />
+      <img src={`${ASSET_BASE}/amex-promo-banner.webp`} alt="Getting an Amex Travel Platinum Card can help you save up to ₹1,00,845 /year" style={{ display: "block", width: "100%", height: "auto" }} />
     </div>
   );
 }
@@ -1095,9 +1095,9 @@ export function HeroSection({ onOpenOptimize, onOpenCards, onOpenCard, onAddCard
         {/* Cards row — Figma top 92, gap 12 (eyebrow row ends at ~79, gap 13) */}
         <div className="legacy-h-rail" style={{ gap: 12, marginTop: 13 }}>
           <div className="legacy-tap" onClick={onAddCard} style={{ width: 71, height: 47, borderRadius: 4, background: "rgba(248,253,254,0.2)", border: "0.93px solid rgba(255,255,255,0.2)", backdropFilter: "blur(4.66px)", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.6)", fontSize: 18, flexShrink: 0 }}>+</div>
-          <CardTile art={`${ASSET_BASE}/cards/axis-flipkart.png`} label="Axis Flipkart" onClick={() => onOpenCard?.(1)} />
-          <CardTile art={`${ASSET_BASE}/cards/hsbc-live.png`} label="HSBC Live+" onClick={() => onOpenCard?.(2)} />
-          <CardTile art={`${ASSET_BASE}/cards/hsbc-travel-one.png`} label="HSBC Travel One" onClick={() => onOpenCard?.(0)} />
+          <CardTile art={`${ASSET_BASE}/cards/axis-flipkart.webp`} label="Axis Flipkart" onClick={() => onOpenCard?.(1)} />
+          <CardTile art={`${ASSET_BASE}/cards/hsbc-live.webp`} label="HSBC Live+" onClick={() => onOpenCard?.(2)} />
+          <CardTile art={`${ASSET_BASE}/cards/hsbc-travel-one.webp`} label="HSBC Travel One" onClick={() => onOpenCard?.(0)} />
         </div>
       </div>
       {/* Headline — Figma top 178, 309×60, Blacklist 22px line 135% #EAEDF7 */}

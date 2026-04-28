@@ -133,7 +133,7 @@ export const USER_CARDS = [
     accent: "#1a5276",
     headerAccent: "#1a5276",
     card_type: "Mastercard",
-    image: "/legacy-assets/cards/hsbc-travel-one.png",
+    image: "/legacy-assets/cards/hsbc-travel-one.webp",
 
     savings_type: "points" as const,
     ptName: "Reward Points",
@@ -183,7 +183,7 @@ export const USER_CARDS = [
     accent: "#8b5cf6",
     headerAccent: "#930A41",
     card_type: "VISA",
-    image: "/legacy-assets/cards/axis-flipkart.png",
+    image: "/legacy-assets/cards/axis-flipkart.webp",
 
     savings_type: "cashback" as const,
     ptName: "Cashback",
@@ -245,7 +245,7 @@ export const USER_CARDS = [
     accent: "#00a086",
     headerAccent: "#006d5b",
     card_type: "VISA",
-    image: "/legacy-assets/cards/hsbc-live.png",
+    image: "/legacy-assets/cards/hsbc-live.webp",
 
     savings_type: "cashback" as const,
     ptName: "Cashback",

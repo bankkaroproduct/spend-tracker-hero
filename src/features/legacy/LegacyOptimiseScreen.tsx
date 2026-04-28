@@ -213,9 +213,9 @@ function HereIsHow({ onUltimate, onExisting, onRedeem }) {
   }, []);
 
   const items = [
-    { rail: "crown", art: `${ASSET_BASE}/opt/bd964fe0e574.png`, tint: "linear-gradient(135deg, rgba(255,219,128,0.18), rgba(255,219,128,0.05))", title: <>Get the ultimate credit card<br />for your spends</>, saveAmount: `₹${f(SAVINGS_BARS.ultimate_uplift)}/yr`, footer: "See Your Ultimate Card", onClick: onUltimate },
-    { rail: "tune", art: `${ASSET_BASE}/opt/3e2622354da6.png`, tint: "linear-gradient(135deg, rgba(147,206,220,0.18), rgba(147,206,220,0.04))", title: <>Use your existing credit<br />cards in the right way</>, saveAmount: `₹${f(SAVINGS_BARS.flow1_delta)}/yr`, footer: "See Optimization", onClick: onExisting },
-    { rail: "gift", art: `${ASSET_BASE}/opt/0e60286a81e4.png`, tint: "linear-gradient(135deg, rgba(184,123,255,0.18), rgba(255,206,120,0.06))", title: <>Claim and Redeem your<br />expiring benefits</>, extraBadge: "Extra Savings", footer: "See Expiring Benefits", onClick: onRedeem },
+    { rail: "crown", art: `${ASSET_BASE}/opt/bd964fe0e574.webp`, tint: "linear-gradient(135deg, rgba(255,219,128,0.18), rgba(255,219,128,0.05))", title: <>Get the ultimate credit card<br />for your spends</>, saveAmount: `₹${f(SAVINGS_BARS.ultimate_uplift)}/yr`, footer: "See Your Ultimate Card", onClick: onUltimate },
+    { rail: "tune", art: `${ASSET_BASE}/opt/3e2622354da6.webp`, tint: "linear-gradient(135deg, rgba(147,206,220,0.18), rgba(147,206,220,0.04))", title: <>Use your existing credit<br />cards in the right way</>, saveAmount: `₹${f(SAVINGS_BARS.flow1_delta)}/yr`, footer: "See Optimization", onClick: onExisting },
+    { rail: "gift", art: `${ASSET_BASE}/opt/0e60286a81e4.webp`, tint: "linear-gradient(135deg, rgba(184,123,255,0.18), rgba(255,206,120,0.06))", title: <>Claim and Redeem your<br />expiring benefits</>, extraBadge: "Extra Savings", footer: "See Expiring Benefits", onClick: onRedeem },
   ];
 
   return (
@@ -252,7 +252,7 @@ function HereIsHow({ onUltimate, onExisting, onRedeem }) {
    ═══════════════════════════════════════════════════════════ */
 
 function CardOptimizations({ onViewDetails }) {
-  const dinersImg = `${ASSET_BASE}/cards/Diners club  Credit Card.png`;
+  const dinersImg = `${ASSET_BASE}/cards/Diners club  Credit Card.webp`;
   const promoImg = (CARD_PROMO?.name || "").toLowerCase().includes("diners")
     ? dinersImg
     : (CARD_PROMO?.image || `${ASSET_BASE}/opt/swiggy-blck-card.webp`);
@@ -396,7 +396,7 @@ function SpendsDistribution({ ultimate: ultimateProp, onUltimateChange, onInfoCl
 
   const distGrads = ["linear-gradient(180deg, #9d7ff0 0%, #6a42d1 100%)", "linear-gradient(180deg, #38c774 0%, #0f8a48 100%)", "linear-gradient(180deg, #4ea6ff 0%, #1a6cd6 100%)", "linear-gradient(180deg, #ffb040 0%, #e08a14 100%)", "linear-gradient(180deg, #b27cff 0%, #7a3dd9 100%)"];
   const distDots = ["#8b5cf6", "#17a35a", "#3d8dff", "#f0a020", "#b27cff"];
-  const distImgMap = {"HSBC Travel One":`${ASSET_BASE}/cards/HSBC TravelOne Credit Card.png`,"Axis Flipkart":`${ASSET_BASE}/cards/axis-flipkart.png`,"Axis Flipkart Card":`${ASSET_BASE}/cards/axis-flipkart.png`,"HSBC Live+":`${ASSET_BASE}/cards/hsbc-live.png`,"HDFC Diners Black":`${ASSET_BASE}/cards/Diners club  Credit Card.png`};
+  const distImgMap = {"HSBC Travel One":`${ASSET_BASE}/cards/HSBC TravelOne Credit Card.webp`,"Axis Flipkart":`${ASSET_BASE}/cards/axis-flipkart.webp`,"Axis Flipkart Card":`${ASSET_BASE}/cards/axis-flipkart.webp`,"HSBC Live+":`${ASSET_BASE}/cards/hsbc-live.webp`,"HDFC Diners Black":`${ASSET_BASE}/cards/Diners club  Credit Card.webp`};
   const distData = ultimate ? SPEND_DIST_WITH_ULTIMATE : SPEND_DIST_WITHOUT_ULTIMATE;
   const segments = distData.map((d, i) => ({ pct: d.pct, grad: distGrads[i % distGrads.length] }));
   const _cleanName = (n) => (n||"").trim().replace(/\s+credit\s+card$/i,"").replace(/\s+/g," ").trim();
@@ -445,7 +445,7 @@ function SpendsDistribution({ ultimate: ultimateProp, onUltimateChange, onInfoCl
     }
 
     return {
-      cardImg: distImgMap[cn] || distImgMap[d.name] || (isPromo ? (CARD_PROMO?.image || "") : "") || `${ASSET_BASE}/cards/HSBC TravelOne Credit Card.png`,
+      cardImg: distImgMap[cn] || distImgMap[d.name] || (isPromo ? (CARD_PROMO?.image || "") : "") || `${ASSET_BASE}/cards/HSBC TravelOne Credit Card.webp`,
       cardName: cn, dotColor: distDots[i % distDots.length],
       spend: f(d.spend), save: f(d.savings), categories: d.categories,
       highlight: i === 0 && ultimate, crownAfter: i === 0 && ultimate,
@@ -664,9 +664,9 @@ function CardsToUsePanel({ includeUltimate, shownDist, rightLabel = "YOU SPEND" 
       {shown.map((d: any, idx: number) => {
         const isMarket = includeUltimate && norm(d.name) === norm(CARD_PROMO?.name);
         const img = (
-          {"HSBC Travel One":`${ASSET_BASE}/cards/HSBC TravelOne Credit Card.png`,"Axis Flipkart":`${ASSET_BASE}/cards/axis-flipkart.png`,"HSBC Live+":`${ASSET_BASE}/cards/hsbc-live.png`}[d.name]
+          {"HSBC Travel One":`${ASSET_BASE}/cards/HSBC TravelOne Credit Card.webp`,"Axis Flipkart":`${ASSET_BASE}/cards/axis-flipkart.webp`,"HSBC Live+":`${ASSET_BASE}/cards/hsbc-live.webp`}[d.name]
           || (isMarket ? (CARD_PROMO?.image || "") : "")
-          || `${ASSET_BASE}/cards/HSBC TravelOne Credit Card.png`
+          || `${ASSET_BASE}/cards/HSBC TravelOne Credit Card.webp`
         );
         const tone = idx === 0 ? "#17a35a" : "#3d8dff";
         return (
@@ -796,14 +796,14 @@ function HowToSpendTimeline({ includeUltimate, allowedCards, tabKey }: { include
       <div style={{ position: "relative", padding: "4px 16px 20px" }}>
         <div style={{ position: "absolute", left: 16 + 23, top: 46, bottom: 56, width: 0, borderLeft: "1.5px dashed rgba(54,64,96,0.2)" }} />
         {items.map((ob, i) => {
-          const cardImgMap = {"HSBC Travel One":`${ASSET_BASE}/cards/HSBC TravelOne Credit Card.png`,"Axis Flipkart":`${ASSET_BASE}/cards/axis-flipkart.png`,"Axis Flipkart Card":`${ASSET_BASE}/cards/axis-flipkart.png`,"HSBC Live+":`${ASSET_BASE}/cards/hsbc-live.png`};
+          const cardImgMap = {"HSBC Travel One":`${ASSET_BASE}/cards/HSBC TravelOne Credit Card.webp`,"Axis Flipkart":`${ASSET_BASE}/cards/axis-flipkart.webp`,"Axis Flipkart Card":`${ASSET_BASE}/cards/axis-flipkart.webp`,"HSBC Live+":`${ASSET_BASE}/cards/hsbc-live.webp`};
           const isYearly = period === "Yearly";
           const moSpend = Math.round(ob.totalSpend / 12);
           const moSave = Math.round(ob.bestSaved / 12);
           const spend = isYearly ? f(ob.totalSpend) : f(moSpend);
           const save = isYearly ? f(ob.bestSaved) : f(moSave);
           return (<div key={i} style={{ padding: "16px 0" }}>
-            <TLItem cardImg={cardImgMap[ob.bestCard] || `${ASSET_BASE}/cards/HSBC TravelOne Credit Card.png`} title={<>Spend ₹{spend}/{isYearly?"year":"month"}<br /><strong style={{ fontWeight: 600 }}>on {ob.bestCard}</strong></>} subchip={`for ${ob.name}`} saving={save} period={isYearly ? "yr" : "mn"} />
+            <TLItem cardImg={cardImgMap[ob.bestCard] || `${ASSET_BASE}/cards/HSBC TravelOne Credit Card.webp`} title={<>Spend ₹{spend}/{isYearly?"year":"month"}<br /><strong style={{ fontWeight: 600 }}>on {ob.bestCard}</strong></>} subchip={`for ${ob.name}`} saving={save} period={isYearly ? "yr" : "mn"} />
           </div>);
         })}
       </div>

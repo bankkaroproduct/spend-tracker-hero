@@ -90,7 +90,7 @@ function CardYouUsedBlock({ scn, cardName, cardImg, txn }) {
         <div>
           <DashedLine />
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <img src="/legacy-assets/save star.png" alt="" style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }} />
+            <img src="/legacy-assets/save star.webp" alt="" style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }} />
             <div>
               <div style={{ fontSize: 12, fontWeight: 500, color: "#395E36", lineHeight: "170%" }}>
                 {scn.id === "S1" ? `Best card to use for ${txn.brand}` : `Best card in market for ${txn.brand}`}
@@ -135,7 +135,7 @@ function BetterCardInWalletBlock({ scn, txn }) {
         <div>
           <DashedLine />
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <img src="/legacy-assets/save star.png" alt="" style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }} />
+            <img src="/legacy-assets/save star.webp" alt="" style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }} />
             <div>
               <div style={{ fontSize: 12, fontWeight: 500, color: "#395E36", lineHeight: "170%" }}>
                 {showGreenBadge ? `Best card in market for ${txn.brand}` : `Better card for ${txn.brand}`}
@@ -171,7 +171,7 @@ function WorthAddingBlock({ scn, txn, onDetails }) {
         </div>
         <DashedLine color="rgba(173,203,171,0.3)" />
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <img src="/ui/market-badge.png" alt="" style={{ width: 31, height: 37, objectFit: "contain", flexShrink: 0 }} />
+          <img src="/ui/market-badge.webp" alt="" style={{ width: 31, height: 37, objectFit: "contain", flexShrink: 0 }} />
           <div style={{ flex: 1, fontSize: 12, fontWeight: 500, color: "#363B5E", lineHeight: "170%" }}>Best card for {txn.brand} out there</div>
           <div onClick={onDetails} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, color: "#232A42", cursor: "pointer" }}>
             Details <svg width="6" height="10" viewBox="0 0 6 10" fill="none"><path d="M1 1l4 4-4 4" stroke="#232A42" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -188,7 +188,7 @@ export function TxnSheet() {
 
   const cardName = CARD_VIA_MAP[txnSheet.via] || txnSheet.via;
   const cardImg = CARD_IMG_MAP[cardName];
-  const merchantIcon = { "Flipkart": "/brands/flipkart.png", "Amazon": "/brands/amazon.png", "Swiggy": "/brands/swiggy.png", "Zomato": "/brands/zomato.png", "BigBasket": "/brands/bb.png", "Myntra": "/brands/myntra.png", "Adidas": "/brands/adiddas.png", "MuscleBlaze": "/brands/muscle-blaze.png" }[txnSheet.brand];
+  const merchantIcon = { "Flipkart": "/brands/flipkart.webp", "Amazon": "/brands/amazon.webp", "Swiggy": "/brands/swiggy.webp", "Zomato": "/brands/zomato.webp", "BigBasket": "/brands/bb.webp", "Myntra": "/brands/myntra.webp", "Adidas": "/brands/adiddas.webp", "MuscleBlaze": "/brands/muscle-blaze.webp" }[txnSheet.brand];
 
   const scn = getTransactionScenario(txnSheet);
   const bgGrad = SHEET_BG[scn.id] || SHEET_BG.S6;
@@ -274,7 +274,7 @@ export function ActSheet(){
   const isBenefit=actSheet.type==="benefit";
   const cardName=actSheet.title?.match(/on (.+?)( Card)?$/)?.[1]||actSheet._card||actSheet.altCard||"HSBC Travel One";
   const altCard=actSheet.altCard||SIM_BEST_FOR[cardName]||"HSBC Live+";
-  const altImg=CARD_IMG_MAP[altCard]||"/legacy-assets/cards/hsbc-live.png";
+  const altImg=CARD_IMG_MAP[altCard]||"/legacy-assets/cards/hsbc-live.webp";
   const altRateText=typeof actSheet.altRate==="number"
     ? `${Math.round(actSheet.altRate)}% CASHBACK`
     : (SIM_CARD_RATE[altCard] ? fmtBaseRate(altCard) : fmtBaseRate(altCard));
@@ -305,7 +305,7 @@ export function ActSheet(){
     {/* ── Header ── */}
     <div className="txn-stagger txn-s1" style={{display:"flex",alignItems:"center",gap:14,paddingBottom:16,borderBottom:"1px solid #E8F0F1"}}>
       <div style={{position:"relative",width:48,height:48,flexShrink:0}}>
-        <img src="/categories/image 4623.png" alt="" style={{width:48,height:48,objectFit:"contain"}} onError={e=>{e.currentTarget.style.display="none";}}/>
+        <img src="/categories/image 4623.webp" alt="" style={{width:48,height:48,objectFit:"contain"}} onError={e=>{e.currentTarget.style.display="none";}}/>
         {isFee&&<div style={{position:"absolute",bottom:-2,right:-2,width:18,height:18,borderRadius:"50%",background:"#059669",border:"2px solid #fff",display:"flex",alignItems:"center",justifyContent:"center"}}><Check size={10} color="#fff" strokeWidth={3}/></div>}
       </div>
       <div style={{flex:1}}>
@@ -322,11 +322,11 @@ export function ActSheet(){
 
       <div className="txn-stagger txn-s3" style={{marginBottom:20}}>
         <div style={{fontSize:10,fontWeight:700,color:"#364060",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:14}}>Best Categories to Spend</div>
-        <ActCategoryCard icon="/categories/dining.png" name="Dining" rate="5%"/>
+        <ActCategoryCard icon="/categories/dining.webp" name="Dining" rate="5%"/>
         <div style={{height:0,borderBottom:"1px dashed rgba(0,0,0,0.06)"}}/>
-        <ActCategoryCard icon="/categories/groceries.png" name="Groceries" rate="3%"/>
+        <ActCategoryCard icon="/categories/groceries.webp" name="Groceries" rate="3%"/>
         <div style={{height:0,borderBottom:"1px dashed rgba(0,0,0,0.06)"}}/>
-        <ActCategoryCard icon="/categories/shopping.png" name="Online Shopping" rate="2%"/>
+        <ActCategoryCard icon="/categories/shopping.webp" name="Online Shopping" rate="2%"/>
       </div>
 
       <div className="txn-stagger txn-s4">
@@ -603,7 +603,7 @@ export function CapBS(){
 }
 
 const CAT_COLORS={"Shopping":"#E7DCFF","Groceries":"#FFE8DC","Food Ordering":"#FFDFDC","Travel":"#D9FFF9","Insurance":"#D6FFE8","Fuel":"#FFE0D0","Entertainment":"#DCE7FF","Bills":"#FFF3D6","Cab Rides":"#E0F0FF","Health":"#FFD6E8","Dining":"#FFE8DC","Recharge":"#E0EEFF"};
-const CAT_IMG={"Shopping":"/categories/shopping.png","Groceries":"/categories/groceries.png","Food Ordering":"/categories/food.png","Travel":"/categories/travel.png","Bills":"/categories/bills.png","Fuel":"/categories/fuel.png","Dining":"/categories/dining.png","Entertainment":"/categories/entertainment.png","Cab Rides":"/categories/cab.png","Insurance":"/categories/groceries.png","Health":"/categories/groceries.png","Recharge":"/categories/bills.png"};
+const CAT_IMG={"Shopping":"/categories/shopping.webp","Groceries":"/categories/groceries.webp","Food Ordering":"/categories/food.webp","Travel":"/categories/travel.webp","Bills":"/categories/bills.webp","Fuel":"/categories/fuel.webp","Dining":"/categories/dining.webp","Entertainment":"/categories/entertainment.webp","Cab Rides":"/categories/cab.webp","Insurance":"/categories/groceries.webp","Health":"/categories/groceries.webp","Recharge":"/categories/bills.webp"};
 
 export function CatBS(){
   const {catSheet,setCatSheet,catStep,setCatStep,selCat,setSelCat,setRemovedTxns,setToast,setTxnCatOverride}=useAppContext();
@@ -660,7 +660,7 @@ export function CatBS(){
         </div>
         <input type="text" placeholder="Search Brand name" style={{width:"100%",padding:"12px 16px",borderRadius:8,border:"1px solid #D3E4FA",background:"#fff",fontSize:14,fontWeight:400,color:C.text,outline:"none",boxSizing:"border-box",marginBottom:16,fontFamily:"inherit",lineHeight:"145%",letterSpacing:"0.02em"}}/>
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"18px 12px"}}>
-          {(BRAND_MAP[selCat]||["Other"]).map(b=>{const brandImg={"Flipkart":"/brands/flipkart.png","Amazon":"/brands/amazon.png","Myntra":"/brands/myntra.png","Swiggy":"/brands/swiggy.png","Zomato":"/brands/zomato.png","BigBasket":"/brands/bb.png","Adidas":"/brands/adiddas.png","MuscleBlaze":"/brands/muscle-blaze.png"}[b];return(<div key={b} onClick={()=>{const idx=ALL_TXNS.indexOf(catSheet);applyOverride(idx,{brand:b,icon:"🏷️",unaccounted:false,manuallyTagged:true,tag:"Best card for this brand",tagColor:C.dkGreen,tagBg:"#EAF3DE",saved:Math.round(catSheet.amt*(SIM_CARD_RATE[SIM_BEST_FOR[b]]?.[b]||SIM_CARD_BASE_RATE[SIM_BEST_FOR[b]]||0)/100),missed:null,cat:selCat});close();setToast("✓ Tagged as "+b);}} style={{width:101,borderRadius:16,border:"1.31px solid #E2E8EF",background:"#FCFCFC",boxShadow:"0 2px 8px rgba(0,0,0,0.08)",padding:4,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+          {(BRAND_MAP[selCat]||["Other"]).map(b=>{const brandImg={"Flipkart":"/brands/flipkart.webp","Amazon":"/brands/amazon.webp","Myntra":"/brands/myntra.webp","Swiggy":"/brands/swiggy.webp","Zomato":"/brands/zomato.webp","BigBasket":"/brands/bb.webp","Adidas":"/brands/adiddas.webp","MuscleBlaze":"/brands/muscle-blaze.webp"}[b];return(<div key={b} onClick={()=>{const idx=ALL_TXNS.indexOf(catSheet);applyOverride(idx,{brand:b,icon:"🏷️",unaccounted:false,manuallyTagged:true,tag:"Best card for this brand",tagColor:C.dkGreen,tagBg:"#EAF3DE",saved:Math.round(catSheet.amt*(SIM_CARD_RATE[SIM_BEST_FOR[b]]?.[b]||SIM_CARD_BASE_RATE[SIM_BEST_FOR[b]]||0)/100),missed:null,cat:selCat});close();setToast("✓ Tagged as "+b);}} style={{width:101,borderRadius:16,border:"1.31px solid #E2E8EF",background:"#FCFCFC",boxShadow:"0 2px 8px rgba(0,0,0,0.08)",padding:4,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
               <div style={{width:93,height:69,borderRadius:14,background:"#F5F5F5",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
                 {brandImg?<img src={brandImg} alt={b} style={{width:55,height:55,objectFit:"contain"}}/>:<div style={{fontSize:24,fontWeight:700,color:"rgba(54,64,96,0.7)"}}>{b.charAt(0)}</div>}
               </div>

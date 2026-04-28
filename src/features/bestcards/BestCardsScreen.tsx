@@ -322,13 +322,13 @@ export const BestCardsScreen = () => {
     <Toast/></div>);}
 
     const BC_IMG_MAP:Record<string,string>={
-      "HDFC Infinia":"/legacy-assets/cards/hdfc-infinia.png",
-      "Amex MRCC":"/legacy-assets/cards/amex-platinum-travel.png",
-      "Flipkart Axis":"/legacy-assets/cards/axis-flipkart.png",
-      "ICICI Sapphiro":"/legacy-assets/cards/icici-emeralde.png",
-      "SBI Aurum":"/legacy-assets/cards/sbi-miles.png",
-      "IDFC First Classic":"/legacy-assets/cards/idfc-select.png",
-      "AU Lit":"/legacy-assets/cards/AU-Zenith.png",
+      "HDFC Infinia":"/legacy-assets/cards/hdfc-infinia.webp",
+      "Amex MRCC":"/legacy-assets/cards/amex-platinum-travel.webp",
+      "Flipkart Axis":"/legacy-assets/cards/axis-flipkart.webp",
+      "ICICI Sapphiro":"/legacy-assets/cards/icici-emeralde.webp",
+      "SBI Aurum":"/legacy-assets/cards/sbi-miles.webp",
+      "IDFC First Classic":"/legacy-assets/cards/idfc-select.webp",
+      "AU Lit":"/legacy-assets/cards/AU-Zenith.webp",
     };
     const getCardImg=(card:any)=>BC_IMG_MAP[card.name]||card.image||card.card_bg_image||null;
 
@@ -336,7 +336,7 @@ export const BestCardsScreen = () => {
     return(<div style={{fontFamily:FN,maxWidth:400,margin:"0 auto",height:"100vh",display:"flex",flexDirection:"column",position:"relative"}}><div data-scroll="1" style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",background:"#F4F9FA",paddingBottom:24}}><div key="bestcards" className="slide-in"><FL/>
 
       {/* ── HEADER — bg image holds the green frame, title, and coins ── */}
-      <div style={{backgroundImage:"url('/cdn/best-cards-bg.png')",backgroundSize:"cover",backgroundPosition:"center",backgroundColor:"#0B2D1C",position:"relative",overflow:"hidden",height:348,boxSizing:"border-box"}}>
+      <div style={{backgroundImage:"url('/cdn/best-cards-bg.webp')",backgroundSize:"cover",backgroundPosition:"center",backgroundColor:"#0B2D1C",position:"relative",overflow:"hidden",height:348,boxSizing:"border-box"}}>
         {/* Back arrow */}
         <div onClick={()=>setScreen(bcFromScreen||"home")} style={{position:"absolute",top:57.5,left:16,width:24,height:24,cursor:"pointer",zIndex:3}}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path fillRule="evenodd" clipRule="evenodd" d="M8.70703 5.29286C9.09753 4.90236 9.73056 4.90241 10.1211 5.29286C10.5116 5.68338 10.5116 6.31639 10.1211 6.70692L5.82812 10.9999H20.4141C20.9663 10.9999 21.4141 11.4476 21.4141 11.9999C21.4141 12.5522 20.9663 12.9999 20.4141 12.9999H5.82812L10.1211 17.2929C10.5116 17.6834 10.5116 18.3164 10.1211 18.7069C9.73056 19.0974 9.09753 19.0974 8.70703 18.7069L2 11.9999L8.70703 5.29286Z" fill="white"/></svg>
@@ -526,7 +526,7 @@ export const BestCardsScreen = () => {
 
             {/* Combine banner — gradient bg, Blacklist save text */}
             <div style={{margin:"0 12px 12px",padding:"16px 12px",borderRadius:8,border:"1px solid #E2FAEF",background:"linear-gradient(0deg, #E1FAEF 0%, #F4FDF9 100%)",display:"flex",alignItems:"center",gap:10}}>
-              <img src="/legacy-assets/save star.png" alt="" style={{width:35,height:37,objectFit:"contain",flexShrink:0}}/>
+              <img src="/legacy-assets/save star.webp" alt="" style={{width:35,height:37,objectFit:"contain",flexShrink:0}}/>
               <div style={{display:"flex",flexDirection:"column",justifyContent:"center",gap:6}}>
                 <span style={{fontFamily:FN,fontSize:11,fontWeight:400,lineHeight:"155%",color:"#808387"}}>Combine with your cards &amp;</span>
                 <span className="legacy-serif" style={{fontFamily:"'Blacklist','Google Sans',serif",fontSize:18,fontWeight:800,lineHeight:"120%",letterSpacing:"0.02em",background:"linear-gradient(180deg, #17B226 10.83%, #0A4C10 80%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>Save ₹{f(bc.combined)}/yr</span>
@@ -577,7 +577,7 @@ export const BestCardsScreen = () => {
         const sel = portfolioNew || [];
         const remaining = 3 - sel.length;
         const PORTFOLIO_CARD_IMG: Record<string,string> = {
-          "Axis Flipkart":"/legacy-assets/cards/axis-flipkart.png","HSBC Travel One":"/legacy-assets/cards/hsbc-travel-one.png","HSBC Live+":"/legacy-assets/cards/hsbc-live.png","HDFC Infinia":"/legacy-assets/cards/hdfc-infinia.png","IDFC First Select":"/legacy-assets/cards/idfc select.png","Amex Travel Platinum":"/legacy-assets/cards/amex-platinum-travel.png","American Express Travel Platinum":"/legacy-assets/cards/amex-platinum-travel.png","AU Zenith":"/legacy-assets/cards/AU-Zenith.png","ICICI Emeralde":"/legacy-assets/cards/icici-emeralde.png","SBI Miles":"/legacy-assets/cards/sbi-miles.png","HDFC Swiggy":"/legacy-assets/cards/Hdfc swiggy.png"
+          "Axis Flipkart":"/legacy-assets/cards/axis-flipkart.webp","HSBC Travel One":"/legacy-assets/cards/hsbc-travel-one.webp","HSBC Live+":"/legacy-assets/cards/hsbc-live.webp","HDFC Infinia":"/legacy-assets/cards/hdfc-infinia.webp","IDFC First Select":"/legacy-assets/cards/idfc select.webp","Amex Travel Platinum":"/legacy-assets/cards/amex-platinum-travel.webp","American Express Travel Platinum":"/legacy-assets/cards/amex-platinum-travel.webp","AU Zenith":"/legacy-assets/cards/AU-Zenith.webp","ICICI Emeralde":"/legacy-assets/cards/icici-emeralde.webp","SBI Miles":"/legacy-assets/cards/sbi-miles.webp","HDFC Swiggy":"/legacy-assets/cards/Hdfc swiggy.webp"
         };
         // Always render 3 slots — placeholders for empty, actual cards filling from the bottom (newest at bottom).
         const slots = [0, 1, 2].map(i => {

@@ -18,23 +18,23 @@ import React, { useState, useRef, useEffect } from "react";
 const DTABS=["Card Analysis","Transactions","Benefits","Fees"];
 
 const CAT_ICONS={
-  "Shopping":"/categories/shopping.png",
-  "Groceries":"/categories/groceries.png",
-  "Bills":"/categories/bills.png",
-  "Fuel":"/categories/fuel.png",
-  "Travel":"/categories/travel.png",
-  "Dining":"/categories/dining.png",
-  "Food Ordering":"/categories/food.png",
-  "Entertainment":"/categories/entertainment.png",
-  "Cab Rides":"/categories/cab.png",
-  "Flipkart":"/brands/flipkart.png",
-  "Amazon":"/brands/amazon.png",
-  "Swiggy":"/brands/swiggy.png",
-  "Zomato":"/brands/zomato.png",
-  "BigBasket":"/brands/bb.png",
-  "Myntra":"/brands/myntra.png",
-  "Adidas":"/brands/adiddas.png",
-  "MuscleBlaze":"/brands/muscle-blaze.png",
+  "Shopping":"/categories/shopping.webp",
+  "Groceries":"/categories/groceries.webp",
+  "Bills":"/categories/bills.webp",
+  "Fuel":"/categories/fuel.webp",
+  "Travel":"/categories/travel.webp",
+  "Dining":"/categories/dining.webp",
+  "Food Ordering":"/categories/food.webp",
+  "Entertainment":"/categories/entertainment.webp",
+  "Cab Rides":"/categories/cab.webp",
+  "Flipkart":"/brands/flipkart.webp",
+  "Amazon":"/brands/amazon.webp",
+  "Swiggy":"/brands/swiggy.webp",
+  "Zomato":"/brands/zomato.webp",
+  "BigBasket":"/brands/bb.webp",
+  "Myntra":"/brands/myntra.webp",
+  "Adidas":"/brands/adiddas.webp",
+  "MuscleBlaze":"/brands/muscle-blaze.webp",
 };
 
 function CardImg({ src }: { src: string }) {
@@ -112,9 +112,9 @@ export function CardDetailScreen(){
 
   const uc=CARDS[ci];const cd=CD[ci];const sc=SEMI_CARDS[ci];
   const cardArtByIndex=[
-    "/legacy-assets/cards/hsbc-travel-one.png",
-    "/legacy-assets/cards/axis-flipkart.png",
-    "/legacy-assets/cards/hsbc-live.png"
+    "/legacy-assets/cards/hsbc-travel-one.webp",
+    "/legacy-assets/cards/axis-flipkart.webp",
+    "/legacy-assets/cards/hsbc-live.webp"
   ];
   const ud=usageCat==="Brands"?cd.brands:cd.categories;
   const su=[...ud].sort((a,b)=>b.saved-a.saved);

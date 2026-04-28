@@ -21,15 +21,15 @@ import { useAppContext } from "@/store/AppContext";
  */
 
 const CARD_IMGS = [
-  "/legacy-assets/cards/axis-flipkart.png",
-  "/legacy-assets/cards/hsbc-travel-one.png",
-  "/legacy-assets/cards/hsbc-live.png",
+  "/legacy-assets/cards/axis-flipkart.webp",
+  "/legacy-assets/cards/hsbc-travel-one.webp",
+  "/legacy-assets/cards/hsbc-live.webp",
 ];
 
 const TXNS = [
   {
     brand: "Flipkart",
-    icon: "/brands/flipkart.png",
+    icon: "/brands/flipkart.webp",
     fallbackBg: "#FFC500",
     fallbackInitial: "f",
     card: "Axis Flipkart",
@@ -45,7 +45,7 @@ const TXNS = [
   },
   {
     brand: "Swiggy",
-    icon: "/brands/swiggy.png",
+    icon: "/brands/swiggy.webp",
     fallbackBg: "#FC8019",
     fallbackInitial: "s",
     card: "HSBC Live +",
@@ -61,7 +61,7 @@ const TXNS = [
   },
   {
     brand: "BigBasket",
-    icon: "/brands/bb.png",
+    icon: "/brands/bb.webp",
     fallbackBg: "#84B135",
     fallbackInitial: "b",
     card: "via UPI",

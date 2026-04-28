@@ -12,7 +12,7 @@ import "@/features/legacy/legacy.css";
 
 // ─── Brand mark for list rows ───
 function BrandIcon({ brand }: { brand: string }) {
-  if (brand === "axis") return <img src="/legacy-assets/opt/axis-logo-a.png" alt="Axis" style={{ width: 22, height: 22, objectFit: "contain" }} />;
+  if (brand === "axis") return <img src="/legacy-assets/opt/axis-logo-a.webp" alt="Axis" style={{ width: 22, height: 22, objectFit: "contain" }} />;
   if (brand === "hdfc") return (
     <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", background: "#004B87", width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%" }}>D</div>
   );
@@ -28,9 +28,9 @@ function BrandIcon({ brand }: { brand: string }) {
 
 // ─── Card art map (used by some sheet headers — per Figma "Credit Limit" shows the card) ───
 const CARD_ART: Record<string, string> = {
-  axis: "/legacy-assets/cards/axis-flipkart.png",
-  hsbc: "/legacy-assets/cards/hsbc-travel-one.png",
-  hdfc: "/legacy-assets/cards/hdfc-infinia.png",
+  axis: "/legacy-assets/cards/axis-flipkart.webp",
+  hsbc: "/legacy-assets/cards/hsbc-travel-one.webp",
+  hdfc: "/legacy-assets/cards/hdfc-infinia.webp",
 };
 
 // ─── Hero icon for sheet header (3D-style 60×60 lockups) ───
@@ -48,7 +48,7 @@ function HeroIcon({ kind }: { kind: string }) {
   );
   if (kind === "gift") return (
     <div style={{ position: "relative", width: 60, height: 60 }}>
-      <img src="/legacy-assets/opt/0e60286a81e4.png" alt="" style={{ width: 60, height: 60, objectFit: "contain" }}/>
+      <img src="/legacy-assets/opt/0e60286a81e4.webp" alt="" style={{ width: 60, height: 60, objectFit: "contain" }}/>
       <div style={{ position: "absolute", right: -2, bottom: -2, width: 22, height: 22, borderRadius: 6, background: "#FEF3C7", border: "1.5px solid #fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L22 20H2L12 2Z" stroke="#F79A18" strokeWidth="2" fill="#FEF3C7" strokeLinejoin="round"/><path d="M12 9V13" stroke="#F79A18" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="16" r="1" fill="#F79A18"/></svg>
       </div>

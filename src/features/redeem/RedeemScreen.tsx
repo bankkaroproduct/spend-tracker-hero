@@ -161,7 +161,7 @@ export const RedeemScreen = () => {
       {/* ── ORB + CARD ── */}
       <div style={{padding:"0 16px 28px",marginTop:-100,position:"relative"}}>
         <div style={{display:"flex",justifyContent:"center",marginBottom:-41,position:"relative",zIndex:2}}>
-          <img src="/legacy-assets/Frame 1991634521.png" alt="" style={{width:82,height:82,objectFit:"contain",filter:"drop-shadow(0 8px 24px rgba(174,60,255,0.35))"}}/>
+          <img src="/legacy-assets/Frame 1991634521.webp" alt="" style={{width:82,height:82,objectFit:"contain",filter:"drop-shadow(0 8px 24px rgba(174,60,255,0.35))"}}/>
         </div>
         <div style={{background:"#fff",border:"1px solid #E8F0F1",borderRadius:10,boxShadow:"0 2px 8px rgba(0,0,0,0.08)",paddingTop:52,position:"relative",overflow:"hidden"}}>
           <div style={{textAlign:"center",padding:"0 20px"}}>
@@ -201,7 +201,7 @@ export const RedeemScreen = () => {
           {stepsArr.map((step,si)=>(<div key={si} style={{display:"flex",gap:9,alignItems:"flex-start",animation:`htrIn 0.45s ease-out ${si*0.13}s both`}}>
             <div style={{display:"flex",flexDirection:"column",alignItems:"center",flexShrink:0,width:42}}>
               <div style={{width:42,height:42,position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                <img src="/ui/progress-indicator.png" alt="" style={{width:42,height:42,position:"absolute",top:0,left:0,animation:`htrPop 0.6s ease-out ${si*0.15}s both, htrGlow 2.5s ease-in-out ${1+si*0.5}s infinite`}}/>
+                <img src="/ui/progress-indicator.webp" alt="" style={{width:42,height:42,position:"absolute",top:0,left:0,animation:`htrPop 0.6s ease-out ${si*0.15}s both, htrGlow 2.5s ease-in-out ${1+si*0.5}s infinite`}}/>
                 <span style={{position:"relative",zIndex:1,fontSize:12,fontWeight:500,color:"#4A5370",animation:`htrNum 0.4s ease-out ${0.2+si*0.15}s both`}}>{si+1}</span>
               </div>
               {si<stepsArr.length-1&&<div style={{width:2,height:22,background:"#DEECF5",borderRadius:90,transformOrigin:"top",animation:`htrLine 0.35s ease-out ${0.35+si*0.15}s both`}}/>}

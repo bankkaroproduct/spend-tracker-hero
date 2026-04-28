@@ -64,18 +64,18 @@ const axisCaps = selectOwnedCardDetailMetrics(1)?.limits?.caps || [];
 // 3D PNG icons used as the round hero badge in the sheet header.
 // We pick existing 3D assets that match the visual style of the Figma mocks.
 export const HOOK_ICON: Record<string, string> = {
-  CL1: "/legacy-assets/opt/0e60286a81e4.png", // gauge/gift fallback — overridden by emoji-style svg in screen
-  C1:  "/legacy-assets/opt/0e60286a81e4.png", // gift box w/ warning badge
-  C3:  "/legacy-assets/opt/0e60286a81e4.png",
-  C2:  "/legacy-assets/opt/0e60286a81e4.png",
-  F1:  "/categories/bills.png",                // receipt
-  F4:  "/categories/bills.png",
-  M1:  "/categories/milestones.png",           // podium/star
-  B4a: "/categories/bills.png",
-  B4b: "/categories/bills.png",
-  B4c: "/categories/bills.png",
-  B3:  "/categories/bills.png",
-  P1:  "/legacy-assets/opt/0e60286a81e4.png",
+  CL1: "/legacy-assets/opt/0e60286a81e4.webp", // gauge/gift fallback — overridden by emoji-style svg in screen
+  C1:  "/legacy-assets/opt/0e60286a81e4.webp", // gift box w/ warning badge
+  C3:  "/legacy-assets/opt/0e60286a81e4.webp",
+  C2:  "/legacy-assets/opt/0e60286a81e4.webp",
+  F1:  "/categories/bills.webp",                // receipt
+  F4:  "/categories/bills.webp",
+  M1:  "/categories/milestones.webp",           // podium/star
+  B4a: "/categories/bills.webp",
+  B4b: "/categories/bills.webp",
+  B4c: "/categories/bills.webp",
+  B3:  "/categories/bills.webp",
+  P1:  "/legacy-assets/opt/0e60286a81e4.webp",
 };
 
 export const CONSIDER_HOOKS: any[] = [
@@ -215,7 +215,7 @@ export const CONSIDER_HOOKS: any[] = [
       },
       sectionLabel: "Best Alternatives",
       alternatives: [
-        { cardImg: "/legacy-assets/cards/sbi-miles.png", cardName: "Axis Atlas", rate: "5x on travel" },
+        { cardImg: "/legacy-assets/cards/sbi-miles.webp", cardName: "Axis Atlas", rate: "5x on travel" },
       ],
       primaryCta: "See alternatives on savings finder",
     },
@@ -240,8 +240,8 @@ export const CONSIDER_HOOKS: any[] = [
       },
       sectionLabel: "Best Categories to Spend",
       categories: [
-        { img: "/categories/shopping.png", name: "Dining", rate: "Best Reward Rate - 5%" },
-        { img: "/categories/groceries.png", name: "Groceries", rate: "Best Reward Rate - 5%" },
+        { img: "/categories/shopping.webp", name: "Dining", rate: "Best Reward Rate - 5%" },
+        { img: "/categories/groceries.webp", name: "Groceries", rate: "Best Reward Rate - 5%" },
       ],
       details: [
         { q: "What is a Fee Waiver", a: "A fee waiver is when the bank cancels your annual fee — usually because you spent enough on the card to 'earn' it back. The clock starts on your card anniversary (15 June for this card). Cross the threshold and the renewal fee is reversed automatically. Most cards exclude fuel, rent, and wallet loads from spend counted toward the waiver." },

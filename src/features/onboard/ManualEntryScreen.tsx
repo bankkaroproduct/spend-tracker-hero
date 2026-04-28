@@ -24,15 +24,15 @@ const CARD_LIBRARY: Record<string, CardOption[]> = {
   Axis: [
     { id: "axis-ace",     name: "Axis Ace",     tone: "linear-gradient(270deg, #6F4DA0 40.69%, #2A1740 100%)" },
     { id: "axis-airtel",  name: "Axis Airtel",  tone: "linear-gradient(270deg, #B41E2B 40.69%, #2C0808 100%)" },
-    { id: "axis-flipkart", name: "Axis Flipkart", tone: "linear-gradient(270deg, #0D0D0D 40.69%, #00C4FF 100%)", img: "/legacy-assets/cards/axis-flipkart.png" },
+    { id: "axis-flipkart", name: "Axis Flipkart", tone: "linear-gradient(270deg, #0D0D0D 40.69%, #00C4FF 100%)", img: "/legacy-assets/cards/axis-flipkart.webp" },
     { id: "axis-iocl",    name: "Axis IOCL",    tone: "linear-gradient(270deg, #C2403F 40.69%, #2A0A0A 100%)" },
     { id: "axis-magnus",  name: "Axis Magnus",  tone: "linear-gradient(270deg, #1A1A1A 40.69%, #6E2A38 100%)" },
     { id: "axis-neo",     name: "Axis Neo",     tone: "linear-gradient(270deg, #1A1A2E 40.69%, #0F0F1F 100%)" },
     { id: "axis-reserve", name: "Axis Reserve", tone: "linear-gradient(270deg, #2A1810 40.69%, #0E0805 100%)" },
   ],
   HSBC: [
-    { id: "hsbc-liveplus", name: "HSBC Live+",       tone: "linear-gradient(270deg, #C2233A 40.69%, #4F77B5 100%)", img: "/legacy-assets/cards/hsbc-live.png" },
-    { id: "hsbc-travel",   name: "HSBC Travel One",  tone: "linear-gradient(270deg, #1A1A1A 40.69%, #0E0E0E 100%)", img: "/legacy-assets/cards/hsbc-travel-one.png" },
+    { id: "hsbc-liveplus", name: "HSBC Live+",       tone: "linear-gradient(270deg, #C2233A 40.69%, #4F77B5 100%)", img: "/legacy-assets/cards/hsbc-live.webp" },
+    { id: "hsbc-travel",   name: "HSBC Travel One",  tone: "linear-gradient(270deg, #1A1A1A 40.69%, #0E0E0E 100%)", img: "/legacy-assets/cards/hsbc-travel-one.webp" },
     { id: "hsbc-cashback", name: "HSBC Cashback",    tone: "linear-gradient(270deg, #4A4A4A 40.69%, #1F1F1F 100%)" },
     { id: "hsbc-premiere", name: "HSBC Premiere",    tone: "linear-gradient(270deg, #6E5A8C 40.69%, #3B2D54 100%)" },
     { id: "hsbc-platinum", name: "HSBC Platinum",    tone: "linear-gradient(270deg, #C7CCD3 40.69%, #7B838D 100%)" },

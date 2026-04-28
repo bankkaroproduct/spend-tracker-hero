@@ -58,7 +58,7 @@ export const CalcScreen = () => {
     setHowExpanded(null);
   };
 
-  const brandImgMap: Record<string,string>={"Amazon":"/brands/amazon.png","Flipkart":"/brands/flipkart.png","Myntra":"/brands/myntra.png","Swiggy":"/brands/swiggy.png","Zomato":"/brands/zomato.png","BigBasket":"/brands/bb.png","Adidas":"/brands/adiddas.png","MuscleBlaze":"/brands/muscle-blaze.png"};
+  const brandImgMap: Record<string,string>={"Amazon":"/brands/amazon.webp","Flipkart":"/brands/flipkart.webp","Myntra":"/brands/myntra.webp","Swiggy":"/brands/swiggy.webp","Zomato":"/brands/zomato.webp","BigBasket":"/brands/bb.webp","Adidas":"/brands/adiddas.webp","MuscleBlaze":"/brands/muscle-blaze.webp"};
 
   /* Results page */
   if (calcResult) {
@@ -628,7 +628,7 @@ export const CalcScreen = () => {
           <div style={{ padding: "14px 16px 22px" }}>
             <button type="button" style={{ width: "100%", height: 48.51, borderRadius: 10.17, border: "none", background: "linear-gradient(90deg, #222941 0%, #101C43 100%)", padding: "15.26px 20.34px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8.48, boxShadow: CASHKARO_CTA_SHADOW, cursor: "pointer", fontFamily: FN }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: "#E8E8E8", lineHeight: "18px" }}>Shop on Flipkart via</span>
-              <img src="/legacy-assets/Cashkaro.png" alt="CashKaro" style={{ height: 10, objectFit: "contain", display: "block" }} />
+              <img src="/legacy-assets/Cashkaro.webp" alt="CashKaro" style={{ height: 10, objectFit: "contain", display: "block" }} />
               <svg width="7" height="12" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
           </div>

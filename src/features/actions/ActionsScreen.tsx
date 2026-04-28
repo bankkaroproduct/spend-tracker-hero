@@ -37,7 +37,7 @@ function HsbcLogo() {
 }
 
 function AxisLogo() {
-  return <img src="/legacy-assets/opt/axis-logo-a.png" alt="Axis" style={{ width: 24, height: 24, objectFit: "contain" }} />;
+  return <img src="/legacy-assets/opt/axis-logo-a.webp" alt="Axis" style={{ width: 24, height: 24, objectFit: "contain" }} />;
 }
 
 export const ActionsScreen = () => {
