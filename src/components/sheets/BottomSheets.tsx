@@ -43,140 +43,221 @@ const TxnSheetAnims=()=>(<style>{`
 .txn-sheet-panel button:active{transform:scale(0.97);transition:transform 100ms ease-out}
 `}</style>);
 
-export function TxnSheet(){
-  const {txnSheet,setTxnSheet,setScreen}=useAppContext();
-  if(!txnSheet)return null;
-  const cardName=CARD_VIA_MAP[txnSheet.via]||txnSheet.via;
-  const cardImg=CARD_IMG_MAP[cardName];
-  const bestCard=SIM_BEST_FOR[txnSheet.brand]||"Axis Flipkart";
-  const isBest=cardName===bestCard||(txnSheet.tag==="Best card for this brand");
-  const merchantIcon={"Flipkart":"/brands/flipkart.png","Amazon":"/brands/amazon.png","Swiggy":"/brands/swiggy.png","Zomato":"/brands/zomato.png","BigBasket":"/brands/bb.png","Myntra":"/brands/myntra.png","Adidas":"/brands/adiddas.png","MuscleBlaze":"/brands/muscle-blaze.png"}[txnSheet.brand];
-  const bestCardImg=CARD_IMG_MAP[bestCard];
-  const bestCardRate=fmtRate(bestCard,txnSheet.brand);
-  const _mb=SIM_MARKET_BEST[txnSheet.brand];const market=_mb?{name:_mb.name,rate:Math.round(_mb.rate)+"% CASHBACK",img:_mb.img||"/legacy-assets/cards/hdfc-infinia.png"}:null;
-  const isUPI=txnSheet.via==="UPI";
-  const noReward=!isBest&&!isUPI&&(txnSheet.saved===0||txnSheet.saved===null)&&!txnSheet.missed;
-  const walletHasBetter=!isBest&&!isUPI&&!noReward;
-  const couldSaveWallet=Math.round(txnSheet.missed||computeTxnMissed(txnSheet));
-  const couldSaveMarket=Math.round(computeTxnMarketDelta(txnSheet));
-  const bgGrad=isBest?"linear-gradient(44.22deg, #FFFFFF 64.77%, #FFF4DC 93.92%)":noReward?"linear-gradient(44.22deg, #FFFFFF 64.77%, #FFE4DC 93.92%)":"linear-gradient(44.22deg, #FFFFFF 64.77%, #FDF2E9 93.92%)";
+// Bottom-sheet section helpers — render scenario-driven blocks
+const SHEET_BG: Record<string, string> = {
+  S1: "linear-gradient(44.22deg, #FFFFFF 64.77%, #FFF4DC 93.92%)",
+  S2: "linear-gradient(44.22deg, #FFFFFF 64.77%, #FFF4DC 93.92%)",
+  S3: "linear-gradient(44.22deg, #FFFFFF 64.77%, #FDF2E9 93.92%)",
+  S4: "linear-gradient(44.22deg, #FFFFFF 64.77%, #FFE4DC 93.92%)",
+  S5a: "linear-gradient(44.22deg, #FFFFFF 64.77%, #FDF2E9 93.92%)",
+  S5b: "linear-gradient(44.22deg, #FFFFFF 64.77%, #FDF2E9 93.92%)",
+  S5c: "linear-gradient(44.22deg, #FFFFFF 64.77%, #FFE4DC 93.92%)",
+  S6: "#FFFFFF",
+};
 
-  const header=(<>
-    <div style={{width:36,height:4,borderRadius:2,background:"rgba(0,0,0,0.1)",margin:"0 auto 20px"}}/>
-    <div style={{display:"flex",alignItems:"center",gap:14,padding:"0 4px",marginBottom:20}}>
-      {merchantIcon?<img src={merchantIcon} alt="" style={{width:65,height:57,borderRadius:8,objectFit:"contain",flexShrink:0}}/>:<div style={{width:65,height:57,borderRadius:8,border:"1px solid #EDEDED",background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:22}}>{txnSheet.icon}</div>}
-      <div style={{flex:1}}>
-        <div style={{fontSize:14,fontWeight:600,color:"#36405E",lineHeight:"17px"}}>{txnSheet.brand}</div>
-        <div style={{fontSize:11,fontWeight:500,color:"#808387",lineHeight:"140%",marginTop:6}}>{txnSheet.date}</div>
+function CardYouUsedBlock({ scn, cardName, cardImg, txn }) {
+  if (scn.isUPI) {
+    return (
+      <div className="txn-stagger txn-s2" style={{ borderRadius: 6, border: "1px solid rgba(0,0,0,0.05)", background: "rgba(237,237,237,0.2)", padding: "14px 16px", marginBottom: 20, fontSize: 12, fontWeight: 500, color: "#364060", lineHeight: "154%" }}>
+        {`You've used UPI for this transaction. No rewards earned`}
       </div>
-      <YouSpentBadge amt={txnSheet.amt}/>
-    </div>
-    <div style={{height:0,borderBottom:"1px solid rgba(5,34,73,0.15)",margin:"0 0 20px"}}/>
-  </>);
-
-  if(isBest) return(<div className="txn-sheet-overlay" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:100}} onClick={e=>{if(e.target===e.currentTarget)setTxnSheet(null);}}>
-    <TxnSheetAnims/>
-    <div className="txn-sheet-panel" style={{background:bgGrad,borderRadius:"24px 24px 0 0",padding:"16px 16px 32px",maxWidth:400,width:"100%",maxHeight:"85vh",boxShadow:"0 20px 60px rgba(0,0,0,0.12)",overflowY:"auto"}}>
-      <div className="txn-stagger txn-s1">{header}</div>
-      <div className="txn-stagger txn-s2"><SectionLabel text="Card you used"/></div>
-      <div className="txn-stagger txn-s3" style={{borderRadius:8,border:"1px solid #CFF3CE",background:"rgba(218,255,217,0.2)",padding:14,marginBottom:24}}>
-        <div style={{display:"flex",alignItems:"center",gap:14}}>
-          {cardImg&&<img src={cardImg} alt="" style={cardImgStyle}/>}
-          <div style={{flex:1}}>
-            <div style={{fontSize:14,fontWeight:500,color:"#36405E",lineHeight:"18px"}}>{cardName}</div>
-            <div style={{fontSize:9,fontWeight:700,color:"#68A250",letterSpacing:"0.1em",textTransform:"uppercase",lineHeight:"120%",marginTop:4}}>{fmtRate(cardName,txnSheet.brand)}</div>
-          </div>
-          <div style={{textAlign:"right"}}>
-            <div style={{fontSize:11,fontWeight:400,color:"#808387",lineHeight:"155%",textAlign:"right"}}>Saved</div>
-            <div style={{fontSize:14,fontWeight:600,color:"#008846",lineHeight:"140%",letterSpacing:"0.01em",textAlign:"right",marginTop:2}}>₹{f(txnSheet.saved||0)}</div>
+    );
+  }
+  const isBest = scn.id === "S1" || scn.id === "S2";
+  const boxBg = isBest ? "rgba(218,255,217,0.2)" : "rgba(255,247,217,0.2)";
+  const boxBorder = isBest ? "1px solid #CFF3CE" : "1px solid #F3E2CE";
+  const noReward = scn.actualSavings === 0;
+  return (
+    <div className="txn-stagger txn-s3" style={{ borderRadius: 8, border: boxBorder, background: boxBg, padding: 14, marginBottom: isBest ? 24 : 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        {cardImg && <img src={cardImg} alt="" style={cardImgStyle} />}
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 500, color: "#36405E", lineHeight: "18px" }}>{cardName}</div>
+          <div style={{ fontSize: 9, fontWeight: 700, color: noReward ? "#B56D3C" : "#68A250", letterSpacing: "0.1em", textTransform: "uppercase", lineHeight: "120%", marginTop: 4 }}>
+            {noReward ? "No reward on this brand" : fmtRate(cardName, txn.brand)}
           </div>
         </div>
-        <DashedLine/>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <img src="/legacy-assets/save star.png" alt="" style={{width:36,height:36,objectFit:"contain",flexShrink:0}}/>
-          <div>
-            <div style={{fontSize:12,fontWeight:500,color:"#395E36",lineHeight:"170%"}}>Best card in market for {txnSheet.brand}</div>
-            <div style={{fontSize:10,fontWeight:500,color:"rgba(37,37,37,0.5)",lineHeight:"170%"}}>Keep using it for maximum rewards</div>
-          </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 11, fontWeight: 400, color: "#808387", lineHeight: "155%", textAlign: "right" }}>Saved</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: noReward ? "#B56D3C" : "#008846", lineHeight: "140%", letterSpacing: "0.01em", textAlign: "right", marginTop: 2 }}>₹{f(scn.actualSavings)}</div>
         </div>
       </div>
-      <div className="txn-stagger txn-s4"><button onClick={()=>setTxnSheet(null)} style={{...txnBtnStyle,fontFamily:FN}}>Got it</button></div>
-    </div>
-  </div>);
-
-  return(<div className="txn-sheet-overlay" style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:100}} onClick={e=>{if(e.target===e.currentTarget)setTxnSheet(null);}}>
-    <TxnSheetAnims/>
-    <div className="txn-sheet-panel" style={{background:bgGrad,borderRadius:"24px 24px 0 0",padding:"16px 16px 32px",maxWidth:400,width:"100%",maxHeight:"85vh",boxShadow:"0 20px 60px rgba(0,0,0,0.12)",overflowY:"auto"}}>
-      <div className="txn-stagger txn-s1">{header}</div>
-      <div className="txn-stagger txn-s2"><SectionLabel text="Card you used"/></div>
-      {isUPI?<div className="txn-stagger txn-s2" style={{borderRadius:6,border:"1px solid rgba(0,0,0,0.05)",background:"rgba(237,237,237,0.2)",padding:"14px 16px",marginBottom:20,fontSize:12,fontWeight:500,color:"#364060",lineHeight:"154%"}}>You've used UPI for this transaction. No rewards earned</div>
-      :<div className="txn-stagger txn-s2" style={{borderRadius:8,border:"1px solid #F3E2CE",background:"rgba(255,247,217,0.2)",padding:14,marginBottom:20}}>
-        <div style={{display:"flex",alignItems:"center",gap:14}}>
-          {cardImg&&<img src={cardImg} alt="" style={cardImgStyle}/>}
-          <div style={{flex:1}}>
-            <div style={{fontSize:14,fontWeight:500,color:"#36405E",lineHeight:"18px"}}>{cardName}</div>
-            <div style={{fontSize:9,fontWeight:700,color:noReward?"#B56D3C":"#68A250",letterSpacing:"0.1em",textTransform:"uppercase",lineHeight:"120%",marginTop:4}}>{noReward?"No reward on this brand":fmtBaseRate(cardName)}</div>
-          </div>
-          <div style={{textAlign:"right"}}>
-            <div style={{fontSize:11,fontWeight:400,color:"#808387",lineHeight:"155%",textAlign:"right"}}>Saved</div>
-            <div style={{fontSize:14,fontWeight:600,color:noReward?"#B56D3C":"#008846",lineHeight:"140%",letterSpacing:"0.01em",textAlign:"right",marginTop:2}}>₹{f(txnSheet.saved||0)}</div>
-          </div>
-        </div>
-      </div>}
-
-      <div className="txn-stagger txn-s3"><SectionLabel text="Better card in your wallet"/></div>
-      {noReward?<div className="txn-stagger txn-s3" style={{borderRadius:6,border:"1px solid rgba(0,0,0,0.05)",background:"rgba(237,237,237,0.2)",padding:"14px 16px",marginBottom:20,fontSize:12,fontWeight:500,color:"#364060",lineHeight:"154%"}}>No cards in your wallet give rewards on this brand</div>
-      :<div className="txn-stagger txn-s3" style={{borderRadius:8,border:"1px solid #CFF3CE",background:"rgba(218,255,217,0.2)",padding:14,marginBottom:20}}>
-        <div style={{display:"flex",alignItems:"center",gap:14}}>
-          {bestCardImg&&<img src={bestCardImg} alt="" style={cardImgStyle}/>}
-          <div style={{flex:1}}>
-            <div style={{fontSize:14,fontWeight:500,color:"#36405E",lineHeight:"18px"}}>{bestCard}</div>
-            <div style={{fontSize:9,fontWeight:700,color:"#68A250",letterSpacing:"0.1em",textTransform:"uppercase",lineHeight:"120%",marginTop:4}}>{bestCardRate}</div>
-          </div>
-          <div style={{textAlign:"right"}}>
-            <div style={{fontSize:11,fontWeight:400,color:"#808387",lineHeight:"155%",textAlign:"right"}}>{isUPI?"Could Save":"Could Save"}</div>
-            <div style={{fontSize:14,fontWeight:600,color:"#008846",lineHeight:"140%",letterSpacing:"0.01em",textAlign:"right",marginTop:2}}>₹{f(couldSaveWallet)}</div>
-          </div>
-        </div>
-        <DashedLine/>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <img src="/legacy-assets/save star.png" alt="" style={{width:36,height:36,objectFit:"contain",flexShrink:0}}/>
-          <div>
-            <div style={{fontSize:12,fontWeight:500,color:"#395E36",lineHeight:"170%"}}>{isUPI?"Best card in market for "+txnSheet.brand:"Better card for "+txnSheet.brand}</div>
-            <div style={{fontSize:10,fontWeight:500,color:"rgba(37,37,37,0.5)",lineHeight:"170%"}}>{isUPI?"Keep using it for maximum rewards":"Use it next time"}</div>
-          </div>
-        </div>
-      </div>}
-
-      {!isUPI&&market&&<>
-        <div className="txn-stagger txn-s4"><SectionLabel text="Worth adding"/></div>
-        <div className="txn-stagger txn-s4" style={{borderRadius:8,border:"1px solid #CED3F3",background:"rgba(217,229,255,0.2)",padding:14,marginBottom:24}}>
-          <div style={{display:"flex",alignItems:"center",gap:14}}>
-            {market.img&&<img src={market.img} alt="" style={cardImgStyle}/>}
-            <div style={{flex:1}}>
-              <div style={{fontSize:14,fontWeight:500,color:"#36405E",lineHeight:"18px"}}>{market.name}</div>
-              <div style={{fontSize:9,fontWeight:700,color:"#098039",letterSpacing:"0.1em",textTransform:"uppercase",lineHeight:"120%",marginTop:4}}>{market.rate}</div>
-            </div>
-            <div style={{textAlign:"right"}}>
-              <div style={{fontSize:11,fontWeight:400,color:"#808387",lineHeight:"155%",textAlign:"right"}}>Could Save</div>
-              <div style={{fontSize:14,fontWeight:600,color:"#008846",lineHeight:"140%",letterSpacing:"0.01em",textAlign:"right",marginTop:2}}>₹{f(couldSaveMarket)}</div>
+      {isBest && (
+        <>
+          <DashedLine />
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <img src="/legacy-assets/save star.png" alt="" style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "#395E36", lineHeight: "170%" }}>
+                {scn.id === "S1" ? `Best card to use for ${txn.brand}` : `Best card in market for ${txn.brand}`}
+              </div>
+              <div style={{ fontSize: 10, fontWeight: 500, color: "rgba(37,37,37,0.5)", lineHeight: "170%" }}>Keep using it for maximum rewards</div>
             </div>
           </div>
-          {couldSaveMarket>0&&<div style={{padding:"8px 14px",borderRadius:6,background:"linear-gradient(90deg, #EEEDFE 0%, #F8F7FF 100%)",display:"flex",alignItems:"center",gap:6,marginTop:8}}>
-            <span style={{fontSize:10,fontWeight:700,color:"#4F46E5",letterSpacing:"0.1em",textTransform:"uppercase"}}>{"★"} GET {market.name.toUpperCase()} & EARN ₹{f(couldSaveMarket)} MORE</span>
-          </div>}
-          <DashedLine color="rgba(173,203,171,0.3)"/>
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <img src="/ui/market-badge.png" alt="" style={{width:31,height:37,objectFit:"contain",flexShrink:0}}/>
-            <div style={{flex:1,fontSize:12,fontWeight:500,color:"#363B5E",lineHeight:"170%"}}>Best card for {txnSheet.brand} out there</div>
-            <div onClick={()=>{setTxnSheet(null);setScreen("bestcards");}} style={{display:"flex",alignItems:"center",gap:4,fontSize:12,fontWeight:600,color:"#232A42",cursor:"pointer"}}>Details <svg width="6" height="10" viewBox="0 0 6 10" fill="none"><path d="M1 1l4 4-4 4" stroke="#232A42" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function NoWalletRewardSubtext() {
+  return (
+    <div className="txn-stagger txn-s3" style={{ borderRadius: 6, border: "1px solid rgba(0,0,0,0.05)", background: "rgba(237,237,237,0.2)", padding: "14px 16px", marginBottom: 20, fontSize: 12, fontWeight: 500, color: "#364060", lineHeight: "154%" }}>
+      No cards in your wallet give rewards on this brand
+    </div>
+  );
+}
+
+function BetterCardInWalletBlock({ scn, txn }) {
+  const w = scn.bestWalletCard;
+  if (!w) return null;
+  const showGreenBadge = scn.id === "S5a" || (scn.id === "S3" && scn.walletEqualsMarket);
+  const showAmberBadge = scn.id === "S5b" || (scn.id === "S3" && !scn.walletEqualsMarket);
+  const couldSave = scn.id === "S3" ? scn.walletDelta : scn.bestWalletSavings;
+  return (
+    <div className="txn-stagger txn-s3" style={{ borderRadius: 8, border: "1px solid #CFF3CE", background: "rgba(218,255,217,0.2)", padding: 14, marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        {w.image && <img src={w.image} alt="" style={cardImgStyle} />}
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 500, color: "#36405E", lineHeight: "18px" }}>{w.name}</div>
+          <div style={{ fontSize: 9, fontWeight: 700, color: "#68A250", letterSpacing: "0.1em", textTransform: "uppercase", lineHeight: "120%", marginTop: 4 }}>{w.rateLabel}</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 11, fontWeight: 400, color: "#808387", lineHeight: "155%", textAlign: "right" }}>Could Save</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#008846", lineHeight: "140%", letterSpacing: "0.01em", textAlign: "right", marginTop: 2 }}>₹{f(couldSave)}</div>
+        </div>
+      </div>
+      {(showGreenBadge || showAmberBadge) && (
+        <>
+          <DashedLine />
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <img src="/legacy-assets/save star.png" alt="" style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "#395E36", lineHeight: "170%" }}>
+                {showGreenBadge ? `Best card in market for ${txn.brand}` : `Better card for ${txn.brand}`}
+              </div>
+              <div style={{ fontSize: 10, fontWeight: 500, color: "rgba(37,37,37,0.5)", lineHeight: "170%" }}>
+                {showGreenBadge ? "Keep using it for maximum rewards" : "Use it next time"}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function WorthAddingBlock({ scn, txn, onDetails }) {
+  const m = scn.bestMarketCard;
+  if (!m) return null;
+  return (
+    <>
+      <div className="txn-stagger txn-s4"><SectionLabel text="Worth adding" /></div>
+      <div className="txn-stagger txn-s4" style={{ borderRadius: 8, border: "1px solid #CED3F3", background: "rgba(217,229,255,0.2)", padding: 14, marginBottom: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          {m.image && <img src={m.image} alt="" style={cardImgStyle} />}
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 500, color: "#36405E", lineHeight: "18px" }}>{m.name}</div>
+            <div style={{ fontSize: 9, fontWeight: 700, color: "#098039", letterSpacing: "0.1em", textTransform: "uppercase", lineHeight: "120%", marginTop: 4 }}>{m.rateLabel}</div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 11, fontWeight: 400, color: "#808387", lineHeight: "155%", textAlign: "right" }}>Could Save</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#008846", lineHeight: "140%", letterSpacing: "0.01em", textAlign: "right", marginTop: 2 }}>₹{f(scn.bestMarketSavings)}</div>
           </div>
         </div>
-      </>}
+        <DashedLine color="rgba(173,203,171,0.3)" />
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <img src="/ui/market-badge.png" alt="" style={{ width: 31, height: 37, objectFit: "contain", flexShrink: 0 }} />
+          <div style={{ flex: 1, fontSize: 12, fontWeight: 500, color: "#363B5E", lineHeight: "170%" }}>Best card for {txn.brand} out there</div>
+          <div onClick={onDetails} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 600, color: "#232A42", cursor: "pointer" }}>
+            Details <svg width="6" height="10" viewBox="0 0 6 10" fill="none"><path d="M1 1l4 4-4 4" stroke="#232A42" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
 
-      <div className="txn-stagger txn-s5"><button onClick={()=>setTxnSheet(null)} style={{...txnBtnStyle,fontFamily:FN}}>Got it</button></div>
+export function TxnSheet() {
+  const { txnSheet, setTxnSheet, setScreen } = useAppContext();
+  if (!txnSheet) return null;
+
+  const cardName = CARD_VIA_MAP[txnSheet.via] || txnSheet.via;
+  const cardImg = CARD_IMG_MAP[cardName];
+  const merchantIcon = { "Flipkart": "/brands/flipkart.png", "Amazon": "/brands/amazon.png", "Swiggy": "/brands/swiggy.png", "Zomato": "/brands/zomato.png", "BigBasket": "/brands/bb.png", "Myntra": "/brands/myntra.png", "Adidas": "/brands/adiddas.png", "MuscleBlaze": "/brands/muscle-blaze.png" }[txnSheet.brand];
+
+  const scn = getTransactionScenario(txnSheet);
+  const bgGrad = SHEET_BG[scn.id] || SHEET_BG.S6;
+
+  // Section visibility per scenario matrix
+  const showCYU = true; // always (UPI variants render text block within CardYouUsedBlock)
+  const showNoWalletSubtext = scn.id === "S4" || scn.id === "S5c";
+  const showBetterInWallet = scn.id === "S3" || scn.id === "S5a" || scn.id === "S5b";
+  const showWorthAdding =
+    scn.id === "S2" ||
+    scn.id === "S4" ||
+    scn.id === "S5b" ||
+    scn.id === "S5c" ||
+    (scn.id === "S3" && scn.bestMarketSavings > scn.bestWalletSavings);
+
+  const header = (
+    <>
+      <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(0,0,0,0.1)", margin: "0 auto 20px" }} />
+      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "0 4px", marginBottom: 20 }}>
+        {merchantIcon
+          ? <img src={merchantIcon} alt="" style={{ width: 65, height: 57, borderRadius: 8, objectFit: "contain", flexShrink: 0 }} />
+          : <div style={{ width: 65, height: 57, borderRadius: 8, border: "1px solid #EDEDED", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>{txnSheet.icon}</div>}
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#36405E", lineHeight: "17px" }}>{txnSheet.brand}</div>
+          <div style={{ fontSize: 11, fontWeight: 500, color: "#808387", lineHeight: "140%", marginTop: 6 }}>{txnSheet.date}</div>
+        </div>
+        <YouSpentBadge amt={txnSheet.amt} />
+      </div>
+      <div style={{ height: 0, borderBottom: "1px solid rgba(5,34,73,0.15)", margin: "0 0 20px" }} />
+    </>
+  );
+
+  // S6 dead transaction — minimal sheet
+  if (scn.id === "S6") {
+    return (
+      <div className="txn-sheet-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 100 }} onClick={e => { if (e.target === e.currentTarget) setTxnSheet(null); }}>
+        <TxnSheetAnims />
+        <div className="txn-sheet-panel" style={{ background: bgGrad, borderRadius: "24px 24px 0 0", padding: "16px 16px 32px", maxWidth: 400, width: "100%", maxHeight: "85vh", boxShadow: "0 20px 60px rgba(0,0,0,0.12)", overflowY: "auto" }}>
+          <div className="txn-stagger txn-s1">{header}</div>
+          <div className="txn-stagger txn-s2"><SectionLabel text="Card you used" /></div>
+          <div className="txn-stagger txn-s3" style={{ borderRadius: 6, border: "1px solid rgba(0,0,0,0.05)", background: "rgba(237,237,237,0.2)", padding: "14px 16px", marginBottom: 20, fontSize: 12, fontWeight: 500, color: "#364060", lineHeight: "154%" }}>
+            No reward on this brand
+          </div>
+          <div className="txn-stagger txn-s5"><button onClick={() => setTxnSheet(null)} style={{ ...txnBtnStyle, fontFamily: FN }}>Got it</button></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="txn-sheet-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 100 }} onClick={e => { if (e.target === e.currentTarget) setTxnSheet(null); }}>
+      <TxnSheetAnims />
+      <div className="txn-sheet-panel" style={{ background: bgGrad, borderRadius: "24px 24px 0 0", padding: "16px 16px 32px", maxWidth: 400, width: "100%", maxHeight: "85vh", boxShadow: "0 20px 60px rgba(0,0,0,0.12)", overflowY: "auto" }}>
+        <div className="txn-stagger txn-s1">{header}</div>
+        <div className="txn-stagger txn-s2"><SectionLabel text="Card you used" /></div>
+        <CardYouUsedBlock scn={scn} cardName={cardName} cardImg={cardImg} txn={txnSheet} />
+        {showNoWalletSubtext && <NoWalletRewardSubtext />}
+
+        {showBetterInWallet && (
+          <>
+            <div className="txn-stagger txn-s3"><SectionLabel text="Better card in your wallet" /></div>
+            <BetterCardInWalletBlock scn={scn} txn={txnSheet} />
+          </>
+        )}
+
+        {showWorthAdding && (
+          <WorthAddingBlock scn={scn} txn={txnSheet} onDetails={() => { setTxnSheet(null); setScreen("bestcards"); }} />
+        )}
+
+        <div className="txn-stagger txn-s5"><button onClick={() => setTxnSheet(null)} style={{ ...txnBtnStyle, fontFamily: FN }}>Got it</button></div>
+      </div>
     </div>
-  </div>);
+  );
 }
 
 function ActCapBar({label,used,total,unit="",resetDays=12,suffix="left"}:{label:string,used:number,total:number,unit?:string,resetDays?:number,suffix?:string}){const pct=total>0?Math.min(100,Math.round(used/total*100)):0;const barColor=pct>70?"linear-gradient(90deg,#FF7D66,#FF9B85)":pct>40?"linear-gradient(90deg,#FFE666,#FFD633)":"linear-gradient(90deg,#4DC20D,#6AD82E)";const rightText=pct>=100?`${unit?unit+" ":""}₹${f(total)} fully Used`:`${unit?unit+" ":""}${f(used)} / ${f(total)} ${unit?unit+" ":""}${suffix}`;return(<div style={{marginBottom:20}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}><div style={{fontSize:14,fontWeight:600,color:"#222941"}}>{label}</div><div style={{fontSize:12,fontWeight:600,color:"#364060"}}>{rightText}</div></div><div style={{height:16,borderRadius:4,background:"rgba(123,142,178,0.1)",boxShadow:"0px 1px 0px rgba(255,255,255,0.19), inset 1px 1px 2px rgba(0,0,0,0.11)",overflow:"hidden"}}><div style={{height:"100%",width:pct+"%",borderRadius:4,background:barColor,boxShadow:"0px 2.75px 5px rgba(0,0,0,0.12)"}}/></div>{resetDays>0&&<div style={{fontSize:11,color:"#808387",marginTop:6}}>{resetDays} Days left</div>}</div>);}
