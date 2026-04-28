@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { CreditCard, Gauge, Receipt, Trophy, Plane, Sparkles } from "lucide-react";
+import { SCENARIO_PILL, SCENARIO_SAVED_COLOR, tagText } from "@/data/simulation/txnScenario";
 
 // Map a CONSIDER_HOOKS `cat` to a rounded-line icon + warm-toned stroke color.
 // Muted/desaturated tones so they sit gently against the soft pastel bgs.
@@ -837,6 +838,7 @@ const ctaVariants = {
 
 function InlineCTA({ variant, text }) {
   const v = ctaVariants[variant];
+  if (!v || !text) return null;
   return (
     <div style={{ display: "inline-flex", alignItems: "center", gap: v.prefix === "sparkle" ? 5 : 10, background: v.bg, color: v.color, borderRadius: 4, padding: "6px 10px", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", lineHeight: "120%" }}>
       {v.prefix === "sparkle" && <svg width="10" height="10" viewBox="0 0 8 8" fill="none" style={{ flexShrink: 0 }}><path d="M4 0C4 2.2 5.8 4 8 4C5.8 4 4 5.8 4 8C4 5.8 2.2 4 0 4C2.2 4 4 2.2 4 0Z" fill="#0862CF" style={{}}/></svg>}
@@ -846,7 +848,39 @@ function InlineCTA({ variant, text }) {
   );
 }
 
-export function TransactionRow({ brand, merchant, cardLine, amount, saved, savedColor, cta, onClick }) {
+function ctaFromScenario(scenario) {
+  if (!scenario || scenario.id === "S6") return null;
+  const pill = SCENARIO_PILL[scenario.id];
+  const text = tagText(scenario);
+  if (!text) return null;
+  return {
+    variant: pill?.variant || "switch",
+    text,
+    bg: pill?.bg,
+    color: pill?.color,
+  };
+}
+
+function InlineScenarioCTA({ cta }) {
+  if (!cta?.text) return null;
+  if (!cta.bg || !cta.color) return <InlineCTA variant={cta.variant} text={cta.text} />;
+  const showSparkle = cta.variant === "newcard";
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: showSparkle ? 5 : 10, background: cta.bg, color: cta.color, borderRadius: 4, padding: "6px 10px", fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", lineHeight: "120%" }}>
+      {showSparkle && <svg width="10" height="10" viewBox="0 0 8 8" fill="none" style={{ flexShrink: 0 }}><path d="M4 0C4 2.2 5.8 4 8 4C5.8 4 4 5.8 4 8C4 5.8 2.2 4 0 4C2.2 4 4 2.2 4 0Z" fill={cta.color} /></svg>}
+      <span>{cta.text}</span>
+    </div>
+  );
+}
+
+export function TransactionRow({ brand, merchant, cardLine, amount, saved, savedColor, cta, scenario, hideRewards = false, onClick }) {
+  const scenarioSaved = scenario ? `\u20B9${Math.round(scenario.actualSavings || 0).toLocaleString("en-IN")}` : saved;
+  const effectiveSaved = hideRewards ? null : scenarioSaved;
+  const effectiveSavedColor = scenario ? SCENARIO_SAVED_COLOR[scenario.id] : savedColor;
+  const effectiveCta = hideRewards ? null : ctaFromScenario(scenario) || cta;
+  saved = effectiveSaved;
+  savedColor = effectiveSavedColor;
+  cta = effectiveCta;
   return (
     <div className="legacy-tap" onClick={onClick} style={{ background: "#fff", borderRadius: 8, boxShadow: "0px 0.62px 4.35px rgba(63,66,70,0.11)", padding: "12px 12px 14px 12px" }}>
       <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
@@ -861,8 +895,8 @@ export function TransactionRow({ brand, merchant, cardLine, amount, saved, saved
         </div>
         <ChevronRight size={6} color="#6b7489" strokeWidth={2} />
       </div>
-      <DashedDivider />
-      <InlineCTA {...cta} />
+      {cta && <DashedDivider />}
+      <InlineScenarioCTA cta={cta} />
     </div>
   );
 }

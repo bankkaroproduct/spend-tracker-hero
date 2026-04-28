@@ -6,7 +6,7 @@ import { f } from "@/lib/format";
 import { useAppContext } from "@/store/AppContext";
 import { SEMI_CARDS, ALL_TXNS, CAT_OPTIONS, BRAND_MAP, SIM_CARD_RATE, SIM_CARD_BASE_RATE, SIM_BEST_FOR, SIM_MARKET_BEST, computeTxnMissed, computeTxnMarketDelta, CD, CARDS } from "@/data/simulation/legacy";
 import { USER_CARDS } from "@/data/simulation/inputs";
-import { getTransactionScenario } from "@/data/simulation/txnScenario";
+import { SCENARIO_SAVED_COLOR, getTransactionScenario } from "@/data/simulation/txnScenario";
 
 const NOT_SPEND_REASONS=["Loan / EMI","Refund / Reversal","OTP / Auth charge","Duplicate SMS","Other (not a spend)"];
 
@@ -67,23 +67,28 @@ function CardYouUsedBlock({ scn, cardName, cardImg, txn }) {
   const boxBg = isBest ? "rgba(218,255,217,0.2)" : "rgba(255,247,217,0.2)";
   const boxBorder = isBest ? "1px solid #CFF3CE" : "1px solid #F3E2CE";
   const noReward = scn.actualSavings === 0;
+  const usedCard = scn.cardUsed || {};
+  const displayName = usedCard.name || cardName || "Card";
+  const displayImg = usedCard.image || cardImg;
+  const rateText = usedCard.rateLabel || fmtRate(displayName, txn.brand);
+  const savedColor = noReward ? "#B56D3C" : SCENARIO_SAVED_COLOR[scn.id] || "#008846";
   return (
     <div className="txn-stagger txn-s3" style={{ borderRadius: 8, border: boxBorder, background: boxBg, padding: 14, marginBottom: isBest ? 24 : 20 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        {cardImg && <img src={cardImg} alt="" style={cardImgStyle} />}
+        {displayImg && <img src={displayImg} alt="" style={cardImgStyle} />}
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 500, color: "#36405E", lineHeight: "18px" }}>{cardName}</div>
+          <div style={{ fontSize: 14, fontWeight: 500, color: "#36405E", lineHeight: "18px" }}>{displayName}</div>
           <div style={{ fontSize: 9, fontWeight: 700, color: noReward ? "#B56D3C" : "#68A250", letterSpacing: "0.1em", textTransform: "uppercase", lineHeight: "120%", marginTop: 4 }}>
-            {noReward ? "No reward on this brand" : fmtRate(cardName, txn.brand)}
+            {noReward ? "No reward on this brand" : rateText}
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontSize: 11, fontWeight: 400, color: "#808387", lineHeight: "155%", textAlign: "right" }}>Saved</div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: noReward ? "#B56D3C" : "#008846", lineHeight: "140%", letterSpacing: "0.01em", textAlign: "right", marginTop: 2 }}>₹{f(scn.actualSavings)}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: savedColor, lineHeight: "140%", letterSpacing: "0.01em", textAlign: "right", marginTop: 2 }}>₹{f(scn.actualSavings)}</div>
         </div>
       </div>
       {isBest && (
-        <>
+        <div>
           <DashedLine />
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <img src="/legacy-assets/save star.png" alt="" style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }} />
@@ -94,7 +99,7 @@ function CardYouUsedBlock({ scn, cardName, cardImg, txn }) {
               <div style={{ fontSize: 10, fontWeight: 500, color: "rgba(37,37,37,0.5)", lineHeight: "170%" }}>Keep using it for maximum rewards</div>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
@@ -128,7 +133,7 @@ function BetterCardInWalletBlock({ scn, txn }) {
         </div>
       </div>
       {(showGreenBadge || showAmberBadge) && (
-        <>
+        <div>
           <DashedLine />
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <img src="/legacy-assets/save star.png" alt="" style={{ width: 36, height: 36, objectFit: "contain", flexShrink: 0 }} />
@@ -141,17 +146,17 @@ function BetterCardInWalletBlock({ scn, txn }) {
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
 }
 
 function WorthAddingBlock({ scn, txn, onDetails }) {
-  const m = scn.bestMarketCard;
+  const m = scn.worthAddingCard || scn.bestMarketCard;
   if (!m) return null;
   return (
-    <>
+    <div>
       <div className="txn-stagger txn-s4"><SectionLabel text="Worth adding" /></div>
       <div className="txn-stagger txn-s4" style={{ borderRadius: 8, border: "1px solid #CED3F3", background: "rgba(217,229,255,0.2)", padding: 14, marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -174,7 +179,7 @@ function WorthAddingBlock({ scn, txn, onDetails }) {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -189,17 +194,9 @@ export function TxnSheet() {
   const scn = getTransactionScenario(txnSheet);
   const bgGrad = SHEET_BG[scn.id] || SHEET_BG.S6;
 
-  // Section visibility per scenario matrix
-  const showCYU = true; // always (UPI variants render text block within CardYouUsedBlock)
-  const showNoWalletSubtext = scn.id === "S4" || scn.id === "S5c";
-  const showBetterInWallet = scn.id === "S3" || scn.id === "S5a" || scn.id === "S5b";
-  // Worth Adding intentionally hidden for S3 — when the user already has a better
-  // wallet card, the primary CTA is "use what you own", not "add another card".
-  const showWorthAdding =
-    scn.id === "S2" ||
-    scn.id === "S4" ||
-    scn.id === "S5b" ||
-    scn.id === "S5c";
+  const showNoWalletSubtext = scn.showNoWalletSubtext;
+  const showBetterInWallet = scn.showBetterInWallet;
+  const showWorthAdding = scn.showWorthAdding;
 
   const header = (
     <>
@@ -245,10 +242,10 @@ export function TxnSheet() {
         {showNoWalletSubtext && <NoWalletRewardSubtext />}
 
         {showBetterInWallet && (
-          <>
+          <div>
             <div className="txn-stagger txn-s3"><SectionLabel text="Better card in your wallet" /></div>
             <BetterCardInWalletBlock scn={scn} txn={txnSheet} />
-          </>
+          </div>
         )}
 
         {showWorthAdding && (

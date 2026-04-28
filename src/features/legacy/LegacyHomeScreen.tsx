@@ -6,6 +6,7 @@ import { ACTIONS } from "@/data/actions";
 import { CONSIDER_HOOKS } from "@/data/actionsConsider";
 import { ConsiderSheet } from "@/features/actions/ActionsConsiderScreen";
 import { useAppContext } from "@/store/AppContext";
+import { getTransactionScenario } from "@/data/simulation/txnScenario";
 import "./legacy.css";
 import { CardPromo, HeroSection, ImportantActions, SpendAnalysis, ToolsSection, TransactionAnalysis, TransactionsPreview } from "./LegacyShared";
 
@@ -15,15 +16,16 @@ const TOP_HOOKS = [...CONSIDER_HOOKS]
   .sort((a, b) => (URGENCY_RANK[a.urgency] ?? 9) - (URGENCY_RANK[b.urgency] ?? 9));
 
 function toLegacyTxn(t, idx) {
+  const scenario = t.unaccounted ? null : getTransactionScenario(t);
   return {
     id: idx,
     brand: (t.brand || "").toLowerCase().replace(/\s+/g, ""),
     merchant: t.brand || "Transaction",
     cardLine: `${t.via || "Card"} | ${t.date || ""}`,
     amount: `₹${(t.amt || 0).toLocaleString("en-IN")}`,
-    saved: t.saved ? `₹${t.saved}` : null,
-    savedColor: t.saved ? "#078146" : "#eb8807",
-    cta: { variant: t.unaccounted ? "needsdata" : t.saved ? "best" : "switch", text: t.unaccounted ? "Need more details about this transaction" : (t.tag || "Used best card for this") },
+    saved: t.saved != null ? `₹${t.saved}` : null,
+    scenario,
+    cta: t.unaccounted ? { variant: "needsdata", text: "Need more details about this transaction" } : null,
     raw: t,
   };
 }

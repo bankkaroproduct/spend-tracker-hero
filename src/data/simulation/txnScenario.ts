@@ -3,70 +3,99 @@
 // Returns one of S1, S2, S3, S4, S5a, S5b, S5c, or S6.
 
 import { USER_CARDS, BUCKET_TO_MERCHANT } from "./inputs";
-import {
-  calculateResponses,
-  getBestCardForBucket,
-  getBestMarketCardForBucket,
-  getEligibleMarketCards,
-} from "./mockApi";
+import { calculateResponses, getEligibleMarketCards } from "./mockApi";
 
 const CARD_IMG_MAP: Record<string, string> = {
   "Axis Flipkart": "/legacy-assets/cards/axis-flipkart.png",
   "Axis Flipkart Card": "/legacy-assets/cards/axis-flipkart.png",
-  "HSBC Travel One": "/legacy-assets/cards/HSBC TravelOne Credit Card.png",
+  "HSBC Travel One": "/legacy-assets/cards/hsbc-travel-one.png",
   "HSBC Live+": "/legacy-assets/cards/hsbc-live.png",
   "HDFC Infinia": "/legacy-assets/cards/hdfc-infinia.png",
   "IDFC First Select": "/legacy-assets/cards/idfc select.png",
 };
 
-// Reverse-build merchant → bucket map (inputs.ts may not export it).
-const _merchantToBucket: Record<string, string> = {};
+const merchantToBucket: Record<string, string> = {};
 for (const [bucket, merchants] of Object.entries(BUCKET_TO_MERCHANT)) {
-  for (const m of merchants as string[]) _merchantToBucket[m] = bucket;
+  for (const merchant of merchants as string[]) {
+    if (!(merchant in merchantToBucket)) merchantToBucket[merchant] = bucket;
+  }
 }
 
 function bucketFor(txn: any): string | null {
   if (txn?.bucket) return txn.bucket;
-  if (txn?.brand && _merchantToBucket[txn.brand]) return _merchantToBucket[txn.brand];
+  if (txn?.brand && merchantToBucket[txn.brand]) return merchantToBucket[txn.brand];
   return null;
 }
 
-function normalizeCardName(name: string): string {
-  if (!name) return "";
-  return name.replace(/\s+Card$/i, "").trim();
+function displayCardName(name: string): string {
+  return String(name || "")
+    .replace(/\s+Credit\s+Card\s*$/i, "")
+    .replace(/\s+Card\s*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function comparableCardName(name: string): string {
+  return displayCardName(name)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function shortCardName(name: string): string {
-  const n = normalizeCardName(name);
-  // First 2 words for tag pills
-  return n.split(" ").slice(0, 2).join(" ");
+  const parts = displayCardName(name).split(" ").filter(Boolean);
+  return parts.slice(0, 2).join(" ");
 }
 
-function rateLabel(cardName: string, monthlySpend: number, monthlySavings: number): string {
-  if (monthlySpend <= 0) return "";
-  const isPoints = cardName === "HSBC Travel One";
-  const pct = (monthlySavings / monthlySpend) * 100;
-  if (isPoints) {
-    // Approximate "X RP per ₹100" → display as multiplier
-    return Math.max(1, Math.round(pct)) + "X REWARDS";
+function formatRateFromBreakdown(cardName: string, breakdown: any, fallbackSpend: number, fallbackSavings: number): string {
+  const spend = Number(breakdown?.spend ?? fallbackSpend) || 0;
+  const savings = Number(breakdown?.savings ?? fallbackSavings) || 0;
+  if (spend <= 0 || savings <= 0) return "";
+
+  const isPoints = String(breakdown?.savings_type || "").toLowerCase() === "points" || displayCardName(cardName) === "HSBC Travel One";
+  const pct = (savings / spend) * 100;
+  if (isPoints && displayCardName(cardName) === "HSBC Travel One") {
+    return `${Math.max(1, Math.round(pct))}X REWARDS`;
   }
-  return Math.max(1, Math.round(pct)) + "% CASHBACK";
+  return `${Math.max(1, Math.round(pct))}% CASHBACK`;
 }
 
-function marketRateLabel(card: any, bucket: string): string {
-  const bd = card?.spending_breakdown?.[bucket];
-  if (!bd || bd.spend <= 0) return "";
-  const pct = (bd.savings / bd.spend) * 100;
-  return Math.max(1, Math.round(pct)) + "% CASHBACK";
+function monthlySpendFor(bucket: string): number {
+  return Number(calculateResponses[0]?.spending_breakdown?.[bucket]?.spend) || 0;
+}
+
+function walletSavingsFor(cardIndex: number, bucket: string): number {
+  return Number(calculateResponses[cardIndex]?.spending_breakdown?.[bucket]?.savings) || 0;
+}
+
+function bestWalletFor(bucket: string): { cardIndex: number; savings: number } {
+  let best = { cardIndex: -1, savings: 0 };
+  for (let i = 0; i < calculateResponses.length; i++) {
+    const savings = walletSavingsFor(i, bucket);
+    if (savings > best.savings) best = { cardIndex: i, savings };
+  }
+  return best.cardIndex >= 0 ? best : { cardIndex: 0, savings: 0 };
+}
+
+function bestNonOwnedMarketFor(bucket: string): { card: any; savings: number } {
+  let best = { card: null, savings: 0 };
+  for (const card of getEligibleMarketCards()) {
+    const savings = Number(card?.spending_breakdown?.[bucket]?.savings) || 0;
+    if (savings > best.savings) best = { card, savings };
+  }
+  return best;
 }
 
 export type ScenarioId = "S1" | "S2" | "S3" | "S4" | "S5a" | "S5b" | "S5c" | "S6";
 
 export interface CardRef {
+  id: string;
   name: string;
   shortName: string;
   image: string;
   rateLabel: string;
+  owned: boolean;
 }
 
 export interface TxnScenario {
@@ -74,140 +103,170 @@ export interface TxnScenario {
   actualSavings: number;
   bestWalletSavings: number;
   bestMarketSavings: number;
-  walletDelta: number; // bestWalletSavings - actualSavings
-  marketDelta: number; // bestMarketSavings - actualSavings
+  bestOverallSavings: number;
+  walletDelta: number;
+  marketDelta: number;
   bestWalletCard: CardRef | null;
   bestMarketCard: CardRef | null;
+  bestOverallCard: CardRef | null;
+  worthAddingCard: CardRef | null;
+  cardUsed: CardRef | null;
   walletEqualsMarket: boolean;
   isUPI: boolean;
+  showNoWalletSubtext: boolean;
+  showBetterInWallet: boolean;
+  showWorthAdding: boolean;
 }
 
-const EMPTY_S6: TxnScenario = {
-  id: "S6",
-  actualSavings: 0,
-  bestWalletSavings: 0,
-  bestMarketSavings: 0,
-  walletDelta: 0,
-  marketDelta: 0,
-  bestWalletCard: null,
-  bestMarketCard: null,
-  walletEqualsMarket: false,
-  isUPI: false,
-};
+function emptyScenario(id: ScenarioId = "S6", isUPI = false): TxnScenario {
+  return {
+    id,
+    actualSavings: 0,
+    bestWalletSavings: 0,
+    bestMarketSavings: 0,
+    bestOverallSavings: 0,
+    walletDelta: 0,
+    marketDelta: 0,
+    bestWalletCard: null,
+    bestMarketCard: null,
+    bestOverallCard: null,
+    worthAddingCard: null,
+    cardUsed: null,
+    walletEqualsMarket: false,
+    isUPI,
+    showNoWalletSubtext: false,
+    showBetterInWallet: false,
+    showWorthAdding: false,
+  };
+}
+
+function walletCardRef(cardIndex: number, bucket: string, monthlySpend: number, monthlySavings: number): CardRef | null {
+  const card = USER_CARDS[cardIndex];
+  if (!card) return null;
+  const name = displayCardName(card.name);
+  const breakdown = calculateResponses[cardIndex]?.spending_breakdown?.[bucket];
+  return {
+    id: card.card_alias || comparableCardName(name),
+    name,
+    shortName: shortCardName(name),
+    image: card.image || CARD_IMG_MAP[name] || "",
+    rateLabel: formatRateFromBreakdown(name, breakdown, monthlySpend, monthlySavings),
+    owned: true,
+  };
+}
+
+function marketCardRef(card: any, bucket: string, monthlySpend: number, monthlySavings: number): CardRef | null {
+  if (!card) return null;
+  const name = displayCardName(card.card_name || card.name || "");
+  if (!name) return null;
+  const breakdown = card?.spending_breakdown?.[bucket];
+  return {
+    id: card.card_alias || comparableCardName(name),
+    name,
+    shortName: shortCardName(name),
+    image: card.image || card.card_bg_image || CARD_IMG_MAP[name] || "/legacy-assets/cards/hdfc-infinia.png",
+    rateLabel: formatRateFromBreakdown(name, breakdown, monthlySpend, monthlySavings),
+    owned: false,
+  };
+}
+
+function withVisibility(scn: TxnScenario): TxnScenario {
+  return {
+    ...scn,
+    showNoWalletSubtext: scn.id === "S4" || scn.id === "S5c",
+    showBetterInWallet: scn.id === "S3" || scn.id === "S5a" || scn.id === "S5b",
+    showWorthAdding:
+      !!scn.worthAddingCard &&
+      (scn.id === "S2" ||
+        scn.id === "S4" ||
+        scn.id === "S5b" ||
+        scn.id === "S5c" ||
+        (scn.id === "S3" && scn.bestMarketSavings > scn.bestWalletSavings)),
+  };
+}
 
 export function getTransactionScenario(txn: any): TxnScenario {
-  if (!txn || txn.unaccounted) return EMPTY_S6;
+  if (!txn || txn.unaccounted) return emptyScenario();
 
-  const bucket = bucketFor(txn);
   const isUPI = txn.via === "UPI" || txn.card === "UPI";
-  if (!bucket) return { ...EMPTY_S6, isUPI };
+  const bucket = bucketFor(txn);
+  if (!bucket) return emptyScenario("S6", isUPI);
 
   const amt = Number(txn.amt) || 0;
-  const cardIdx = txn.card_index;
-
-  // Pull monthly figures from API responses
-  const wallet = getBestCardForBucket(bucket); // {cardIndex, savings} monthly
-  const market = getBestMarketCardForBucket(bucket); // {cardIndex (within eligible), savings, cardName}
-
-  // Monthly bucket spend (use card 0 since spend is identical across cards)
-  const monthlySpend = calculateResponses[0]?.spending_breakdown?.[bucket]?.spend || 0;
+  const monthlySpend = monthlySpendFor(bucket);
   const proRate = monthlySpend > 0 ? amt / monthlySpend : 0;
+  if (proRate <= 0) return emptyScenario("S6", isUPI);
 
-  const actualSavingsMonthly = !isUPI && cardIdx != null
-    ? (calculateResponses[cardIdx]?.spending_breakdown?.[bucket]?.savings || 0)
-    : 0;
+  const wallet = bestWalletFor(bucket);
+  const market = bestNonOwnedMarketFor(bucket);
+  const cardIdx = typeof txn.card_index === "number" ? txn.card_index : null;
+  const actualSavingsMonthly = !isUPI && cardIdx != null ? walletSavingsFor(cardIdx, bucket) : 0;
 
   const actualSavings = Math.round(actualSavingsMonthly * proRate);
   const bestWalletSavings = Math.round(wallet.savings * proRate);
   const bestMarketSavings = Math.round(market.savings * proRate);
+  const bestOverallSavings = Math.max(bestWalletSavings, bestMarketSavings);
 
-  // Build wallet card ref
-  const walletCardName = USER_CARDS[wallet.cardIndex]?.name || "";
-  const bestWalletCard: CardRef | null = walletCardName
-    ? {
-        name: walletCardName,
-        shortName: shortCardName(walletCardName),
-        image: CARD_IMG_MAP[walletCardName] || CARD_IMG_MAP[normalizeCardName(walletCardName)] || "",
-        rateLabel: rateLabel(walletCardName, monthlySpend, wallet.savings),
-      }
-    : null;
-
-  // Build market card ref
-  const marketCards = getEligibleMarketCards();
-  const mCardObj = marketCards.find((c: any) => c.card_name === market.cardName) || marketCards[0];
-  const marketName = mCardObj?.card_name ? normalizeCardName(mCardObj.card_name) : "";
-  const bestMarketCard: CardRef | null = marketName && market.savings > 0
-    ? {
-        name: marketName,
-        shortName: shortCardName(marketName),
-        image: mCardObj?.image || mCardObj?.card_bg_image || "/legacy-assets/cards/hdfc-infinia.png",
-        rateLabel: marketRateLabel(mCardObj, bucket),
-      }
-    : null;
-
-  // Wallet vs market identity (by name match — market cards are different brands so this is rarely true)
-  const walletEqualsMarket = !!(walletCardName && marketName &&
-    normalizeCardName(walletCardName).toLowerCase() === marketName.toLowerCase());
-
-  const walletDelta = Math.max(0, bestWalletSavings - actualSavings);
-  const marketDelta = Math.max(0, bestMarketSavings - actualSavings);
+  const cardUsed = cardIdx != null ? walletCardRef(cardIdx, bucket, monthlySpend, actualSavingsMonthly) : null;
+  const bestWalletCard = walletCardRef(wallet.cardIndex, bucket, monthlySpend, wallet.savings);
+  const bestMarketCard = marketCardRef(market.card, bucket, monthlySpend, market.savings);
+  const bestOverallCard = bestMarketSavings > bestWalletSavings ? bestMarketCard : bestWalletCard;
+  const worthAddingCard = bestMarketCard && bestMarketSavings > bestWalletSavings ? bestMarketCard : null;
+  const cardUsedIsBestWallet = cardIdx != null && cardIdx === wallet.cardIndex;
+  const cardUsedIsBestOverall = !!cardUsed && !!bestOverallCard && cardUsed.id === bestOverallCard.id;
+  const walletEqualsMarket = !!bestWalletCard && !!bestOverallCard && bestWalletCard.id === bestOverallCard.id;
 
   const base = {
     actualSavings,
     bestWalletSavings,
     bestMarketSavings,
-    walletDelta,
-    marketDelta,
+    bestOverallSavings,
+    walletDelta: Math.max(0, bestWalletSavings - actualSavings),
+    marketDelta: Math.max(0, bestMarketSavings - actualSavings),
     bestWalletCard,
     bestMarketCard,
+    bestOverallCard,
+    worthAddingCard,
+    cardUsed,
     walletEqualsMarket,
     isUPI,
   };
 
-  // ── Routing ──────────────────────────────────────────────────────────────
   if (isUPI) {
-    if (bestWalletSavings === 0 && bestMarketSavings > 0) return { id: "S5c", ...base };
-    if (bestMarketSavings > bestWalletSavings) return { id: "S5b", ...base };
-    if (walletEqualsMarket && bestWalletSavings > 0) return { id: "S5a", ...base };
-    // Wallet has reward but market doesn't beat it (and not equal-by-name) → still useful to nudge
-    if (bestWalletSavings > 0) return { id: "S5a", ...base };
-    return { id: "S6", ...base };
+    if (bestWalletSavings === 0 && bestMarketSavings > 0) return withVisibility({ id: "S5c", ...base });
+    if (bestMarketSavings > bestWalletSavings && bestWalletSavings > 0) return withVisibility({ id: "S5b", ...base });
+    if (walletEqualsMarket && bestWalletSavings > 0) return withVisibility({ id: "S5a", ...base });
+    return withVisibility({ id: "S6", ...base });
   }
 
-  // Card payments
   if (actualSavings === 0 && bestWalletSavings === 0 && bestMarketSavings > 0) {
-    return { id: "S4", ...base };
+    return withVisibility({ id: "S4", ...base });
   }
-
-  const cardUsedIsBestWallet = cardIdx === wallet.cardIndex;
 
   if (!cardUsedIsBestWallet && bestWalletSavings > actualSavings) {
-    return { id: "S3", ...base };
+    return withVisibility({ id: "S3", ...base });
   }
 
-  if (cardUsedIsBestWallet) {
-    // S1 only when wallet's best is also market's best for this bucket
-    // (in this dataset wallet cards rarely == market cards by name, so use savings comparison)
-    if (bestMarketSavings <= actualSavings || walletEqualsMarket) {
-      return { id: "S1", ...base };
-    }
-    return { id: "S2", ...base };
+  if (cardUsedIsBestWallet && cardUsedIsBestOverall) {
+    return withVisibility({ id: "S1", ...base });
   }
 
-  return { id: "S6", ...base };
+  if (cardUsedIsBestWallet && bestMarketSavings > actualSavings) {
+    return withVisibility({ id: "S2", ...base });
+  }
+
+  return withVisibility({ id: "S6", ...base });
 }
 
-// ── Display helpers ────────────────────────────────────────────────────────
-
-export const SCENARIO_PILL: Record<ScenarioId, { bg: string; color: string }> = {
-  S1: { bg: "#EAFBF3", color: "#078146" },
-  S2: { bg: "#EAFBF3", color: "#078146" },
-  S3: { bg: "#FBF6D8", color: "#B07A0E" },
-  S4: { bg: "linear-gradient(90deg, #EAF2FC 0%, rgba(234,242,252,0) 100%)", color: "#0862CF" },
-  S5a: { bg: "#FBF6D8", color: "#B07A0E" },
-  S5b: { bg: "#FBF6D8", color: "#B07A0E" },
-  S5c: { bg: "linear-gradient(90deg, #EAF2FC 0%, rgba(234,242,252,0) 100%)", color: "#0862CF" },
-  S6: { bg: "#EDEDED", color: "#7a8296" },
+export const SCENARIO_PILL: Record<ScenarioId, { bg: string; color: string; variant?: string }> = {
+  S1: { bg: "#EAFBF3", color: "#078146", variant: "best" },
+  S2: { bg: "#EAFBF3", color: "#078146", variant: "best" },
+  S3: { bg: "#FBF6D8", color: "#B07A0E", variant: "switch" },
+  S4: { bg: "linear-gradient(90deg, #EAF2FC 0%, rgba(234,242,252,0) 100%)", color: "#0862CF", variant: "newcard" },
+  S5a: { bg: "#FBF6D8", color: "#B07A0E", variant: "switch" },
+  S5b: { bg: "#FBF6D8", color: "#B07A0E", variant: "switch" },
+  S5c: { bg: "linear-gradient(90deg, #EAF2FC 0%, rgba(234,242,252,0) 100%)", color: "#0862CF", variant: "newcard" },
+  S6: { bg: "transparent", color: "transparent" },
 };
 
 export const SCENARIO_SAVED_COLOR: Record<ScenarioId, string> = {
@@ -227,15 +286,23 @@ function fmtN(n: number): string {
 
 export function tagText(scn: TxnScenario): string {
   const w = scn.bestWalletCard?.shortName?.toUpperCase() || "BEST CARD";
-  const m = scn.bestMarketCard?.shortName?.toUpperCase() || "MARKET CARD";
+  const m = (scn.worthAddingCard || scn.bestMarketCard)?.shortName?.toUpperCase() || "MARKET CARD";
   switch (scn.id) {
-    case "S1": return "USED BEST CARD FOR THIS";
-    case "S2": return "USED YOUR BEST CARD FOR THIS";
-    case "S3": return `USE ${w} AND SAVE ₹${fmtN(scn.walletDelta)}`;
-    case "S4": return `+ GET ${m} & EARN ₹${fmtN(scn.bestMarketSavings)}`;
-    case "S5a": return `USE ${w} AND SAVE ₹${fmtN(scn.bestWalletSavings)}`;
-    case "S5b": return `USE ${w} AND SAVE ₹${fmtN(scn.bestWalletSavings)}`;
-    case "S5c": return `+ GET ${m} & EARN ₹${fmtN(scn.bestMarketSavings)}`;
-    default: return "";
+    case "S1":
+      return "USED BEST CARD FOR THIS";
+    case "S2":
+      return "USED YOUR BEST CARD FOR THIS";
+    case "S3":
+      return `USE ${w} AND SAVE \u20B9${fmtN(scn.walletDelta)}`;
+    case "S4":
+      return `+ GET ${m} & EARN \u20B9${fmtN(scn.bestMarketSavings)}`;
+    case "S5a":
+      return `USE ${w} AND SAVE \u20B9${fmtN(scn.bestWalletSavings)}`;
+    case "S5b":
+      return `USE ${w} AND SAVE \u20B9${fmtN(scn.bestWalletSavings)}`;
+    case "S5c":
+      return `+ GET ${m} & EARN \u20B9${fmtN(scn.bestMarketSavings)}`;
+    default:
+      return "";
   }
 }
