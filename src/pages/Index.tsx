@@ -35,6 +35,17 @@ import { TransactionsScreen } from "@/features/new/TransactionsScreen";
 import { OptimizeScreen } from "@/features/new/OptimizeScreen";
 
 export default function App(){
+  const restoreFallbackPath=()=>{
+    try{
+      if(typeof window==="undefined")return;
+      const params=new URLSearchParams(window.location.search);
+      const saved=params.get("sa_route");
+      if(!saved)return;
+      const target=decodeURIComponent(saved);
+      const cleanTarget=target.startsWith("/")?target:"/";
+      window.history.replaceState(null,"",cleanTarget);
+    }catch(e){}
+  };
   const safeRead=(key,fallback)=>{
     try{
       if(typeof window==="undefined")return fallback;
@@ -286,6 +297,7 @@ export default function App(){
   const navigate=useNavigate();
   const location=useLocation();
   const routeSyncedRef=useRef(false);
+  useEffect(()=>{restoreFallbackPath();},[]);
   
   const screenToPath=(s,cardIdx)=>{
     if(s==="home")return "/home";
