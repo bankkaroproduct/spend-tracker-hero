@@ -165,8 +165,8 @@ export const BestCardsScreen = () => {
           <div style={{fontSize:11,color:C.sub,marginTop:3,marginBottom:14}}>This card vs your existing cards</div>
           {(()=>{
             const compCards=[
-              {name:card.name,bank:card.bank,savings:card.savings,color:card.color,accent:card.accent,isThis:true},
-              ...USER_CARD_YEARLY_SAVINGS.map((uc:any)=>({name:uc.name,bank:"",savings:uc.savings,color:uc.color,accent:uc.color,isUser:true})),
+              {name:card.name,bank:card.bank,savings:card.savings,color:card.color,accent:card.accent,isThis:true,isUser:false},
+              ...USER_CARD_YEARLY_SAVINGS.map((uc:any)=>({name:uc.name,bank:"",savings:uc.savings,color:uc.color,accent:uc.color,isThis:false,isUser:true})),
             ].sort((a,b)=>b.savings-a.savings);
             const mx=Math.max(...compCards.map(c=>c.savings));
             return compCards.map((cc,ci)=>(<div key={ci} style={{marginBottom:ci<compCards.length-1?10:0}}>

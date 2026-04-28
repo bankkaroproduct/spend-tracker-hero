@@ -432,7 +432,7 @@ export function TimeFilter({ label, options, value, onSelect }) {
   );
 }
 
-function ActionCard({ brand, mark, headline, onClick, bgOverride, width, Icon, iconColor }) {
+function ActionCard({ brand, mark, headline, onClick, bgOverride, width, Icon, iconColor }: any) {
   const brands = {
     axis: { bg: "linear-gradient(135deg, #ffd9d9 0%, #ffc7b3 100%)", ring: "#E52124" },
     hsbcR: { bg: "linear-gradient(135deg, #c4e2fb 0%, #9fc4ee 100%)", ring: "#DB0011" },
