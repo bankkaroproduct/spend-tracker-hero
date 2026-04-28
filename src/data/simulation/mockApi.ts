@@ -292,8 +292,18 @@ export function getBestCardForBucket(bucket: string): { cardIndex: number; savin
   return best;
 }
 
+export function isInviteOnlyMarketCard(card: any): boolean {
+  const alias = String(card?.card_alias || "").toLowerCase();
+  const name = String(card?.card_name || "").toLowerCase();
+  return Boolean(card?.invite_only)
+    || alias.includes("magnus-burgundy")
+    || alias.includes("hdfc-infinia")
+    || name.includes("magnus burgundy")
+    || name.includes("hdfc infinia");
+}
+
 export function getEligibleMarketCards() {
-  return (recommendResponse?.savings || []).filter(c => !c.invite_only);
+  return (recommendResponse?.savings || []).filter(c => !isInviteOnlyMarketCard(c));
 }
 
 export function getFirstEligibleMarketCard() {
