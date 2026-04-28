@@ -2,6 +2,7 @@
 import { NavBar } from "@/components/shared/NavBar";
 import { BottomSheets } from "@/components/sheets/BottomSheets";
 import { useAppContext } from "@/store/AppContext";
+import { getTransactionScenario } from "@/data/simulation/txnScenario";
 import "./legacy.css";
 import { ActionBar, TransactionRow, UnaccountedRow, groupByDate } from "./LegacyShared";
 
@@ -16,17 +17,19 @@ function BackArrow() {
 export function LegacyTransactionsScreen() {
   const { setScreen, filtered, sortBy, setSortBy, filters, setFilters, setFilterSheet, setTxnSheet, setCatSheet } = useAppContext();
   const sortLabel = sortBy === "Recent" ? "Sort By" : sortBy;
-  const mapTxn = (t, idx) => ({
-    id: idx,
-    brand: (t.brand || "").toLowerCase().replace(/\s+/g, ""),
-    merchant: t.brand || "Transaction",
-    cardLine: `${t.via || "Card"} | ${t.date || ""}`,
-    amount: `₹${(t.amt || 0).toLocaleString("en-IN")}`,
-    saved: t.saved != null ? `₹${t.saved}` : null,
-    savedColor: t.saved > 0 ? "#078146" : "#B56D3C",
-    cta: { variant: t.unaccounted ? "needsdata" : t.tag?.startsWith("★") || t.tag?.startsWith("✦") ? "newcard" : t.saved > 0 ? "best" : "switch", text: t.unaccounted ? "Need more details about this transaction" : ((t.tag || "Used best card for this").replace(/^[★✦]\s*/, "")) },
-    raw: t,
-  });
+  const mapTxn = (t, idx) => {
+    const scenario = t.unaccounted ? null : getTransactionScenario(t);
+    return {
+      id: idx,
+      brand: (t.brand || "").toLowerCase().replace(/\s+/g, ""),
+      merchant: t.brand || "Transaction",
+      cardLine: `${t.via || "Card"} | ${t.date || ""}`,
+      amount: `₹${(t.amt || 0).toLocaleString("en-IN")}`,
+      saved: t.saved != null ? `₹${t.saved}` : null,
+      scenario,
+      raw: t,
+    };
+  };
   const transactions = (filtered || []).map(mapTxn);
   const groups = groupByDate(transactions);
   const chips = ["Unaccounted", "via Axis Flipkart Card", "via HSBC Live +", "via HSBC Travel One"];
