@@ -1,4 +1,5 @@
 // @ts-nocheck
+// Legacy home screen — uses inline styles + dynamic data.
 import { NavBar } from "@/components/shared/NavBar";
 import { BottomSheets } from "@/components/sheets/BottomSheets";
 import { ACTIONS } from "@/data/simulation/legacy";
