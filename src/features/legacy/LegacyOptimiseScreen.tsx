@@ -20,6 +20,14 @@ import { f } from "@/lib/format";
 import { ALL_INPUT_BUCKETS, ANNUAL_BUCKETS, LOUNGE_BUCKETS, RESPONSE_ONLY_BUCKETS, BUCKET_TO_CATEGORY, SPEND_PROFILE, BUCKET_TO_MERCHANT, USER_CARDS } from "@/data/simulation/inputs";
 import { calculateResponses, getBestCardForBucket, getBestMarketCardForBucket } from "@/data/simulation/mockApi";
 
+const OPT_METRICS_WITH_ULTIMATE = selectOptimizeMetrics(true);
+const OPT_METRICS_WITHOUT_ULTIMATE = selectOptimizeMetrics(false);
+const SAVINGS_BARS = OPT_METRICS_WITH_ULTIMATE.bars;
+const CARD_PROMO = OPT_METRICS_WITH_ULTIMATE.cardPromo;
+const SPEND_DIST_WITH_ULTIMATE = OPT_METRICS_WITH_ULTIMATE.spendDistribution;
+const SPEND_DIST_WITHOUT_ULTIMATE = OPT_METRICS_WITHOUT_ULTIMATE.spendDistribution;
+const OPT_BRANDS = OPT_METRICS_WITH_ULTIMATE.brands;
+
 const HapticCtx = createContext({ trigger: () => {} });
 const useHaptic = () => useContext(HapticCtx);
 
