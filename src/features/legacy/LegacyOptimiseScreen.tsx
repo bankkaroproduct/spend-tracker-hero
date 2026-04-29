@@ -1107,14 +1107,6 @@ function ClaimRedeem({ onOpenHook }) {
    ═══════════════════════════════════════════════════════════ */
 
 export function LegacyOptimiseScreen() {
-  const optMetricsWithUltimate = selectOptimizeMetrics(true);
-  const optMetricsWithoutUltimate = selectOptimizeMetrics(false);
-  const SAVINGS_BARS = optMetricsWithUltimate.bars;
-  const CARD_PROMO = optMetricsWithUltimate.cardPromo;
-  const SPEND_DIST_WITH_ULTIMATE = optMetricsWithUltimate.spendDistribution;
-  const SPEND_DIST_WITHOUT_ULTIMATE = optMetricsWithoutUltimate.spendDistribution;
-  const OPT_BRANDS = optMetricsWithUltimate.brands;
-
   const ctx: any = useAppContext();
   const { setScreen, setRedeemCard, setRedeemPts, setRedeemResult, setRedeemPref, setSelBrand, setCalcAmt, setCalcResult, setSearchQ, setBestCardDetail, openCard } = ctx;
 
