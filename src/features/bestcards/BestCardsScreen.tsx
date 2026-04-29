@@ -4,7 +4,7 @@ import { C, FN } from "@/lib/theme";
 import { f } from "@/lib/format";
 import { FL } from "@/components/shared/FontLoader";
 import { TOTAL_ACC } from "@/data/simulation/legacy";
-import { BEST_CARDS as LEGACY_BEST_CARDS, BEST_CARDS_COMB_SAVINGS, getBestCardDetail, USER_CARD_YEARLY_SAVINGS } from "@/data/simulation/legacy";
+import { BEST_CARDS as LEGACY_BEST_CARDS, BEST_CARDS_COMB_SAVINGS, getBestCardDetail, USER_CARD_YEARLY_SAVINGS, SAVINGS_BARS, selectPortfolioMetrics } from "@/data/simulation/legacy";
 import { NavBar } from "@/components/shared/NavBar";
 import { useAppContext } from "@/store/AppContext";
 import { Toast, InfoBS, TxnSheet, ActSheet, GmailNudgePopup, GmailNudgeSheet, RetroOverlay, VoiceFlowOverlay, CatBS, FilterSheet } from "@/components/sheets/BottomSheets";
@@ -27,7 +27,7 @@ export const BestCardsScreen = () => {
     bcShowSort, setBcShowSort,
     bcListView, setBcListView,
     bcEligSheet, setBcEligSheet,
-    bcFromScreen,
+    bcFromScreen, setBcFromScreen,
     setScreen, setToast, setInfoSheet, setActSheet,
     setOptSheet, setOptSheetFrom,
     openCard, hasGmail, isState1, isState2, isState3,
@@ -91,7 +91,14 @@ export const BestCardsScreen = () => {
       const onCard0=userSavings[0]?.savings||0;
       const onCard1=userSavings[1]?.savings||0;
       const onCard2=userSavings[2]?.savings||0;
-      const combined=thisCardTotal+onCard0+onCard1+onCard2;
+      // Combined = best-per-bucket savings if this card is added alongside owned cards.
+      // Previously summed all card totals → double-counted (used both card A AND B for
+      // the same bucket). Now uses portfolio-style best-per-bucket via selectPortfolioMetrics.
+      let combined=thisCardTotal+onCard0+onCard1+onCard2;
+      try {
+        const portfolio = selectPortfolioMetrics([card.name]);
+        if (portfolio?.totalSavings) combined = portfolio.totalSavings;
+      } catch {}
       return {milestone,shopping:catMap.shopping||0,groceries:catMap.groceries||0,food:catMap.food||0,dining:catMap.dining||0,fuel:catMap.fuel||0,flights:catMap.flights||0,hotels:catMap.hotels||0,bills:catMap.bills||0,rent:catMap.rent||0,thisCard:thisCardTotal,onAxisFlipkart:onCard1,onHSBCTravelOne:onCard0,onHSBCLivePlus:onCard2,combined};
     };
 
@@ -117,7 +124,7 @@ export const BestCardsScreen = () => {
     };
 
     if(bestCardDetail && USE_NEW_CARD_DETAIL){
-      return <CardDetailV2 card={bestCardDetail} ctx={{setBestCardDetail, setBcEligSheet, setScreen, setPortfolioEntryCard}}/>;
+      return <CardDetailV2 card={bestCardDetail} ctx={{setBestCardDetail, setBcEligSheet, setScreen, setPortfolioEntryCard, bcFromScreen, setBcFromScreen}}/>;
     }
     if(bestCardDetail){const card=bestCardDetail;const netSavings=card.savings-(card.annualFee||0);const det=getCD(card.name);const _detIdx=BEST_CARDS.findIndex((c:any)=>c.name===card.name);const _detData=_detIdx>=0?getBestCardDetail(_detIdx):null;if(!card.brandFit&&_detData?.brandFit){card.brandFit=_detData.brandFit.map((bf:any)=>({name:bf.brand,icon:"📦",rate:parseFloat(bf.rate)||0,yourSave:bf.savings||0,spend:bf.spend||0}));}if(!card.brandFit)card.brandFit=[];return(
     <div style={{fontFamily:FN,maxWidth:400,margin:"0 auto",height:"100vh",display:"flex",flexDirection:"column",position:"relative"}}><div data-scroll="1" style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",background:C.bg,paddingBottom:100}}><div className="slide-in"><FL/>
@@ -359,7 +366,7 @@ export const BestCardsScreen = () => {
             <div style={{width:1,height:24,background:"rgba(255,255,255,0.4)",opacity:0.6,flexShrink:0}}/>
             <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}>
               <div style={{fontFamily:FN,fontSize:10,fontWeight:400,lineHeight:"140%",color:"rgba(255,255,255,0.6)"}}>Current Savings</div>
-              <div style={{fontFamily:FN,fontSize:13,fontWeight:500,lineHeight:"150%",color:"rgba(255,255,255,0.9)"}}>{"₹"+f(USER_CARD_YEARLY_SAVINGS.reduce((s:number,c:any)=>s+c.savings,0))+"/yr"}</div>
+              <div style={{fontFamily:FN,fontSize:13,fontWeight:500,lineHeight:"150%",color:"rgba(255,255,255,0.9)"}}>{"₹"+f(SAVINGS_BARS.bar1)+"/yr"}</div>
             </div>
           </div>
 
@@ -368,7 +375,7 @@ export const BestCardsScreen = () => {
             <div style={{fontFamily:FN,fontSize:10,fontWeight:400,lineHeight:"140%",color:"rgba(255,255,255,0.6)",textAlign:"center"}}>You Could Save</div>
             <div style={{display:"flex",flexDirection:"row",justifyContent:"center",alignItems:"flex-start",gap:4,filter:"drop-shadow(0px 26px 10px rgba(73,203,133,0.03)) drop-shadow(0px 15px 9px rgba(73,203,133,0.1)) drop-shadow(0px 7px 7px rgba(73,203,133,0.17)) drop-shadow(0px 2px 4px rgba(73,203,133,0.2))"}}>
               <span style={{fontFamily:"'IBM Plex Serif',serif",fontSize:30,fontWeight:700,lineHeight:"110%",background:"linear-gradient(180deg, #82FF8E 10.83%, #00770C 80%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>₹</span>
-              <span style={{fontFamily:"'Blacklist','Google Sans',serif",fontSize:32,fontWeight:800,lineHeight:"120%",letterSpacing:"-0.01em",background:"linear-gradient(180deg, #82FF8E 10.83%, #00770C 80%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>{f(combSavings)+"/yr"}</span>
+              <span style={{fontFamily:"'Blacklist','Google Sans',serif",fontSize:32,fontWeight:800,lineHeight:"120%",letterSpacing:"-0.01em",background:"linear-gradient(180deg, #82FF8E 10.83%, #00770C 80%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>{f(SAVINGS_BARS.bar3)+"/yr"}</span>
             </div>
           </div>
         </div>

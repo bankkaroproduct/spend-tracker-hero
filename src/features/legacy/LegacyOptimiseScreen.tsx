@@ -1108,7 +1108,7 @@ function ClaimRedeem({ onOpenHook }) {
 
 export function LegacyOptimiseScreen() {
   const ctx: any = useAppContext();
-  const { setScreen, setRedeemCard, setRedeemPts, setRedeemResult, setRedeemPref, setSelBrand, setCalcAmt, setCalcResult, setSearchQ, setBestCardDetail, openCard } = ctx;
+  const { setScreen, setRedeemCard, setRedeemPts, setRedeemResult, setRedeemPref, setSelBrand, setCalcAmt, setCalcResult, setSearchQ, setBestCardDetail, setBcFromScreen, openCard } = ctx;
 
   // Anchor for the "See Your Ultimate Card" footer in HereIsHow — scrolls
   // smoothly down to the CardOptimizations section instead of leaving the page.
@@ -1213,13 +1213,32 @@ export function LegacyOptimiseScreen() {
   const openUltimateCardDetail = () => {
     const promoName = CARD_PROMO?.name || "Recommended Card";
     const nameParts = promoName.split(" ");
+    const isDiners = promoName.toLowerCase().includes("diners");
+    const promoImg = isDiners
+      ? `${ASSET_BASE}/cards/Diners club  Credit Card.webp`
+      : (CARD_PROMO?.image || `${ASSET_BASE}/opt/swiggy-blck-card.webp`);
     const ultimateCard = {
       bank: nameParts[0] || "Bank",
-      name: nameParts.slice(1).join(" ") || promoName,
+      name: promoName,
       fullName: promoName,
       benefit: "",
-      color: "#ea580c",
+      color: "#0c2340",
+      accent: "#1a5276",
+      image: promoImg,
+      // Match the value shown on the Optimize promo tile (SAVINGS_BARS.bar3 = ultimate
+      // savings with this card added to the user's portfolio). Keeps detail header
+      // consistent with what the user clicked from.
+      savings: SAVINGS_BARS.bar3,
+      annualFee: CARD_PROMO?.annual_fee || 0,
+      spending_breakdown: CARD_PROMO?.spending_breakdown,
+      milestone_benefits: CARD_PROMO?.milestone_benefits,
+      welcome_benefits: CARD_PROMO?.welcome_benefits,
+      travel_benefits: CARD_PROMO?.travel_benefits,
+      product_usps: CARD_PROMO?.product_usps,
+      fee_waiver: CARD_PROMO?.fee_waiver,
+      cg_url: CARD_PROMO?.cg_url,
     };
+    setBcFromScreen?.("optimize");
     setBestCardDetail?.(ultimateCard);
     setScreen("bestcards");
   };

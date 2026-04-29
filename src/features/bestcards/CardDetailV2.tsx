@@ -73,10 +73,18 @@ const TINY_LABEL = {fontFamily:FN, fontSize:10, fontWeight:500, lineHeight:"12px
 export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
   const {
     setBestCardDetail, setBcEligSheet, setScreen, setPortfolioEntryCard,
+    bcFromScreen, setBcFromScreen,
   } = ctx;
   const onCreatePortfolio = () => {
     if (typeof setPortfolioEntryCard === "function") setPortfolioEntryCard(card?.name || null);
     if (typeof setScreen === "function") setScreen("portfolio-create");
+  };
+  const onCloseDetail = () => {
+    setBestCardDetail?.(null);
+    if (bcFromScreen && bcFromScreen !== "bestcards" && bcFromScreen !== "home" && typeof setScreen === "function") {
+      setScreen(bcFromScreen);
+      setBcFromScreen?.("home");
+    }
   };
   const [tab, setTab] = useState<"how"|"benefits"|"fees"|"elig">("how");
   const [eligType, setEligType] = useState<"salaried"|"self">("self");
@@ -128,8 +136,72 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
   const WALLET = portfolio.cards;
   const CATEGORIES = [{key:"Milestones", icon:"⭐"}, ...portfolio.categories];
   const cat = CATEGORIES.find(c=>c.key===activeCat) || CATEGORIES[1];
-  const cardImg = IMG[card.name];
-  const headlineSave = portfolio.totalSavings;
+  const cardImg = card.image || IMG[card.name] || IMG[card.fullName];
+  const headlineSave = (typeof card.savings === "number" && card.savings > 0) ? card.savings : portfolio.totalSavings;
+
+  /* Per-card derived sections — replace hardcoded MILESTONES/WELCOME/LOUNGE/FEES_WAIVERS
+     with values from the card payload when present, otherwise empty arrays so the
+     section collapses cleanly instead of showing copy from the wrong card. */
+  const cardMilestones = useMemo(() => {
+    const raw = card?.milestone_benefits;
+    if (Array.isArray(raw) && raw.length) {
+      return raw.map((m: any) => {
+        const spendNum = parseFloat(m.minSpend || m.min_spend || "0") || 0;
+        const days = m.maxDays || m.max_days || "365";
+        const voucher = parseFloat(m.voucherBonus || m.voucher_bonus || "0") || 0;
+        const rp = parseFloat(m.rpBonus || m.rp_bonus || "0") || 0;
+        const points = voucher ? `₹${voucher.toLocaleString("en-IN")} voucher` : rp ? `${rp.toLocaleString("en-IN")} reward points` : (m.brand || "Milestone benefit");
+        return {
+          points,
+          spend: `Spend ₹${spendNum.toLocaleString("en-IN")} in ${days} days`,
+          status: m.eligible ? "claimable" : "locked",
+          lockText: m.eligible ? "" : `spend ₹${spendNum.toLocaleString("en-IN")} to unlock`,
+        };
+      });
+    }
+    return [];
+  }, [card?.milestone_benefits]);
+
+  const cardWelcome = useMemo(() => {
+    const raw = card?.welcome_benefits || card?.welcomeBenefits;
+    if (Array.isArray(raw) && raw.length) {
+      return raw.map((w: any) => {
+        const brands = Array.isArray(w.brands) ? w.brands.map((b: any) => b.name).filter(Boolean) : [];
+        const spendNum = parseFloat(w.minimum_spend || w.min_spend || "0") || 0;
+        const days = w.maximum_days || w.max_days || "90";
+        const t = brands.length ? `${brands.join(", ")} membership` : "Welcome benefit";
+        const d = spendNum ? `Spend ₹${spendNum.toLocaleString("en-IN")} within ${days} days of card activation` : "On first spend with this card";
+        return { t, d };
+      });
+    }
+    return [];
+  }, [card?.welcome_benefits, card?.welcomeBenefits]);
+
+  const cardLounge = useMemo(() => {
+    const tb = card?.travel_benefits;
+    if (!tb || typeof tb !== "object") return [];
+    const out: any[] = [];
+    if (tb.domestic_lounges_unlocked > 0) out.push({ t: `${tb.domestic_lounges_unlocked} free domestic airport lounge visits/yr`, d: tb.domestic_lounge_benefits_annual ? `Worth ~₹${Number(tb.domestic_lounge_benefits_annual).toLocaleString("en-IN")}` : "" });
+    if (tb.international_lounges_unlocked > 0) out.push({ t: `${tb.international_lounges_unlocked} free international airport lounge visits/yr`, d: tb.international_lounge_benefits_annual ? `Worth ~₹${Number(tb.international_lounge_benefits_annual).toLocaleString("en-IN")}` : "" });
+    if (tb.railway_lounges_unlocked > 0) out.push({ t: `${tb.railway_lounges_unlocked} free railway lounge visits/yr`, d: "" });
+    if (out.length === 0) out.push({ t: "No lounge benefits available on this card", d: "", muted: true });
+    return out;
+  }, [card?.travel_benefits]);
+
+  const cardFees = useMemo(() => {
+    const annualFeeRaw = card?.annualFee || card?.annual_fee || card?.annual_fees;
+    const feeNum = typeof annualFeeRaw === "number" ? annualFeeRaw : parseFloat(String(annualFeeRaw || "").replace(/[^0-9.]/g, "")) || 0;
+    const waiverRaw = card?.fee_waiver || card?.annual_fee_spends;
+    const waiverNum = typeof waiverRaw === "number" ? waiverRaw : parseFloat(String(waiverRaw || "").replace(/[^0-9.]/g, "")) || 0;
+    if (!feeNum) return [];
+    return [
+      {
+        t: `Annual Fee (₹${feeNum.toLocaleString("en-IN")})`,
+        d: waiverNum ? `Spend ₹${waiverNum.toLocaleString("en-IN")} or more to waive the next year's annual fee` : "Fee is mandatory and non-waivable",
+        badge: waiverNum ? "Can waive on existing spends" : null,
+      },
+    ];
+  }, [card?.annualFee, card?.annual_fee, card?.annual_fees, card?.fee_waiver, card?.annual_fee_spends]);
 
   /* Compute spotlight rectangle left position based on active category */
   const catWidth = (k:string) => k==="Milestones"?72:k==="Shopping"?82:75;
@@ -161,7 +233,7 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
           <div style={{position:"relative", background:"#FFFFFF"}}>
             {/* Dark gradient band */}
             <div style={{height:206, background:"linear-gradient(180deg, #010904 -15.07%, #072A4D 112.18%)", position:"relative"}}>
-              <div onClick={()=>setBestCardDetail(null)} style={{position:"absolute", top:46, left:16, width:24, height:24, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>
+              <div onClick={onCloseDetail} style={{position:"absolute", top:46, left:16, width:24, height:24, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center"}}>
                 <ChevronLeft size={20} color="#fff" strokeWidth={2.2}/>
               </div>
               <div style={{position:"absolute", top:75, left:0, right:0, display:"flex", flexDirection:"column", alignItems:"center", gap:6}}>
@@ -482,10 +554,10 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
             {/* Each milestone is a row with rail+card aligned. Line is absolute so it
                 spans from this circle's bottom into the next row's top, regardless of card height. */}
             <div style={{padding:"16px 16px 24px", display:"flex", flexDirection:"column"}}>
-              {MILESTONES.map((m,i)=>{
+              {cardMilestones.map((m,i)=>{
                 const isClaim = m.status==="claimable";
-                const isLast = i===MILESTONES.length-1;
-                const nextIsLocked = !isLast && MILESTONES[i+1].status!=="claimable";
+                const isLast = i===cardMilestones.length-1;
+                const nextIsLocked = !isLast && cardMilestones[i+1].status!=="claimable";
                 const ROW_GAP = 19;
                 return (
                   <div key={i} style={{display:"flex", gap:14, position:"relative", marginBottom: isLast ? 0 : ROW_GAP}}>
@@ -559,7 +631,7 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
               <div style={SECTION_TITLE}>Lounge and Additional Benefits</div>
             </div>
             <div style={{padding:"0 16px 24px", display:"flex", flexDirection:"column", gap:16}}>
-              {LOUNGE.map((b,i)=>(
+              {cardLounge.map((b,i)=>(
                 <div key={i} style={{
                   background:"linear-gradient(124.24deg, rgba(255,255,255,0.3) 56.13%, rgba(238,243,245,0.3) 73.6%), #FFFFFF",
                   border:"1px solid #E8EBED",
@@ -587,7 +659,7 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
               <div style={SECTION_TITLE}>Welcome Benefits</div>
             </div>
             <div style={{padding:"0 16px 32px", display:"flex", flexDirection:"column", gap:16}}>
-              {WELCOME.map((w,i)=>(
+              {cardWelcome.map((w,i)=>(
                 <div key={i} style={{
                   background:"#FFFFFF",
                   boxShadow:"0 0.6px 4.4px rgba(63,66,70,0.11)",
@@ -610,7 +682,7 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
               <div style={SECTION_TITLE}>Fees &amp; Waivers</div>
             </div>
             <div style={{padding:"0 16px 24px", display:"flex", flexDirection:"column", gap:16}}>
-              {FEES_WAIVERS.map((f,i)=>(
+              {cardFees.map((f,i)=>(
                 <div key={i} style={{
                   background:"linear-gradient(124.24deg, rgba(255,255,255,0.3) 56.13%, rgba(238,243,245,0.3) 73.6%), #FFFFFF",
                   border:"1px solid #E8EBED",
@@ -815,7 +887,7 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
 
       {/* ── MINI TOP HEADER — appears when hero CTAs scroll out (no shadow — shadow lives on the tab bar) ── */}
       <div style={{position:"absolute", left:0, right:0, top:0, height:56, background:"#FFFFFF", display:"flex", alignItems:"center", padding:"0 16px", gap:12, zIndex:10, opacity: showSticky ? 1 : 0, transform: showSticky ? "translateY(0)" : "translateY(-8px)", pointerEvents: showSticky ? "auto" : "none", transition:"opacity 200ms ease-out, transform 200ms ease-out"}}>
-        <div onClick={()=>setBestCardDetail(null)} style={{width:24, height:24, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0}}>
+        <div onClick={onCloseDetail} style={{width:24, height:24, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0}}>
           <ChevronLeft size={20} color="#36405E" strokeWidth={2.2}/>
         </div>
         <span style={{fontFamily:FN, fontSize:14, fontWeight:600, lineHeight:"140%", color:"#36405E", flex:1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>{card.name}</span>

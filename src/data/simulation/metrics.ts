@@ -422,7 +422,11 @@ export function selectCardPromoMetrics() {
 
 export function selectPortfolioMetrics(selectedNewCards: string[] = []) {
   const selected = selectedNewCards.length ? selectedNewCards : selectBestCardsListMetrics().slice(0, 3).map((c) => c.name);
-  const marketCards = (recommendResponse?.savings || []).filter((c) => selected.some((name) => norm(name) === norm(c.card_name) || norm(c.card_name).includes(norm(name)) || norm(name).includes(norm(c.card_name))));
+  // Exact-match (post-clean) only. Substring matching used to pull in unrelated
+  // market cards (e.g. "Diners Black" → also picking up unrelated cards whose
+  // normalized name happened to overlap), which polluted Cards Usage rows.
+  const selectedNorm = selected.map((n) => norm(n));
+  const marketCards = (recommendResponse?.savings || []).filter((c) => selectedNorm.includes(norm(c.card_name)));
   const allCandidates = [
     ...calculateResponses.map((resp, i) => ({ source: resp, name: USER_CARDS[i].name, color: USER_CARDS[i].color, accent: USER_CARDS[i].accent, owned: true, last4: "XXXX " + USER_CARDS[i].last4, annualFee: USER_CARDS[i].annual_fee || 0, milestoneBenefits: resp.total_extra_benefits || 0 })),
     ...marketCards.map((source, i) => ({ source, name: cleanCardName(source.card_name), color: i === 0 ? "#583598" : i === 1 ? "#11257E" : "#4C98F4", accent: i === 0 ? "#9359FE" : i === 1 ? "#0A44A7" : "#0862CF", owned: false, last4: "NEW CARD", newCard: true, annualFee: parseMoney(source.annual_fees || source.annual_fee), milestoneBenefits: parseMoney(source.milestone_benefits) || 0 })),

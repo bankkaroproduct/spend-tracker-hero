@@ -56,7 +56,10 @@
       "Bash(mv \"public/ui/image 4602.png\" \"public/ui/coin-small.png\")",
       "Bash(curl -s http://localhost:5174)",
       "Bash(npx kill-port *)",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }

@@ -7,7 +7,7 @@ import { Info, User } from "lucide-react";
 /* Phase 4 refactor: Index.tsx is now a pure orchestrator (state + router). */
 import { C, FN } from "@/lib/theme";
 import "@/features/legacy/legacy.css";
-import { CARDS, SEMI_CARDS, ACTIONS, ALL_TXNS } from "@/data/simulation/legacy";
+import { CARDS, SEMI_CARDS, ACTIONS, ALL_TXNS, BEST_CARDS } from "@/data/simulation/legacy";
 import { CARD_CATALOGUE } from "@/data/bestCards";
 import { doSort, doFilter } from "@/components/shared/SortFilter";
 import { NavBar as NavBarShared } from "@/components/shared/NavBar";
@@ -297,7 +297,8 @@ export default function App(){
   const location=useLocation();
   const routeSyncedRef=useRef(false);
   
-  const screenToPath=(s,cardIdx)=>{
+  const screenToPath=(s,cardIdx,_bestDetail)=>{
+    const bestCardDetail=_bestDetail;
     if(s==="home")return "/home";
     if(s==="calc")return "/calculate";
     if(s==="redeem")return "/redeem";
@@ -305,7 +306,15 @@ export default function App(){
     if(s==="actions")return "/actions";
     if(s==="transactions")return "/transactions";
     if(s==="profile")return "/profile";
-    if(s==="bestcards")return "/cards";
+    if(s==="bestcards"){
+      // When a best-card detail is open, expose it in the URL as /cards/best/<slug>
+      // so the detail view is deep-linkable and shareable. List view stays at /cards.
+      if(bestCardDetail?.name){
+        const slug=String(bestCardDetail.name).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
+        return slug?`/cards/best/${slug}`:"/cards";
+      }
+      return "/cards";
+    }
     if(s==="portfolio-create")return "/portfolio/create";
     if(s==="portfolio-results")return "/portfolio/results";
     if(s==="detail")return `/cards/${cardIdx ?? 0}`;
@@ -339,6 +348,10 @@ export default function App(){
     if(p==="/transactions")return {screen:"transactions"};
     if(p==="/profile")return {screen:"profile"};
     if(p==="/cards")return {screen:"bestcards"};
+    {
+      const mb=matchPath("/cards/best/:slug",p);
+      if(mb)return {screen:"bestcards",bestCardSlug:mb.params.slug};
+    }
     if(p==="/portfolio/create")return {screen:"portfolio-create"};
     if(p==="/portfolio/results")return {screen:"portfolio-results"};
     if(p==="/gmail")return {screen:"gmail"};
@@ -349,14 +362,14 @@ export default function App(){
   /* State → URL */
   useEffect(()=>{
     if(!routeSyncedRef.current)return;
-    const target=screenToPath(screen,ci);
+    const target=screenToPath(screen,ci,bestCardDetail);
     if(location.pathname!==target){
       const replace=screen==="building"||screen==="home"&&prevScreenRef.current==="building";
       console.log("[debug State→URL]", "screen=", screen, "target=", target, "current path=", location.pathname);
       navigate(target,{replace});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[screen,ci]);
+  },[screen,ci,bestCardDetail]);
   /* URL → State (incl. initial deep-link + back/forward).
      No onboarding gate: the app's internal state machine (buildPhase, userFlag, etc.)
      governs what each screen renders. Gating here caused calculate/redeem to bounce
@@ -368,6 +381,16 @@ export default function App(){
     if(!parsed){routeSyncedRef.current=true;return;}
     if(parsed.screen!==screen)setScreen(parsed.screen);
     if(parsed.ci!=null&&parsed.ci!==ci)setCi(parsed.ci);
+    // Deep-link into best-card detail by slug — look it up in BEST_CARDS once
+    // available and seed bestCardDetail. Falls back gracefully (list view) if
+    // the slug doesn't match any card.
+    if(parsed.bestCardSlug && !bestCardDetail){
+      try{
+        const slug=parsed.bestCardSlug;
+        const found=BEST_CARDS.find((c)=>String(c.name||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")===slug);
+        if(found)setBestCardDetail(found);
+      }catch{}
+    }
     if(fallbackPath)window.history.replaceState(null,"",fallbackPath);
     routeSyncedRef.current=true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -413,7 +436,7 @@ export default function App(){
   useEffect(()=>{if(screen==="building"&&buildRef.current&&buildPhase===9){setTimeout(()=>buildRef.current.scrollTo({top:0,behavior:"smooth"}),100);}},[buildSub]);
   useEffect(()=>{if(buildPhase===1){setBuildCardReveal(-1);setCarouselIdx(0);const t0=setTimeout(()=>setBuildCardReveal(0),400);const t1=setTimeout(()=>{setBuildCardReveal(1);setCarouselIdx(1);},1400);const t2=setTimeout(()=>{setBuildCardReveal(2);setCarouselIdx(2);},2400);const t3=setTimeout(()=>setCarouselIdx(0),3200);return()=>{clearTimeout(t0);clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);};}if(buildPhase>1&&buildCardReveal<2)setBuildCardReveal(2);},[buildPhase]);
 
-  const ctxValue={toast,setToast,infoSheet,setInfoSheet,txnSheet,setTxnSheet,actSheet,setActSheet,setScreen,redeemCard,setRedeemCard,redeemPts,setRedeemPts,redeemResult,setRedeemResult,redeemPref,setRedeemPref,redeemTab,setRedeemTab,howExpanded,setHowExpanded,openCard,hasGmail,setHasGmail,nudgePermanentlyDismissed,nudgeDismissals,setShowGmailNudgeSheet,showGmailNudge,setShowGmailNudge,retroEnrichFromGmail,dismissNudge,setNudgePermanentlyDismissed,showGmailNudgeSheet,relinkingGmail,showVoiceFlow,setShowVoiceFlow,setVoiceTranscript,setVoiceMatch,setIsListening,recognitionRef,voiceCardIndex,setVoiceCardIndex,isListening,beginListening,voiceTranscript,voiceMatch,confirmVoiceMatch,showCardMappingUI,setShowCardMappingUI,mappingStep,setMappingStep,mappingSearchQ,setMappingSearchQ,showSkipConfirm,setShowSkipConfirm,showResolutionSummary,setShowResolutionSummary,capSheet,setCapSheet,catSheet,setCatSheet,catStep,setCatStep,selCat,setSelCat,setRemovedTxns,removedTxns,filterSheet,setFilterSheet,filterTab,setFilterTab,setFilters,setSortBy,sortBy,filters,toggleFilter,multiToggle,isState1,isState2,isState3,cardMapping,setCardMapping,screen,ci,setCi,actFilter,setActFilter,getFilteredActions,selBrand,setSelBrand,calcAmt,setCalcAmt,calcPopup,setCalcPopup,calcResult,setCalcResult,searchQ,setSearchQ,calcTab,setCalcTab,calcFilter,setCalcFilter,optTab,setOptTab,optSheet,setOptSheet,optSheetFrom,setOptSheetFrom,optExpanded,setOptExpanded,bestCardDetail,setBestCardDetail,portfolioNew,setPortfolioNew,portfolioEntryCard,setPortfolioEntryCard,bcFilter,setBcFilter,bcSearch,setBcSearch,bcSearchOpen,setBcSearchOpen,bcDetTab,setBcDetTab,bcViewMode,setBcViewMode,bcSection,setBcSection,bcFavs,setBcFavs,bcSort,setBcSort,bcShowSort,setBcShowSort,bcListView,setBcListView,bcEligSheet,setBcEligSheet,bcFromScreen,getCardDisplayName,isCardMapped,detailTab,setDetailTab,txnPage,setTxnPage,usageCat,setUsageCat,usageMode,setUsageMode,timePeriod,setTimePeriod,timePeriodOpen,setTimePeriodOpen,chartPage,setChartPage,dRef,sentRef,tabSticky,spendTab,setSpendTab,showAllBrands,setShowAllBrands,activeTxnList,filtered,goTxns,gmailStep,setGmailStep,gmailReturnTo,completeGmailLink,gmailFirstName,setGmailFirstName,gmailLastName,setGmailLastName,gmailDob,setGmailDob,hsbcDigits1,setHsbcDigits1,hsbcDigits2,setHsbcDigits2,buildPhase,setBuildPhase,buildSub,buildCardReveal,savePhase,setSavePhase,toolStep,reminderStep,finalLoad,buildRef,setMappingCompleted,mappingCompleted,setUserFlag,userFlag,startGmailFlow,onStep,setOnStep,vpSlide,setVpSlide,phone,setPhone,otp,setOtp,otpTimer,setOtpTimer,smsStatus,setSmsStatus,welcomeTyped,touchStartX,txnCatOverrides,setTxnCatOverride};
+  const ctxValue={toast,setToast,infoSheet,setInfoSheet,txnSheet,setTxnSheet,actSheet,setActSheet,setScreen,redeemCard,setRedeemCard,redeemPts,setRedeemPts,redeemResult,setRedeemResult,redeemPref,setRedeemPref,redeemTab,setRedeemTab,howExpanded,setHowExpanded,openCard,hasGmail,setHasGmail,nudgePermanentlyDismissed,nudgeDismissals,setShowGmailNudgeSheet,showGmailNudge,setShowGmailNudge,retroEnrichFromGmail,dismissNudge,setNudgePermanentlyDismissed,showGmailNudgeSheet,relinkingGmail,showVoiceFlow,setShowVoiceFlow,setVoiceTranscript,setVoiceMatch,setIsListening,recognitionRef,voiceCardIndex,setVoiceCardIndex,isListening,beginListening,voiceTranscript,voiceMatch,confirmVoiceMatch,showCardMappingUI,setShowCardMappingUI,mappingStep,setMappingStep,mappingSearchQ,setMappingSearchQ,showSkipConfirm,setShowSkipConfirm,showResolutionSummary,setShowResolutionSummary,capSheet,setCapSheet,catSheet,setCatSheet,catStep,setCatStep,selCat,setSelCat,setRemovedTxns,removedTxns,filterSheet,setFilterSheet,filterTab,setFilterTab,setFilters,setSortBy,sortBy,filters,toggleFilter,multiToggle,isState1,isState2,isState3,cardMapping,setCardMapping,screen,ci,setCi,actFilter,setActFilter,getFilteredActions,selBrand,setSelBrand,calcAmt,setCalcAmt,calcPopup,setCalcPopup,calcResult,setCalcResult,searchQ,setSearchQ,calcTab,setCalcTab,calcFilter,setCalcFilter,optTab,setOptTab,optSheet,setOptSheet,optSheetFrom,setOptSheetFrom,optExpanded,setOptExpanded,bestCardDetail,setBestCardDetail,portfolioNew,setPortfolioNew,portfolioEntryCard,setPortfolioEntryCard,bcFilter,setBcFilter,bcSearch,setBcSearch,bcSearchOpen,setBcSearchOpen,bcDetTab,setBcDetTab,bcViewMode,setBcViewMode,bcSection,setBcSection,bcFavs,setBcFavs,bcSort,setBcSort,bcShowSort,setBcShowSort,bcListView,setBcListView,bcEligSheet,setBcEligSheet,bcFromScreen,setBcFromScreen,getCardDisplayName,isCardMapped,detailTab,setDetailTab,txnPage,setTxnPage,usageCat,setUsageCat,usageMode,setUsageMode,timePeriod,setTimePeriod,timePeriodOpen,setTimePeriodOpen,chartPage,setChartPage,dRef,sentRef,tabSticky,spendTab,setSpendTab,showAllBrands,setShowAllBrands,activeTxnList,filtered,goTxns,gmailStep,setGmailStep,gmailReturnTo,completeGmailLink,gmailFirstName,setGmailFirstName,gmailLastName,setGmailLastName,gmailDob,setGmailDob,hsbcDigits1,setHsbcDigits1,hsbcDigits2,setHsbcDigits2,buildPhase,setBuildPhase,buildSub,buildCardReveal,savePhase,setSavePhase,toolStep,reminderStep,finalLoad,buildRef,setMappingCompleted,mappingCompleted,setUserFlag,userFlag,startGmailFlow,onStep,setOnStep,vpSlide,setVpSlide,phone,setPhone,otp,setOtp,otpTimer,setOtpTimer,smsStatus,setSmsStatus,welcomeTyped,touchStartX,txnCatOverrides,setTxnCatOverride};
   /* Mirror to module store as a fallback for any consumer outside the Provider tree. */
   setAppContext(ctxValue);
 
