@@ -19,6 +19,7 @@ const App = () => (
         <Routes>
           {/* All app screens render <Index/>; it reads the URL to decide which screen to show. */}
           <Route path="/" element={<Index />} />
+          <Route path="/index" element={<Index />} />
           <Route path="/onboard" element={<Index />} />
           <Route path="/building" element={<Index />} />
           <Route path="/analysis" element={<Index />} />
