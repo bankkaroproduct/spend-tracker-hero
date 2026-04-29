@@ -24,9 +24,9 @@ import { useAppContext } from "@/store/AppContext";
 // (Axis magenta wave + 2× HSBC navy diamond-grid). If a final PNG is
 // dropped at /cards-id/card-N.png it overlays automatically.
 const CARDS = [
-  { src: "/cards-id/card-1.webp", last4: "7945", variant: "axis" as const },
-  { src: "/cards-id/card-2.webp", last4: "8234", variant: "hsbc" as const },
-  { src: "/cards-id/card-3.webp", last4: "9945", variant: "hsbc" as const },
+  { src: "/legacy-assets/cards/axis-flipkart.webp", last4: "7945", variant: "axis" as const },
+  { src: "/legacy-assets/cards/hsbc-travel-one.webp", last4: "8234", variant: "hsbc" as const },
+  { src: "/legacy-assets/cards/hsbc-live.webp", last4: "9945", variant: "hsbc" as const },
 ];
 
 function CardThumbAxis() {
