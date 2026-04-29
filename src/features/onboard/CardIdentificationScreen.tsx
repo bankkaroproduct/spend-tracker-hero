@@ -98,7 +98,7 @@ function CardThumbHSBC() {
 
 export function CardIdentificationScreen() {
   const ctx: any = useAppContext();
-  const { setScreen, setBuildPhase, startGmailFlow } = ctx;
+  const { setScreen, setBuildPhase, startGmailFlow, setCardMapping, setMappingCompleted } = ctx;
 
   // 0 = orb intro, 1 = cards revealed, 2 = bottom sheet up
   const [phase, setPhase] = useState(0);
@@ -124,6 +124,10 @@ export function CardIdentificationScreen() {
     startGmailFlow && startGmailFlow("building");
   };
   const onManual = () => {
+    // BUG-13: clear any stale mappings from a prior aborted attempt before
+    // entering manual-entry, so the user starts from a clean slate.
+    setCardMapping?.({});
+    setMappingCompleted?.(false);
     setScreen && setScreen("manual-entry");
   };
 

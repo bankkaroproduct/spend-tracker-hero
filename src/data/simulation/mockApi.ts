@@ -296,7 +296,10 @@ function buildCalculateResponse(cardIndex: number) {
     total_savings: r2(totalSavingsMonthly),
     total_savings_yearly: totalSavingsYearly,
     total_extra_benefits: totalExtraBenefits,
-    roi: r2(totalSavingsYearly + totalExtraBenefits + totalTravelBenefitAnnual),
+    // Lounge value (totalTravelBenefitAnnual) is already included in totalSavingsYearly
+    // via the lounge buckets above (savings stored as annual÷12, then ×12 here).
+    // Adding totalTravelBenefitAnnual again would double-count it. Fixes BUG-35.
+    roi: r2(totalSavingsYearly + totalExtraBenefits),
     annual_fees: String(Math.round(card.annual_fee * 1.18)),
     annual_fee_without_gst: String(card.annual_fee),
     annual_fee_spends: String(card.fee_waiver_threshold),

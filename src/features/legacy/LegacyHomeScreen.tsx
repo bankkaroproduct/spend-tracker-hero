@@ -105,7 +105,7 @@ export function LegacyHomeScreen() {
           onFilterClick={() => setFilterSheet(true)}
           activeChip={filters[0] || null}
           onChipClick={(chip) => {
-            const key = chip === "via Axis Flipkart Card" ? "Flipkart" : chip === "via HSBC Live +" ? "Live+" : chip === "via HSBC Travel One" ? "Travel One" : chip;
+            const key = chip === "via Axis Flipkart Card" ? "Flipkart" : chip === "via HSBC Live+" ? "Live+" : chip === "via HSBC Travel One" ? "Travel One" : chip;
             toggleFilter(key);
           }}
           onRowClick={(t) => (t.raw?.unaccounted ? setCatSheet(t.raw) : setTxnSheet(t.raw))}

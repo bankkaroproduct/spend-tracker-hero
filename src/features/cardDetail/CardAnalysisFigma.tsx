@@ -95,7 +95,7 @@ function DiamondDivider({ color = "#A09784", lineWidth = 268 }: { color?: string
   );
 }
 
-function CapBar({ label, used, total, pct, fill, inner }: any) {
+function CapBar({ label, used, total, pct, fill, inner, exceeded }: any) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 10, width: "100%" }}>
       <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: "0 4px" }}>
@@ -103,8 +103,8 @@ function CapBar({ label, used, total, pct, fill, inner }: any) {
           <span style={{ fontFamily: FN, fontWeight: 500, fontSize: 12, lineHeight: "150%", color: "#222941" }}>{label}</span>
           <Info size={12} strokeWidth={2} color="#0064E0" style={{ opacity: 0.5 }} />
         </div>
-        <span style={{ fontFamily: FN, fontWeight: 400, fontSize: 9, lineHeight: "140%", letterSpacing: "0.1em", textTransform: "uppercase", color: "#364060" }}>
-          {used}/{total} USED
+        <span style={{ fontFamily: FN, fontWeight: 400, fontSize: 9, lineHeight: "140%", letterSpacing: "0.1em", textTransform: "uppercase", color: exceeded ? "#FF5D45" : "#364060" }}>
+          {used}/{total} {exceeded ? "EXCEEDED" : "USED"}
         </span>
       </div>
       <div style={{
@@ -177,16 +177,24 @@ export function CardAnalysisFigma({ uc, ptName, onSaveMore, onRowClick }: { uc: 
       barH: Math.round((r._saved / maxSaved) * 200),
     }));
 
-    const caps = (cd?.limits?.caps || []).slice(0, 3).map((c: any) => {
-      const usedNum = Math.round(c.used || 0);
-      const totalNum = Math.round(c.total || 0);
-      const pct = totalNum > 0 ? Math.min(100, Math.round((usedNum / totalNum) * 100)) : 0;
-      const st = capStyleForPct(pct);
+    const caps = (cd?.limits?.caps || []).map((c: any) => {
+      const usedRupees = Math.round(c.used || 0);
+      const totalRupees = Math.round(c.total || 0);
+      // For points cards, render caps in RP (the cap is enforced in points; mockApi
+      // stores it as rupee-equivalent for math). Cashback cards stay in ₹.
+      const usedDisplay = toDisplayUnit(usedRupees);
+      const totalDisplay = toDisplayUnit(totalRupees);
+      const rawPct = totalRupees > 0 ? (usedRupees / totalRupees) * 100 : 0;
+      const exceeded = rawPct > 100;
+      const pct = Math.min(100, Math.round(rawPct));
+      const st = exceeded ? { fill: "#FF7D66", inner: "1.5px 1.75px 4px #FF5D45 inset" } : capStyleForPct(pct);
+      const unit = isCash ? "₹" : " RP";
       return {
         label: c.name || "Spends",
-        used: `₹${f(usedNum)}`,
-        total: `₹${f(totalNum)}`,
+        used: isCash ? `${unit}${f(usedDisplay)}` : `${f(usedDisplay)}${unit}`,
+        total: isCash ? `${unit}${f(totalDisplay)}` : `${f(totalDisplay)}${unit}`,
         pct,
+        exceeded,
         fill: st.fill,
         inner: st.inner,
       };

@@ -1,10 +1,9 @@
 
 import { useState, useRef, useEffect } from "react";
-import { useNavigate, useLocation, matchPath } from "react-router-dom";
 import { WebHaptics } from "web-haptics";
 import { Info, User } from "lucide-react";
 
-/* Phase 4 refactor: Index.tsx is now a pure orchestrator (state + router). */
+/* Production screen orchestrator: owns MVP screen state and delegates route parsing to src/routes. */
 import { C, FN } from "@/lib/theme";
 import "@/features/legacy/legacy.css";
 import { CARDS, SEMI_CARDS, ACTIONS, ALL_TXNS, BEST_CARDS } from "@/data/simulation/legacy";
@@ -12,66 +11,21 @@ import { CARD_CATALOGUE } from "@/data/bestCards";
 import { doSort, doFilter } from "@/components/shared/SortFilter";
 import { NavBar as NavBarShared } from "@/components/shared/NavBar";
 import { AppContext, setAppContext } from "@/store/AppContext";
-import { ActionsScreen } from "@/features/actions/ActionsScreen";
-import { ProfileScreen } from "@/features/profile/ProfileScreen";
-import { BestCardsScreen } from "@/features/bestcards/BestCardsScreen";
-import { PortfolioCreateScreen } from "@/features/portfolio/PortfolioCreateScreen";
-import { PortfolioResultsScreen } from "@/features/portfolio/PortfolioResultsScreen";
-import { RedeemScreen } from "@/features/redeem/RedeemScreen";
-import { CalcScreen } from "@/features/calc/CalcScreen";
-import { CardDetailScreen } from "@/features/cardDetail/CardDetailScreen";
-import { GmailMockFlow } from "@/features/gmail/GmailMockFlow";
-import { BuildingScreen } from "@/features/building/BuildingScreen";
-import { SpendAnalysisScreen } from "@/features/onboard/SpendAnalysisScreen";
-import { CardIdentificationScreen } from "@/features/onboard/CardIdentificationScreen";
-import { ManualEntryScreen } from "@/features/onboard/ManualEntryScreen";
-import { GmailExtraInfoScreen } from "@/features/onboard/GmailExtraInfoScreen";
-import { TxnEvalScreen } from "@/features/onboard/TxnEvalScreen";
-import { ToolsIntroScreen } from "@/features/onboard/ToolsIntroScreen";
-import { FinalLoadingScreen } from "@/features/onboard/FinalLoadingScreen";
-import { OnboardScreen } from "@/features/onboard/OnboardScreen";
-import { HomeScreen } from "@/features/new/HomeScreen";
-import { TransactionsScreen } from "@/features/new/TransactionsScreen";
-import { OptimizeScreen } from "@/features/new/OptimizeScreen";
+import { getScreenComponent } from "./indexScreenRegistry";
+import { useRouteSync } from "./useRouteSync";
+import { useUserIdentityState } from "./useUserIdentityState";
+import { useGmailFlow } from "./useGmailFlow";
+import { useOnboardingFlow } from "./useOnboardingFlow";
 
 export default function App(){
-  const getFallbackPath=()=>{
-    try{
-      if(typeof window==="undefined")return null;
-      const params=new URLSearchParams(window.location.search);
-      const saved=params.get("sa_route");
-      if(!saved)return null;
-      const target=decodeURIComponent(saved);
-      return target.startsWith("/")?target:"/";
-    }catch(e){return null;}
-  };
-  const safeRead=(key,fallback)=>{
-    try{
-      if(typeof window==="undefined")return fallback;
-      const raw=window.localStorage.getItem(key);
-      if(raw===null)return fallback;
-      try{
-        return JSON.parse(raw);
-      }catch(e){
-        // If older builds stored plain strings (e.g. NORMAL) without JSON encoding,
-        // fall back to the raw value instead of resetting state.
-        if(raw==="true")return true;
-        if(raw==="false")return false;
-        return raw;
-      }
-    }catch(e){return fallback;}
-  };
-  const safeWrite=(key,value)=>{
-    try{
-      if(typeof window==="undefined")return;
-      window.localStorage.setItem(key,JSON.stringify(value));
-    }catch(e){return;}
-  };
   const hapticsRef=useRef(null);
   useEffect(()=>{try{hapticsRef.current=new WebHaptics();}catch(e){}},[]);
   const haptic=(pattern)=>{try{if(hapticsRef.current){if(pattern)hapticsRef.current.trigger(pattern);else hapticsRef.current.trigger();}}catch(e){}};
   /* User flag: NORMAL | PARTIAL | DEBIT | NTC | ENTRY_ELIGIBLE */
-  const [userFlag,setUserFlag]=useState(()=>safeRead("sa:userFlag","PARTIAL"));
+  const {
+    userFlag,setUserFlag,hasGmail,setHasGmail,cardMapping,setCardMapping,mappingCompleted,setMappingCompleted,
+    isState1,isState2,isState3,getCardDisplayName,isCardMapped,getFilteredActions,
+  }=useUserIdentityState(CARDS,SEMI_CARDS);
   const [screen,setScreenState]=useState("onboard");
   const setScreen=(next)=>{
     const nextValue=typeof next==="function"?"[function]":next;
@@ -94,14 +48,10 @@ export default function App(){
   const [bcShowSort,setBcShowSort]=useState(false);
   const [bcEligSheet,setBcEligSheet]=useState(null);
   const [bcFromScreen,setBcFromScreen]=useState("home");
-  const [onStep,setOnStep]=useState(0); /* 0=value-prop-carousel,1=phone,2=otp,3=sms,4=loading,5=done */
-  const [vpSlide,setVpSlide]=useState(0);
-  const [phone,setPhone]=useState("");
-  const [otp,setOtp]=useState(["","","","","",""]);
-  const [otpTimer,setOtpTimer]=useState(30);
-  const [smsStatus,setSmsStatus]=useState("idle");
-  const [welcomeTyped,setWelcomeTyped]=useState(""); /* idle,dialog,loading,granted */
-  const otpRefs=useRef([]);
+  const {
+    onStep,setOnStep,vpSlide,setVpSlide,phone,setPhone,otp,setOtp,
+    otpTimer,setOtpTimer,smsStatus,setSmsStatus,welcomeTyped,otpRefs,
+  }=useOnboardingFlow({screen,setScreen});
   const [ci,setCi]=useState(0);
   const [spendTab,setSpendTab]=useState("Categories");
   const [showAllBrands,setShowAllBrands]=useState(false);
@@ -153,9 +103,6 @@ export default function App(){
   const [carouselIdx,setCarouselIdx]=useState(0);
   const touchStartX=useRef(0);
   const [gmailSheet,setGmailSheet]=useState(false);
-  const [hasGmail,setHasGmail]=useState(()=>safeRead("sa:hasGmail",false));
-  const [cardMapping,setCardMapping]=useState(()=>safeRead("sa:cardMapping",{}));
-  const [mappingCompleted,setMappingCompleted]=useState(()=>safeRead("sa:mappingCompleted",false));
   const [showCardMappingUI,setShowCardMappingUI]=useState(false);
   const [mappingStep,setMappingStep]=useState(0);
   const [mappingSearchQ,setMappingSearchQ]=useState("");
@@ -174,50 +121,16 @@ export default function App(){
   const [voiceMatch,setVoiceMatch]=useState(null);
   const recognitionRef=useRef(null);
   const buildRef=useRef(null);
-  const [gmailStep,setGmailStep]=useState(0);
   const [toolStep,setToolStep]=useState(0);
   const [reminderStep,setReminderStep]=useState(0);
   const [finalLoad,setFinalLoad]=useState(0);
   const [savePhase,setSavePhase]=useState(false);
-  const [gmailReturnTo,setGmailReturnTo]=useState("building");
-  const [gmailOtp,setGmailOtp]=useState(["","","",""]);
-  const [gmailFirstName,setGmailFirstName]=useState("Aarav");
-  const [gmailLastName,setGmailLastName]=useState("Sharma");
-  const [gmailDob,setGmailDob]=useState("");
-  const [hsbcDigits1,setHsbcDigits1]=useState(["","","","","8","4"]);
-  const [hsbcDigits2,setHsbcDigits2]=useState(["","","","","2","1"]);
-  useEffect(()=>{
-    if(userFlag==="NORMAL"&&!hasGmail)setHasGmail(true);
-  },[userFlag,hasGmail]);
-  const completeGmailLink=()=>{
-    setHasGmail(true);
-    setUserFlag("NORMAL");
-    setMappingCompleted(true);
-    setCardMapping({0:"Travel One",1:"Flipkart",2:"Live+"});
-    setGmailStep(0);
-    setGmailOtp(["","","",""]);
-    // Honor the return target set by `startGmailFlow(returnTo)`.
-    // (Onboarding wants to go through txn-eval/tools-intro; other entry points may return to home/detail.)
-    if(gmailReturnTo==="building"){setBuildPhase(3);setScreen("building");}
-    else setScreen(gmailReturnTo);
-  };
-  const startGmailFlow=(returnTo)=>{
-    setGmailReturnTo(returnTo);
-    setGmailStep(0);
-    setGmailOtp(["","","",""]);
-    setScreen("gmail");
-  };
-  const linkedGmail=hasGmail||userFlag==="NORMAL";
-  const isState1=!linkedGmail&&!mappingCompleted;
-  const isState2=!linkedGmail&&mappingCompleted;
-  const isState3=linkedGmail;
-
-  const getCardDisplayName=(i)=>{
-    if(hasGmail)return CARDS[i].name;
-    if(cardMapping[i]&&cardMapping[i]!=="Other")return SEMI_CARDS[i].bank.replace(" Bank","")+" "+cardMapping[i];
-    return SEMI_CARDS[i].bank.replace(" Bank","")+" ••"+SEMI_CARDS[i].last4;
-  };
-  const isCardMapped=(i)=>hasGmail||(cardMapping[i]&&cardMapping[i]!=="Other");
+  const {
+    gmailStep,setGmailStep,gmailReturnTo,gmailOtp,setGmailOtp,
+    gmailFirstName,setGmailFirstName,gmailLastName,setGmailLastName,gmailDob,setGmailDob,
+    hsbcDigits1,setHsbcDigits1,hsbcDigits2,setHsbcDigits2,
+    completeGmailLink,startGmailFlow,
+  }=useGmailFlow({setScreen,setHasGmail,setUserFlag,setMappingCompleted,setCardMapping,setBuildPhase});
   const shouldShowNudge=(screenKey)=>{
     if(hasGmail)return false;
     if(nudgePermanentlyDismissed)return false;
@@ -230,10 +143,6 @@ export default function App(){
     setNudgeDismissals(p=>p+1);
     setShowGmailNudge(false);
     setShowGmailNudgeSheet(false);
-  };
-  const getFilteredActions=(actions)=>{
-    if(hasGmail)return actions;
-    return actions.filter(a=>a.type==="points"||a.type==="milestone"||(a.type==="cap"&&a.creditLimit===true));
   };
   const retroEnrichFromGmail=()=>{
     setShowGmailNudge(false);
@@ -273,128 +182,15 @@ export default function App(){
     if(screen==="detail")setMappingCompleted(true);
   };
 
-  /* OTP countdown timer */
-  useEffect(()=>{if(onStep!==2||otpTimer<=0)return;const t=setTimeout(()=>setOtpTimer(s=>s-1),1000);return()=>clearTimeout(t);},[onStep,otpTimer]);
-  /* Welcome typing animation */
-  useEffect(()=>{if(onStep!==3)return;const msg="Hello there!";let i=0;setWelcomeTyped("");const iv=setInterval(()=>{i++;setWelcomeTyped(msg.slice(0,i));if(i>=msg.length)clearInterval(iv);},60);return()=>clearInterval(iv);},[onStep]);
-  /* Auto-navigate to spend-analysis (Phase A) 2s after SMS permission granted */
-  useEffect(()=>{if(smsStatus!=="granted")return;const t=setTimeout(()=>{setScreen("analysis");},2000);return()=>clearTimeout(t);},[smsStatus]);
-
   useEffect(()=>{if(toast){const t=setTimeout(()=>setToast(null),2500);return()=>clearTimeout(t);}},[toast]);
-  useEffect(()=>{if(screen!=="onboard"||onStep!==0)return;const t=setInterval(()=>setVpSlide(s=>(s+1)%4),4000);return()=>clearInterval(t);},[screen,onStep]);
   useEffect(()=>{if(!savePhase)return;setToolStep(0);setReminderStep(0);setFinalLoad(0);const t=[];t.push(setTimeout(()=>setToolStep(1),2000));t.push(setTimeout(()=>setToolStep(2),6000));t.push(setTimeout(()=>setToolStep(3),10000));t.push(setTimeout(()=>setReminderStep(1),13500));t.push(setTimeout(()=>setReminderStep(2),15500));t.push(setTimeout(()=>setReminderStep(3),16500));t.push(setTimeout(()=>setReminderStep(4),17500));t.push(setTimeout(()=>setFinalLoad(1),20000));t.push(setTimeout(()=>setFinalLoad(2),22500));t.push(setTimeout(()=>setFinalLoad(3),25000));t.push(setTimeout(()=>{setSavePhase(false);setScreen("home");},27500));return()=>t.forEach(clearTimeout);},[savePhase]);
   const prevScreenRef=useRef(screen);
   const scrollTimerRef=useRef(null);
   useEffect(()=>{if(prevScreenRef.current!==screen){if(scrollTimerRef.current)clearTimeout(scrollTimerRef.current);scrollTimerRef.current=setTimeout(()=>{document.querySelectorAll("[data-scroll]").forEach(el=>{el.scrollTop=0;});scrollTimerRef.current=null;},50);prevScreenRef.current=screen;}return()=>{if(scrollTimerRef.current){clearTimeout(scrollTimerRef.current);scrollTimerRef.current=null;}};},[screen]);
   useEffect(()=>{if(screen!=="detail"||!dRef.current)return;const el=dRef.current;const fn=()=>{if(sentRef.current)setTabSticky(sentRef.current.getBoundingClientRect().top<=el.getBoundingClientRect().top);};el.addEventListener("scroll",fn);return()=>el.removeEventListener("scroll",fn);},[screen]);
-  useEffect(()=>{safeWrite("sa:hasGmail",hasGmail);},[hasGmail]);
-  useEffect(()=>{safeWrite("sa:cardMapping",cardMapping);},[cardMapping]);
-  useEffect(()=>{safeWrite("sa:mappingCompleted",mappingCompleted);},[mappingCompleted]);
-  useEffect(()=>{safeWrite("sa:userFlag",userFlag);},[userFlag]);
 
   /* ═══ URL ⇄ state sync ═══ */
-  const navigate=useNavigate();
-  const location=useLocation();
-  const routeSyncedRef=useRef(false);
-  
-  const screenToPath=(s,cardIdx,_bestDetail)=>{
-    const bestCardDetail=_bestDetail;
-    if(s==="home")return "/home";
-    if(s==="calc")return "/calculate";
-    if(s==="redeem")return "/redeem";
-    if(s==="optimize")return "/optimize";
-    if(s==="actions")return "/actions";
-    if(s==="transactions")return "/transactions";
-    if(s==="profile")return "/profile";
-    if(s==="bestcards"){
-      // When a best-card detail is open, expose it in the URL as /cards/best/<slug>
-      // so the detail view is deep-linkable and shareable. List view stays at /cards.
-      if(bestCardDetail?.name){
-        const slug=String(bestCardDetail.name).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
-        return slug?`/cards/best/${slug}`:"/cards";
-      }
-      return "/cards";
-    }
-    if(s==="portfolio-create")return "/portfolio/create";
-    if(s==="portfolio-results")return "/portfolio/results";
-    if(s==="detail")return `/cards/${cardIdx ?? 0}`;
-    if(s==="gmail")return "/gmail";
-    if(s==="building")return "/building";
-    if(s==="analysis")return "/analysis";
-    if(s==="card-id")return "/card-id";
-    if(s==="manual-entry")return "/manual-entry";
-    if(s==="gmail-extra")return "/gmail-extra";
-    if(s==="txn-eval")return "/txn-eval";
-    if(s==="tools-intro")return "/tools-intro";
-    if(s==="final-loading")return "/final-loading";
-    return "/onboard";
-  };
-  const pathToScreen=(p)=>{
-    if(p==="/"||p==="/onboard")return {screen:"onboard"};
-    if(p==="/building")return {screen:"building"};
-    if(p==="/analysis")return {screen:"analysis"};
-    if(p==="/card-id")return {screen:"card-id"};
-    if(p==="/manual-entry")return {screen:"manual-entry"};
-    if(p==="/gmail-extra")return {screen:"gmail-extra"};
-    if(p==="/txn-eval")return {screen:"txn-eval"};
-    if(p==="/tools-intro")return {screen:"tools-intro"};
-    if(p==="/final-loading")return {screen:"final-loading"};
-    if(p==="/home")return {screen:"home"};
-    if(p==="/calculate")return {screen:"calc"};
-    if(p==="/redeem")return {screen:"redeem"};
-    if(p==="/optimize")return {screen:"optimize"};
-    if(p==="/optimise")return {screen:"optimize"};
-    if(p==="/actions")return {screen:"actions"};
-    if(p==="/transactions")return {screen:"transactions"};
-    if(p==="/profile")return {screen:"profile"};
-    if(p==="/cards")return {screen:"bestcards"};
-    {
-      const mb=matchPath("/cards/best/:slug",p);
-      if(mb)return {screen:"bestcards",bestCardSlug:mb.params.slug};
-    }
-    if(p==="/portfolio/create")return {screen:"portfolio-create"};
-    if(p==="/portfolio/results")return {screen:"portfolio-results"};
-    if(p==="/gmail")return {screen:"gmail"};
-    const m=matchPath("/cards/:id",p);
-    if(m){const id=parseInt(m.params.id,10);return {screen:"detail",ci:isNaN(id)?0:id};}
-    return null;
-  };
-  /* State → URL */
-  useEffect(()=>{
-    if(!routeSyncedRef.current)return;
-    const target=screenToPath(screen,ci,bestCardDetail);
-    if(location.pathname!==target){
-      const replace=screen==="building"||screen==="home"&&prevScreenRef.current==="building";
-      console.log("[debug State→URL]", "screen=", screen, "target=", target, "current path=", location.pathname);
-      navigate(target,{replace});
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[screen,ci,bestCardDetail]);
-  /* URL → State (incl. initial deep-link + back/forward).
-     No onboarding gate: the app's internal state machine (buildPhase, userFlag, etc.)
-     governs what each screen renders. Gating here caused calculate/redeem to bounce
-     back to /onboard during normal in-app navigation. */
-  useEffect(()=>{
-    const fallbackPath=getFallbackPath();
-    const activePath=fallbackPath || location.pathname;
-    const parsed=pathToScreen(activePath.split("?")[0]);
-    if(!parsed){routeSyncedRef.current=true;return;}
-    if(parsed.screen!==screen)setScreen(parsed.screen);
-    if(parsed.ci!=null&&parsed.ci!==ci)setCi(parsed.ci);
-    // Deep-link into best-card detail by slug — look it up in BEST_CARDS once
-    // available and seed bestCardDetail. Falls back gracefully (list view) if
-    // the slug doesn't match any card.
-    if(parsed.bestCardSlug && !bestCardDetail){
-      try{
-        const slug=parsed.bestCardSlug;
-        const found=BEST_CARDS.find((c)=>String(c.name||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")===slug);
-        if(found)setBestCardDetail(found);
-      }catch{}
-    }
-    if(fallbackPath)window.history.replaceState(null,"",fallbackPath);
-    routeSyncedRef.current=true;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[location.pathname]);
+  useRouteSync({screen,ci,bestCardDetail,setScreen,setCi,setBestCardDetail,bestCards:BEST_CARDS,prevScreenRef});
 
   const toggleFilter=fl=>setFilters(p=>p.includes(fl)?[]:[fl]);
   const multiToggle=fl=>setFilters(p=>p.includes(fl)?p.filter(x=>x!==fl):[...p,fl]);
@@ -440,31 +236,8 @@ export default function App(){
   /* Mirror to module store as a fallback for any consumer outside the Provider tree. */
   setAppContext(ctxValue);
 
-  let body=<HomeScreen/>;
-  if(screen==="building")body=<BuildingScreen/>;
-  else if(screen==="analysis")body=<SpendAnalysisScreen/>;
-  else if(screen==="card-id")body=<CardIdentificationScreen/>;
-  else if(screen==="manual-entry")body=<ManualEntryScreen/>;
-  else if(screen==="gmail-extra")body=<GmailExtraInfoScreen/>;
-  else if(screen==="txn-eval")body=<TxnEvalScreen/>;
-  else if(screen==="tools-intro")body=<ToolsIntroScreen/>;
-  else if(screen==="final-loading")body=<FinalLoadingScreen/>;
-  else if(screen==="onboard")body=<OnboardScreen/>;
-  else if(screen==="actions")body=<ActionsScreen/>;
-  else if(screen==="transactions")body=<TransactionsScreen/>;
-  else if(screen==="optimize")body=<OptimizeScreen/>;
-  else if(screen==="gmail")body=<GmailMockFlow/>;
-  else if(screen==="detail")body=<CardDetailScreen/>;
-  else if(screen==="calc")body=<CalcScreen/>;
-  else if(screen==="redeem")body=<RedeemScreen/>;
-  else if(screen==="profile")body=<ProfileScreen/>;
-  else if(screen==="bestcards")body=<BestCardsScreen/>;
-  else if(screen==="portfolio-create")body=<PortfolioCreateScreen/>;
-  else if(screen==="portfolio-results")body=<PortfolioResultsScreen/>;
-  else if(screen==="home")body=<HomeScreen/>;
-
-  useEffect(()=>{
-  },[screen,location.pathname,ci,buildPhase,gmailStep,onStep,hasGmail,mappingCompleted]);
+  const ActiveScreen=getScreenComponent(screen);
+  const body=<ActiveScreen/>;
 
   return <AppContext.Provider value={ctxValue}><div key={screen} className="legacy-screen-transition" style={{height:"100%"}}>{body}</div></AppContext.Provider>;
 }

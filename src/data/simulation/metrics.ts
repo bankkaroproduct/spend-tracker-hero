@@ -21,6 +21,7 @@ import {
   getEligibleMarketCards,
   getFirstEligibleMarketCard,
   getOwnedCardIndex,
+  isAlreadyOwnedMarketCard,
   isInviteOnlyMarketCard,
   getCardRewardForSpend,
 } from "./mockApi";
@@ -106,7 +107,11 @@ function parseMoney(s: any): number {
 }
 
 function marketYearlySavings(card: any): number {
-  return roundMoney(card?.total_savings_yearly || parseMoney(card?.annual_rewards_value) || parseMoney(card?.net_annual_savings) || 0);
+  // BUG-39: use ?? for the primary read so a legitimate `total_savings_yearly: 0`
+  // (card adds no savings on this user's profile) is treated as 0 rather than
+  // falling through to a stale annual_rewards_value from the upstream fixture.
+  if (typeof card?.total_savings_yearly === "number") return roundMoney(card.total_savings_yearly);
+  return roundMoney(parseMoney(card?.annual_rewards_value) || parseMoney(card?.net_annual_savings) || 0);
 }
 
 function yearlySavingsForBreakdown(card: any, bucket: string): number {
@@ -239,7 +244,10 @@ export function selectOwnedCardsMetrics() {
 }
 
 export function selectBestCardsListMetrics() {
-  return (recommendResponse?.savings || []).map((card, i) => {
+  // BUG-53: never recommend a card the user already owns. Per CLAUDE.md, the "Best
+  // Cards for you" feed must exclude owned cards entirely. Owned cards belong in
+  // the per-card detail screen, not the recommendation list.
+  return (recommendResponse?.savings || []).filter((card) => !isAlreadyOwnedMarketCard(card)).map((card, i) => {
     const ownedIdx = getOwnedCardIndex(card);
     const isOwned = ownedIdx >= 0;
     const fee = parseMoney(card.annual_fees || card.annual_fee) || roundMoney((parseMoney(card.annual_fee_without_gst) || 0) * 1.18);
@@ -273,6 +281,15 @@ export function selectBestCardsListMetrics() {
       lounge_value: card.lounge_value,
       milestone_benefits_str: card.milestone_benefits,
       welcome_benefits_raw: card.welcome_benefits,
+      // Pass raw structured fields through so the detail page can render Benefits/Fee
+      // sections without re-querying recommendResponse. Some shapes are arrays in
+      // newer fixtures, strings in older ones — consumers handle both.
+      milestone_benefits: Array.isArray(card.milestone_benefits) ? card.milestone_benefits : null,
+      welcome_benefits: card.welcome_benefits || card.welcomeBenefits || null,
+      welcomeBenefits: card.welcomeBenefits || card.welcome_benefits || null,
+      travel_benefits: card.travel_benefits || null,
+      product_usps: card.product_usps || null,
+      annual_fee_spends: card.annual_fee_spends || null,
       spending_breakdown: card.spending_breakdown,
       filterTags: tags,
     };

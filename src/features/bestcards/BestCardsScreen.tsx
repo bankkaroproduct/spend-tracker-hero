@@ -572,7 +572,14 @@ export const BestCardsScreen = () => {
                   </button>
                 );
               })()}
-              <button onClick={()=>{setBcSection("overview");setBcDetTab(100);setBestCardDetail(card);}} style={{flex:1,height:41,padding:"12px 20.34px",borderRadius:8,border:"none",background:"linear-gradient(90deg, #222941 0%, #101C43 100%)",cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",gap:8.48,boxShadow:"0.29px 0.29px 0.41px -0.49px rgba(0,0,0,0.26), 0.79px 0.79px 1.12px -0.98px rgba(0,0,0,0.247), 1.73px 1.73px 2.45px -1.47px rgba(0,0,0,0.23), inset 0.65px 0.65px 0.65px rgba(255,255,255,0.7), inset -0.65px -0.65px 0.65px rgba(0,0,0,0.23)"}}><span style={{fontFamily:FN,fontSize:12,fontWeight:500,lineHeight:"140%",color:"#FFFFFF"}}>View details</span><ChevronRight size={12} strokeWidth={2.5} color="#fff"/></button>
+              <button onClick={()=>{
+                // Pass combined-with-portfolio savings so the detail header matches the
+                // "Combine with your cards & Save ₹X" line the user just tapped on.
+                setBcSection("overview");
+                setBcDetTab(100);
+                setBcFromScreen?.("bestcards");
+                setBestCardDetail({...card, savings: bc.combined || card.savings});
+              }} style={{flex:1,height:41,padding:"12px 20.34px",borderRadius:8,border:"none",background:"linear-gradient(90deg, #222941 0%, #101C43 100%)",cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",gap:8.48,boxShadow:"0.29px 0.29px 0.41px -0.49px rgba(0,0,0,0.26), 0.79px 0.79px 1.12px -0.98px rgba(0,0,0,0.247), 1.73px 1.73px 2.45px -1.47px rgba(0,0,0,0.23), inset 0.65px 0.65px 0.65px rgba(255,255,255,0.7), inset -0.65px -0.65px 0.65px rgba(0,0,0,0.23)"}}><span style={{fontFamily:FN,fontSize:12,fontWeight:500,lineHeight:"140%",color:"#FFFFFF"}}>View details</span><ChevronRight size={12} strokeWidth={2.5} color="#fff"/></button>
             </div>
           </div>);})}
         </div>

@@ -213,7 +213,12 @@ export function generateTransactions(): any[] {
   const cardNames = ["HSBC Travel One", "Axis Flipkart Card", "HSBC Live+", "UPI"];
   const cardLast4 = ["7891", "4521", "3364", "0000"];
   const cardBanks = ["HSBC", "Axis", "HSBC", "UPI"];
-  const months = ["Jan", "Feb", "Mar", "Apr"];
+  // BUG-67: previously hardcoded ["Jan","Feb","Mar","Apr"]. Now anchor to the
+  // current real month and walk back 4 months so transaction dates always look
+  // recent regardless of when the app is loaded.
+  const ALL_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const _now = new Date();
+  const months = Array.from({ length: 4 }, (_, k) => ALL_MONTHS[(_now.getMonth() - (3 - k) + 12) % 12]);
 
   // Build weighted bucket list proportional to monthly spend
   const bucketWeights: { bucket: string; weight: number }[] = [];

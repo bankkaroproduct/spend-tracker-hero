@@ -45,6 +45,11 @@ export const BANK_FEES_HSBC_LIVE=[
   ["Cash Payment Fees","₹100"],
 ];
 
+/**
+ * @deprecated Hardcoded to HSBC Travel One — DO NOT IMPORT DIRECTLY.
+ * Use the per-card array `bankFees` from `simulation/legacy.ts` CD entries instead.
+ * Kept only because the legacy mock CD (line ~70 below) references it.
+ */
 export const BANK_FEES = BANK_FEES_HSBC_TRAVEL;
 
 // Late fees — per card (structures differ)
@@ -65,6 +70,7 @@ export const LATE_FEES_HSBC_LIVE=[
   ["₹5,001 - ₹10,000","₹750"],
   ["₹10,001 And Above","₹1,200"],
 ];
+/** @deprecated See BANK_FEES above. Use per-card `lateFees` from `simulation/legacy.ts`. */
 export const LATE_FEES = LATE_FEES_HSBC_TRAVEL;
 export const CD=[
   {advice:"HSBC Travel One is strong for travel but weak on everyday spends. Optimize usage to save ₹80,000 more",adviceCta:"See how to optimize",saved:5200,potential:15000,bestCard:"HDFC Infinia",bestSaved:150000,actions:[{Ic:Clock,title:"3,200 points expiring soon",desc:"On your HSBC Travel One card",badge:"In 6 Days",cta:"Redeem ›"},{Ic:Star,title:"Unlock milestone travel voucher",desc:"Spend ₹4,200 more this quarter",badge:"In 30 Days",cta:"Track progress ›"}],brands:CD_BRANDS,categories:CD_CATS,txns:ALL_TXNS.slice(0,5),totalSpend:300000,totalSaved:5200,totalMissed:3200,welcome:{title:"1000 Reward Points worth ₹300",desc:"Bonus reward points awarded on your first spend above ₹500",status:"Claimed"},milestones:[{title:"2000 Points (Worth ₹600)",desc:"on spends of ₹2,00,000 on this card in a year",status:"Claimed",expiry:"18 days"},{title:"+1500 Points (Worth ₹450)",desc:"on spends of ₹3,00,000 on this card in a year",status:"Yet to claim"},{title:"+2000 Points (Worth ₹600)",desc:"on spends of ₹4,00,000 on this card in a year",status:"Yet to claim"}],lounge:[{title:"2 free domestic airport lounge visits per quarter",desc:"Via Visa Lounge program. Min spend of ₹50,000 in previous quarter required.",icon:"✈️"},{title:"1 free international lounge visit per quarter",desc:"Via Priority Pass. Requires ₹1,50,000+ quarterly spend.",icon:"🌍"},{title:"No railway lounge access",desc:"Not available on this card",icon:"🚫"}],limits:{creditUsed:53000,creditTotal:200000,caps:[{name:"Travel spends",used:28000,total:50000},{name:"Dining spends",used:20000,total:30000},{name:"International spends",used:8000,total:30000}]},fees:{annual:"₹500 + GST",annualWaiver:"Spend ₹1,50,000 or more to waive the next year's annual fee",annualStatus:"Waived",joining:"₹500 + GST",joiningNote:"Fee waived for first year"},bankFees:BANK_FEES,lateFees:LATE_FEES},

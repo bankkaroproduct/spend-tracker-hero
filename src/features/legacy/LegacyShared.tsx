@@ -1011,7 +1011,7 @@ export function UnaccountedRow({ onClick }) {
 
 export function TransactionsPreview({ transactions, onOpenTransactions, onSortClick, onFilterClick, onChipClick, activeChip, onRowClick, onUnaccountedClick }) {
   const [activeTab, setActiveTab] = useState<string | null>(null);
-  const chips = ["Unaccounted", "via Axis Flipkart Card", "via HSBC Live +", "via HSBC Travel One"];
+  const chips = ["Unaccounted", "via Axis Flipkart Card", "via HSBC Live+", "via HSBC Travel One"];
   const preview = transactions.slice(0, 4);
   // Parent's activeChip (driven by global filters) wins; activeTab is a local
   // fallback that mirrors clicks when no parent filter is wired.
@@ -1155,9 +1155,13 @@ export function useTransactionGroups(transactions, activeChip) {
   const filtered = useMemo(() => {
     if (!activeChip) return transactions;
     if (activeChip === "Unaccounted") return transactions.filter((t) => t.id % 5 === 3);
-    if (activeChip === "via Axis Flipkart Card") return transactions.filter((t) => t.card === "Axis Flipkart");
-    if (activeChip === "via HSBC Live +") return transactions.filter((t) => t.card === "HSBC Live+");
-    if (activeChip === "via HSBC Travel One") return transactions.filter((t) => t.card === "HSBC Travel One");
+    // BUG-17/18 fix: txn.card is "Axis Flipkart Card" (with "Card" suffix), not "Axis Flipkart".
+    // Also, the chip label "via HSBC Live+" had a stray space. Match via substring containment
+    // so the chip works regardless of minor naming drift.
+    if (activeChip.includes("Flipkart")) return transactions.filter((t) => (t.card || "").includes("Flipkart"));
+    if (activeChip.includes("Live")) return transactions.filter((t) => (t.card || "").includes("Live"));
+    if (activeChip.includes("Travel One")) return transactions.filter((t) => (t.card || "").includes("Travel One"));
+    if (activeChip === "UPI" || activeChip === "via UPI") return transactions.filter((t) => t.card === "UPI");
     return transactions;
   }, [activeChip, transactions]);
   return useMemo(() => groupByDate(filtered), [filtered]);

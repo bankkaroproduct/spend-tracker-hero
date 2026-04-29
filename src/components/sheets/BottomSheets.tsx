@@ -154,6 +154,10 @@ function BetterCardInWalletBlock({ scn, txn }) {
 function WorthAddingBlock({ scn, txn, onDetails }) {
   const m = scn.worthAddingCard || scn.bestMarketCard;
   if (!m) return null;
+  // BUG-19/62 fix: "Could Save" should be the incremental delta over what the user
+  // already saved. For S4 (actualSavings=0) bestMarketSavings === marketDelta, so
+  // the displayed number is unchanged for that case.
+  const couldSaveAmt = scn.marketDelta > 0 ? scn.marketDelta : scn.bestMarketSavings;
   return (
     <div>
       <div className="txn-stagger txn-s4"><SectionLabel text="Worth adding" /></div>
@@ -166,7 +170,7 @@ function WorthAddingBlock({ scn, txn, onDetails }) {
           </div>
           <div style={{ textAlign: "right" }}>
             <div style={{ fontSize: 11, fontWeight: 400, color: "#808387", lineHeight: "155%", textAlign: "right" }}>Could Save</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#008846", lineHeight: "140%", letterSpacing: "0.01em", textAlign: "right", marginTop: 2 }}>₹{f(scn.bestMarketSavings)}</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#008846", lineHeight: "140%", letterSpacing: "0.01em", textAlign: "right", marginTop: 2 }}>₹{f(couldSaveAmt)}</div>
           </div>
         </div>
         <DashedLine color="rgba(173,203,171,0.3)" />

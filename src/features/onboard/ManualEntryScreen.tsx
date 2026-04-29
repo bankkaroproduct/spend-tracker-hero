@@ -127,7 +127,10 @@ export function ManualEntryScreen() {
   const [searchQ, setSearchQ] = useState("");
   const [confirmed, setConfirmed] = useState(false);
 
-  const allMapped = SLOTS.every((_, i) => mappings[i]);
+  // BUG-18: a slot mapping of "Other" means user skipped — must NOT count as
+  // valid. Otherwise user can hit "Skip →" three times and onboarding accepts
+  // them as State 2 with no real cards.
+  const allMapped = SLOTS.every((_, i) => mappings[i] && mappings[i] !== "Other");
   const activeBank = SLOTS[activeSlot].bank;
   const listForSlot = useMemo(() => {
     const all = CARD_LIBRARY[activeBank] ?? [];

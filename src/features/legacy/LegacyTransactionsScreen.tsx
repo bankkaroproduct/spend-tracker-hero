@@ -32,7 +32,7 @@ export function LegacyTransactionsScreen() {
   };
   const transactions = (filtered || []).map(mapTxn);
   const groups = groupByDate(transactions);
-  const chips = ["Unaccounted", "via Axis Flipkart Card", "via HSBC Live +", "via HSBC Travel One"];
+  const chips = ["Unaccounted", "via Axis Flipkart Card", "via HSBC Live+", "via HSBC Travel One"];
   const activeChip = filters[0] || null;
 
   return (
@@ -61,7 +61,7 @@ export function LegacyTransactionsScreen() {
               setFilters([]);
               return;
             }
-            const key = chip === "via Axis Flipkart Card" ? "Flipkart" : chip === "via HSBC Live +" ? "Live+" : chip === "via HSBC Travel One" ? "Travel One" : chip;
+            const key = chip === "via Axis Flipkart Card" ? "Flipkart" : chip === "via HSBC Live+" ? "Live+" : chip === "via HSBC Travel One" ? "Travel One" : chip;
             setFilters([key]);
           }}
         />

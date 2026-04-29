@@ -178,7 +178,14 @@ const CardThumbHero = ({ name }: { name: string }) => {
 
 export const PortfolioResultsScreen = () => {
   const { setScreen, portfolioNew } = useAppContext();
-  const newCards = (portfolioNew && portfolioNew.length > 0) ? portfolioNew : ["Amex Travel Platinum", "AU Zenith", "HDFC Millennia"];
+  // BUG-28: previously fell back to a hardcoded 3-card portfolio, showing ghost
+  // cards when the user had selected nothing. Now redirect back to create.
+  useEffect(() => {
+    if (!portfolioNew || portfolioNew.length === 0) {
+      setScreen?.("portfolio-create");
+    }
+  }, [portfolioNew, setScreen]);
+  const newCards = (portfolioNew && portfolioNew.length > 0) ? portfolioNew : [];
   const ownedCardNames = CARDS.map((c: any) => c.name);
   const allPortfolioCards: string[] = [...newCards, ...ownedCardNames];
 

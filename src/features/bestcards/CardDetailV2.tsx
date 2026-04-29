@@ -81,6 +81,9 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
   };
   const onCloseDetail = () => {
     setBestCardDetail?.(null);
+    // BUG-27: clear portfolio entry-card so the next "Create Portfolio" tap doesn't
+    // pre-select the previously viewed card.
+    if (typeof setPortfolioEntryCard === "function") setPortfolioEntryCard(null);
     if (bcFromScreen && bcFromScreen !== "bestcards" && bcFromScreen !== "home" && typeof setScreen === "function") {
       setScreen(bcFromScreen);
       setBcFromScreen?.("home");
@@ -146,11 +149,12 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
     const raw = card?.milestone_benefits;
     if (Array.isArray(raw) && raw.length) {
       return raw.map((m: any) => {
-        const spendNum = parseFloat(m.minSpend || m.min_spend || "0") || 0;
-        const days = m.maxDays || m.max_days || "365";
+        const spendNum = parseFloat(m.minSpend || m.min_spend || m.minimum_spend || "0") || 0;
+        const days = m.maxDays || m.max_days || m.maximum_days || "365";
         const voucher = parseFloat(m.voucherBonus || m.voucher_bonus || "0") || 0;
         const rp = parseFloat(m.rpBonus || m.rp_bonus || "0") || 0;
-        const points = voucher ? `₹${voucher.toLocaleString("en-IN")} voucher` : rp ? `${rp.toLocaleString("en-IN")} reward points` : (m.brand || "Milestone benefit");
+        const value = parseFloat(m.value || "0") || 0;
+        const points = m.reward || (voucher ? `₹${voucher.toLocaleString("en-IN")} voucher` : rp ? `${rp.toLocaleString("en-IN")} reward points` : value ? `₹${value.toLocaleString("en-IN")} benefit` : (m.brand || "Milestone benefit"));
         return {
           points,
           spend: `Spend ₹${spendNum.toLocaleString("en-IN")} in ${days} days`,
@@ -159,23 +163,31 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
         };
       });
     }
+    // String-shape fallback ("₹6,000" from older fixtures) — render as a single
+    // summary row so the section isn't blank.
+    const strRaw = card?.milestone_benefits_str || (typeof raw === "string" ? raw : "");
+    const num = parseFloat(String(strRaw).replace(/[^0-9.]/g, "")) || 0;
+    if (num > 0) {
+      return [{ points: `Up to ₹${num.toLocaleString("en-IN")} in milestone rewards`, spend: "Annual milestone benefits when spend thresholds are met", status: "locked", lockText: "tier-based — see card terms" }];
+    }
     return [];
-  }, [card?.milestone_benefits]);
+  }, [card?.milestone_benefits, card?.milestone_benefits_str]);
 
   const cardWelcome = useMemo(() => {
-    const raw = card?.welcome_benefits || card?.welcomeBenefits;
+    const raw = card?.welcome_benefits || card?.welcomeBenefits || card?.welcome_benefits_raw;
     if (Array.isArray(raw) && raw.length) {
       return raw.map((w: any) => {
         const brands = Array.isArray(w.brands) ? w.brands.map((b: any) => b.name).filter(Boolean) : [];
         const spendNum = parseFloat(w.minimum_spend || w.min_spend || "0") || 0;
         const days = w.maximum_days || w.max_days || "90";
-        const t = brands.length ? `${brands.join(", ")} membership` : "Welcome benefit";
+        const voucherBonus = parseFloat(w.voucher_bonus || w.voucherBonus || "0") || 0;
+        const t = w.description || (brands.length ? `${brands.join(", ")} membership` : voucherBonus ? `₹${voucherBonus.toLocaleString("en-IN")} welcome voucher` : "Welcome benefit");
         const d = spendNum ? `Spend ₹${spendNum.toLocaleString("en-IN")} within ${days} days of card activation` : "On first spend with this card";
         return { t, d };
       });
     }
     return [];
-  }, [card?.welcome_benefits, card?.welcomeBenefits]);
+  }, [card?.welcome_benefits, card?.welcomeBenefits, card?.welcome_benefits_raw]);
 
   const cardLounge = useMemo(() => {
     const tb = card?.travel_benefits;
@@ -547,10 +559,15 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
           </>}
 
           {tab==="benefits" && (<>
+            {cardMilestones.length === 0 && cardLounge.length === 0 && cardWelcome.length === 0 && (
+              <div style={{padding:"32px 24px", textAlign:"center", fontFamily:FN, fontSize:13, color:"#808387"}}>
+                Detailed benefits for this card aren't available yet.
+              </div>
+            )}
             {/* ── MILESTONE BENEFITS ── */}
-            <div style={{padding:"24px 16px 0"}}>
+            {cardMilestones.length > 0 && <div style={{padding:"24px 16px 0"}}>
               <div style={SECTION_TITLE}>Milestone Benefits</div>
-            </div>
+            </div>}
             {/* Each milestone is a row with rail+card aligned. Line is absolute so it
                 spans from this circle's bottom into the next row's top, regardless of card height. */}
             <div style={{padding:"16px 16px 24px", display:"flex", flexDirection:"column"}}>
@@ -623,13 +640,13 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
               })}
             </div>
 
-            {/* Section divider */}
-            <div style={{height:10, background:"rgba(23,73,47,0.06)"}}/>
+            {/* Section divider — only when adjacent sections both have content */}
 
+            {cardMilestones.length > 0 && cardLounge.length > 0 && <div style={{height:10, background:"rgba(23,73,47,0.06)"}}/>}
             {/* ── LOUNGE & ADDITIONAL BENEFITS ── */}
-            <div style={{padding:"24px 16px 16px"}}>
+            {cardLounge.length > 0 && <div style={{padding:"24px 16px 16px"}}>
               <div style={SECTION_TITLE}>Lounge and Additional Benefits</div>
-            </div>
+            </div>}
             <div style={{padding:"0 16px 24px", display:"flex", flexDirection:"column", gap:16}}>
               {cardLounge.map((b,i)=>(
                 <div key={i} style={{
@@ -651,13 +668,13 @@ export const CardDetailV2 = ({ card, ctx }: { card: any; ctx: any }) => {
               ))}
             </div>
 
-            {/* Section divider */}
-            <div style={{height:10, background:"rgba(23,73,47,0.06)"}}/>
+            {/* Section divider — only when adjacent sections both have content */}
 
+            {cardLounge.length > 0 && cardWelcome.length > 0 && <div style={{height:10, background:"rgba(23,73,47,0.06)"}}/>}
             {/* ── WELCOME BENEFITS ── */}
-            <div style={{padding:"24px 16px 16px"}}>
+            {cardWelcome.length > 0 && <div style={{padding:"24px 16px 16px"}}>
               <div style={SECTION_TITLE}>Welcome Benefits</div>
-            </div>
+            </div>}
             <div style={{padding:"0 16px 32px", display:"flex", flexDirection:"column", gap:16}}>
               {cardWelcome.map((w,i)=>(
                 <div key={i} style={{

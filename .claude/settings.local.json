@@ -59,7 +59,10 @@
       "Bash(git checkout *)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(grep -v \"//\")",
+      "Bash(grep -n \"^export const CD\\\\|export { CD\\\\|CD,\\\\|CD as\" \"src/data/simulation/legacy.ts\" \"src/data/cardDetail.ts\")",
+      "Bash(bun x *)"
     ]
   }
 }
