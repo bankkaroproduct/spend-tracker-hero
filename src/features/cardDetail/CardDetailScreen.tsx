@@ -13,20 +13,21 @@ import { useAppContext } from "@/store/AppContext";
 import { NavBar as NavBarShared } from "@/components/shared/NavBar";
 import { CardAnalysisFigma } from "./CardAnalysisFigma";
 import { Toast, InfoBS, TxnSheet, ActSheet, GmailNudgeBanner, GmailNudgePopup, GmailNudgeSheet, RetroOverlay, VoiceFlowOverlay, CatBS, FilterSheet } from "@/components/sheets/BottomSheets";
+import { categoryImage } from "@/data/domain/buckets";
 import React, { useState, useRef, useEffect } from "react";
 
 const DTABS=["Card Analysis","Transactions","Benefits","Fees"];
 
 const CAT_ICONS={
-  "Shopping":"/categories/shopping.webp",
-  "Groceries":"/categories/groceries.webp",
-  "Bills":"/categories/bills.webp",
-  "Fuel":"/categories/fuel.webp",
-  "Travel":"/categories/travel.webp",
-  "Dining":"/categories/dining.webp",
-  "Food Ordering":"/categories/food.webp",
-  "Entertainment":"/categories/entertainment.webp",
-  "Cab Rides":"/categories/cab.webp",
+  "Shopping":categoryImage("Shopping"),
+  "Groceries":categoryImage("Groceries"),
+  "Bills":categoryImage("Bills"),
+  "Fuel":categoryImage("Fuel"),
+  "Travel":categoryImage("Travel"),
+  "Dining":categoryImage("Dining"),
+  "Food Ordering":categoryImage("Food Ordering"),
+  "Entertainment":categoryImage("Entertainment"),
+  "Cab Rides":categoryImage("Cab Rides"),
   "Flipkart":"/brands/flipkart.webp",
   "Amazon":"/brands/amazon.webp",
   "Swiggy":"/brands/swiggy.webp",

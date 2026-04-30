@@ -5,6 +5,7 @@ import { f } from "@/lib/format";
 import { ChevronDown, ChevronRight, Info } from "lucide-react";
 import { CD, CARDS } from "@/data/simulation/legacy";
 import { USER_CARDS } from "@/data/simulation/inputs";
+import { categoryImage } from "@/data/domain/buckets";
 
 /**
  * CardAnalysisFigma — pixel-accurate rebuild of the Figma card-detail
@@ -24,17 +25,17 @@ import { USER_CARDS } from "@/data/simulation/inputs";
  */
 
 const IMG_MAP: Record<string, string> = {
-  Shopping: "/categories/shopping.webp",
-  Groceries: "/categories/groceries.webp",
-  Bills: "/categories/bills.webp",
-  Fuel: "/categories/fuel.webp",
-  Travel: "/categories/travel.webp",
-  Dining: "/categories/dining.webp",
-  "Food Ordering": "/categories/food.webp",
-  Entertainment: "/categories/entertainment.webp",
-  "Cab Rides": "/categories/cab.webp",
-  Insurance: "/categories/shopping.webp",
-  Rent: "/categories/bills.webp",
+  Shopping: categoryImage("Shopping"),
+  Groceries: categoryImage("Groceries"),
+  Bills: categoryImage("Bills"),
+  Fuel: categoryImage("Fuel"),
+  Travel: categoryImage("Travel"),
+  Dining: categoryImage("Dining"),
+  "Food Ordering": categoryImage("Food Ordering"),
+  Entertainment: categoryImage("Entertainment"),
+  "Cab Rides": categoryImage("Cab Rides"),
+  Insurance: categoryImage("Insurance"),
+  Rent: categoryImage("Rent"),
   Amazon: "/brands/amazon.webp",
   Flipkart: "/brands/flipkart.webp",
   Swiggy: "/brands/swiggy.webp",
@@ -47,27 +48,27 @@ const IMG_MAP: Record<string, string> = {
   "McDonald's": "/brands/zomato.webp",
   DMart: "/brands/bb.webp",
   Dominos: "/brands/zomato.webp",
-  MakeMyTrip: "/categories/travel.webp",
-  IndiGo: "/categories/travel.webp",
-  Cleartrip: "/categories/travel.webp",
-  OYO: "/categories/travel.webp",
-  "Booking.com": "/categories/travel.webp",
-  Uber: "/categories/cab.webp",
+  MakeMyTrip: categoryImage("Travel"),
+  IndiGo: categoryImage("Flights"),
+  Cleartrip: categoryImage("Travel"),
+  OYO: categoryImage("Hotels"),
+  "Booking.com": categoryImage("Hotels"),
+  Uber: categoryImage("Cab Rides"),
   Blinkit: "/brands/bb.webp",
   Zepto: "/brands/bb.webp",
   "Swiggy Instamart": "/brands/swiggy.webp",
   Nykaa: "/brands/myntra.webp",
   Ajio: "/brands/myntra.webp",
-  Croma: "/categories/shopping.webp",
-  "Reliance Digital": "/categories/shopping.webp",
-  Jio: "/categories/bills.webp",
-  Airtel: "/categories/bills.webp",
-  Shell: "/categories/fuel.webp",
-  "HP Petrol": "/categories/fuel.webp",
-  "Indian Oil": "/categories/fuel.webp",
-  "CRED RentPay": "/categories/bills.webp",
-  NoBroker: "/categories/bills.webp",
-  "Star Health": "/categories/shopping.webp",
+  Croma: categoryImage("Shopping"),
+  "Reliance Digital": categoryImage("Shopping"),
+  Jio: categoryImage("Bills"),
+  Airtel: categoryImage("Bills"),
+  Shell: categoryImage("Fuel"),
+  "HP Petrol": categoryImage("Fuel"),
+  "Indian Oil": categoryImage("Fuel"),
+  "CRED RentPay": categoryImage("Rent"),
+  NoBroker: categoryImage("Rent"),
+  "Star Health": categoryImage("Insurance"),
   "Nature's Basket": "/brands/bb.webp",
 };
 
@@ -159,7 +160,7 @@ export function CardAnalysisFigma({ uc, ptName, onSaveMore, onRowClick }: { uc: 
       const savedRaw = Math.round(r.saved || 0);
       const savedDisplay = toDisplayUnit(savedRaw);
       const txnsCount = view === "categories" ? (txCountByCat[name] || 0) : (txCountByBrand[name] || 0);
-      const img = IMG_MAP[name] || (view === "categories" ? "/categories/shopping.webp" : null);
+  const img = IMG_MAP[name] || (view === "categories" ? categoryImage("Shopping") : null);
       return {
         name,
         img,

@@ -41,6 +41,9 @@ import {
   generateActions,
 } from "./compute";
 import { getTransactionScenario } from "./txnScenario";
+import { adaptUserCards } from "../integrations/mockAdapter";
+import { adaptCardGeniusCards, excludeOwnedCardResponses } from "../integrations/cardGeniusAdapter";
+import { calculateRewards } from "../engine/rewards";
 
 export const UNITS = {
   MONTHLY: "monthly",
@@ -125,10 +128,98 @@ function yearlySpendForBreakdown(card: any, bucket: string): number {
   return roundMoney((bd.spend || 0) * 12);
 }
 
+function engineSpendInputs() {
+  return ALL_INPUT_BUCKETS
+    .filter((bucket) => !RESPONSE_ONLY_BUCKETS.includes(bucket))
+    .map((bucket) => ({
+      bucket,
+      amount: annualSpendForBucket(bucket),
+      period: UNITS.YEARLY,
+      merchant: undefined,
+    }));
+}
+
+function calculateEngineOwnedRewardLines() {
+  const spends = engineSpendInputs();
+  const cards = adaptUserCards(USER_CARDS);
+  return cards.map((card) => ({
+    card,
+    lines: calculateRewards(card, spends),
+  }));
+}
+
+function currentApiValuedLoungeSavings() {
+  return roundMoney(LOUNGE_BUCKETS.reduce((sum, bucket) => {
+    const cardIndex = ACTUAL_CARD_USAGE[bucket];
+    if (cardIndex == null) return sum;
+    return sum + yearlySavingsForBreakdown(calculateResponses[cardIndex], bucket);
+  }, 0));
+}
+
+function optimizedApiValuedLoungeSavings() {
+  return roundMoney(LOUNGE_BUCKETS.reduce((sum, bucket) => {
+    const best = calculateResponses.reduce((max, response) => {
+      return Math.max(max, yearlySavingsForBreakdown(response, bucket));
+    }, 0);
+    return sum + best;
+  }, 0));
+}
+
+function calculateEngineOwnedSummary() {
+  const owned = calculateEngineOwnedRewardLines();
+  const current = roundMoney(owned.reduce((sum, row, cardIndex) => {
+    return sum + row.lines.reduce((lineSum, line) => {
+      return ACTUAL_CARD_USAGE[line.bucket] === cardIndex ? lineSum + line.cappedSavings : lineSum;
+    }, 0);
+  }, 0) + currentApiValuedLoungeSavings());
+  const optimized = roundMoney(engineSpendInputs().reduce((sum, spend) => {
+    const best = owned.reduce((max, row) => {
+      const line = row.lines.find((candidate) => candidate.bucket === spend.bucket);
+      return Math.max(max, line?.cappedSavings || 0);
+    }, 0);
+    return sum + best;
+  }, 0) + optimizedApiValuedLoungeSavings());
+  return { current, optimized };
+}
+
+function calculateEngineUltimateSavings() {
+  const spends = engineSpendInputs();
+  const owned = calculateEngineOwnedRewardLines();
+  const ownedAliases = USER_CARDS.map((card) => card.card_alias || card.name).filter(Boolean);
+  const marketCards = adaptCardGeniusCards(excludeOwnedCardResponses(recommendResponse?.savings || [], ownedAliases));
+  const market = marketCards.map((card) => ({ card, lines: calculateRewards(card, spends) }));
+  const total = spends.reduce((sum, spend) => {
+    const ownedBest = owned.reduce((max, row) => {
+      const line = row.lines.find((candidate) => candidate.bucket === spend.bucket);
+      return Math.max(max, line?.cappedSavings || 0);
+    }, 0);
+    const marketBest = market.reduce((max, row) => {
+      const line = row.lines.find((candidate) => candidate.bucket === spend.bucket);
+      return Math.max(max, line?.cappedSavings || 0);
+    }, 0);
+    return sum + Math.max(ownedBest, marketBest);
+  }, 0);
+  return roundMoney(total);
+}
+
+function selectEngineSummaryMetrics() {
+  const owned = calculateEngineOwnedSummary();
+  const oldUltimate = computeUltimateSavings().total;
+  // Market/lounge valuation still comes from the CardGenius-shaped response until
+  // those API-valued benefits are fully represented in the production engine.
+  const ultimate = Math.max(oldUltimate, calculateEngineUltimateSavings());
+  return {
+    currentSavings: owned.current,
+    optimizedSavings: owned.optimized,
+    ultimateSavings: ultimate,
+  };
+}
+
 export function selectSummaryMetrics() {
-  const current = computeCurrentSavings();
-  const optimized = computeOptimizedSavings().total;
-  const ultimate = computeUltimateSavings().total;
+  const engine = selectEngineSummaryMetrics();
+  const current = engine.currentSavings;
+  const optimized = engine.optimizedSavings;
+  const ultimate = engine.ultimateSavings;
   return {
     unit: UNITS.YEARLY,
     totalSpend: TOTAL_ANNUAL_SPEND,
@@ -691,6 +782,31 @@ export function selectRedeemMetrics() {
   return { owned, market, byCardName, marketCards: market };
 }
 
+export function __metricsDebug() {
+  const oldSummary = {
+    currentSavings: computeCurrentSavings(),
+    optimizedSavings: computeOptimizedSavings().total,
+    ultimateSavings: computeUltimateSavings().total,
+  };
+  const engineSummary = selectEngineSummaryMetrics();
+  return {
+    summary: selectSummaryMetrics(),
+    oldSummary,
+    engineSummary,
+    summaryDrift: {
+      currentSavings: roundMoney(engineSummary.currentSavings - oldSummary.currentSavings),
+      optimizedSavings: roundMoney(engineSummary.optimizedSavings - oldSummary.optimizedSavings),
+      ultimateSavings: roundMoney(engineSummary.ultimateSavings - oldSummary.ultimateSavings),
+    },
+    savingsBars: selectSavingsBars(),
+    transactions: selectTransactionMetrics().transactions.slice(0, 5),
+    optimize: selectOptimizeMetrics(),
+    portfolio: selectPortfolioMetrics(),
+    actions: selectActionsMetrics(),
+    redeem: selectRedeemMetrics(),
+  };
+}
+
 export const METRICS = {
   selectSummaryMetrics,
   selectSavingsBars,
@@ -707,4 +823,5 @@ export const METRICS = {
   calculateRewardsForInput,
   selectActionsMetrics,
   selectRedeemMetrics,
+  __metricsDebug,
 };

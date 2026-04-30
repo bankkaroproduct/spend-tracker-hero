@@ -7,6 +7,7 @@ import { useAppContext } from "@/store/AppContext";
 import { SEMI_CARDS, ALL_TXNS, CAT_OPTIONS, BRAND_MAP, SIM_CARD_RATE, SIM_CARD_BASE_RATE, SIM_BEST_FOR, SIM_MARKET_BEST, computeTxnMissed, computeTxnMarketDelta, CD, CARDS, CARD_IMG_MAP } from "@/data/simulation/legacy";
 import { USER_CARDS } from "@/data/simulation/inputs";
 import { SCENARIO_SAVED_COLOR, getTransactionScenario } from "@/data/simulation/txnScenario";
+import { categoryImage } from "@/data/domain/buckets";
 
 const NOT_SPEND_REASONS=["Loan / EMI","Refund / Reversal","OTP / Auth charge","Duplicate SMS","Other (not a spend)"];
 
@@ -309,7 +310,7 @@ export function ActSheet(){
     {/* ── Header ── */}
     <div className="txn-stagger txn-s1" style={{display:"flex",alignItems:"center",gap:14,paddingBottom:16,borderBottom:"1px solid #E8F0F1"}}>
       <div style={{position:"relative",width:48,height:48,flexShrink:0}}>
-        <img src="/categories/image 4623.webp" alt="" style={{width:48,height:48,objectFit:"contain"}} onError={e=>{e.currentTarget.style.display="none";}}/>
+        <img src={categoryImage("Bills")} alt="" style={{width:48,height:48,objectFit:"contain"}} onError={e=>{e.currentTarget.style.display="none";}}/>
         {isFee&&<div style={{position:"absolute",bottom:-2,right:-2,width:18,height:18,borderRadius:"50%",background:"#059669",border:"2px solid #fff",display:"flex",alignItems:"center",justifyContent:"center"}}><Check size={10} color="#fff" strokeWidth={3}/></div>}
       </div>
       <div style={{flex:1}}>
@@ -326,11 +327,11 @@ export function ActSheet(){
 
       <div className="txn-stagger txn-s3" style={{marginBottom:20}}>
         <div style={{fontSize:10,fontWeight:700,color:"#364060",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:14}}>Best Categories to Spend</div>
-        <ActCategoryCard icon="/categories/dining.webp" name="Dining" rate="5%"/>
+        <ActCategoryCard icon={categoryImage("Dining")} name="Dining" rate="5%"/>
         <div style={{height:0,borderBottom:"1px dashed rgba(0,0,0,0.06)"}}/>
-        <ActCategoryCard icon="/categories/groceries.webp" name="Groceries" rate="3%"/>
+        <ActCategoryCard icon={categoryImage("Groceries")} name="Groceries" rate="3%"/>
         <div style={{height:0,borderBottom:"1px dashed rgba(0,0,0,0.06)"}}/>
-        <ActCategoryCard icon="/categories/shopping.webp" name="Online Shopping" rate="2%"/>
+        <ActCategoryCard icon={categoryImage("Shopping")} name="Online Shopping" rate="2%"/>
       </div>
 
       <div className="txn-stagger txn-s4">
@@ -607,7 +608,7 @@ export function CapBS(){
 }
 
 const CAT_COLORS={"Shopping":"#E7DCFF","Groceries":"#FFE8DC","Food Ordering":"#FFDFDC","Travel":"#D9FFF9","Insurance":"#D6FFE8","Fuel":"#FFE0D0","Entertainment":"#DCE7FF","Bills":"#FFF3D6","Cab Rides":"#E0F0FF","Health":"#FFD6E8","Dining":"#FFE8DC","Recharge":"#E0EEFF"};
-const CAT_IMG={"Shopping":"/categories/shopping.webp","Groceries":"/categories/groceries.webp","Food Ordering":"/categories/food.webp","Travel":"/categories/travel.webp","Bills":"/categories/bills.webp","Fuel":"/categories/fuel.webp","Dining":"/categories/dining.webp","Entertainment":"/categories/entertainment.webp","Cab Rides":"/categories/cab.webp","Insurance":"/categories/groceries.webp","Health":"/categories/groceries.webp","Recharge":"/categories/bills.webp"};
+const CAT_IMG={"Shopping":categoryImage("Shopping"),"Groceries":categoryImage("Groceries"),"Food Ordering":categoryImage("Food Ordering"),"Travel":categoryImage("Travel"),"Bills":categoryImage("Bills"),"Fuel":categoryImage("Fuel"),"Dining":categoryImage("Dining"),"Entertainment":categoryImage("Entertainment"),"Cab Rides":categoryImage("Cab Rides"),"Insurance":categoryImage("Insurance"),"Health":categoryImage("Groceries"),"Recharge":categoryImage("Bills")};
 
 export function CatBS(){
   const {catSheet,setCatSheet,catStep,setCatStep,selCat,setSelCat,setRemovedTxns,setToast,setTxnCatOverride}=useAppContext();

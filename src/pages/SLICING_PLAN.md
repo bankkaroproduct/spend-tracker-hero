@@ -7,6 +7,80 @@ Each slice must pass `bun run test` (13/13) and `bun run build` before merging.
 
 ## Done
 
+
+### Slice 3 - `useBuildingFlow` (`src/pages/useBuildingFlow.ts`) - done
+State: `buildPhase`, `buildSub`, `buildCardReveal`, `carouselIdx`, `touchStartX`, `buildRef`, `savePhase`, `toolStep`, `reminderStep`, `finalLoad`, mapping pause/search state
+Effects: save-phase timed handoff, building auto-advance, phase-9 substeps, scroll reset, card reveal stagger
+Deps: `screen`, `setScreen`
+
+
+### Slice 4 - `useNudgeAndVoiceFlow` (`src/pages/useNudgeAndVoiceFlow.ts`) - done
+State: Gmail nudge visibility/dismissal state, voice-flow state, `recognitionRef`, Gmail sheet/relinking flags
+Functions: `shouldShowNudge`, `markNudgeShown`, `dismissNudge`, `retroEnrichFromGmail`, `beginListening`, `confirmVoiceMatch`
+Deps: `hasGmail`, `screen`, `setCardMapping`, `setMappingCompleted`, `startGmailFlow`
+
+### Slice 5 - `useTransactionUiState` (`src/pages/useTransactionUiState.ts`) - done
+State: sort/filter state, transaction/category/filter sheets, removed transactions, category overrides
+Derived: `activeTxnList`, `filtered`
+Functions: `toggleFilter`, `multiToggle`, `goTxns`, `setTxnCatOverride`
+Deps: `setScreen`
+
+
+### Slice 6 - `useBestCardsUiState` (`src/pages/useBestCardsUiState.ts`) - done
+State: best-card detail/list filters, portfolio draft state, marketplace view/sort/favorites/eligibility UI state
+Effects: none
+Deps: none
+
+
+### Slice 7 - `useCardDetailUiState` (`src/pages/useCardDetailUiState.ts`) - done
+State: owned-card selected index, detail tabs, paging, spend/usage controls, sticky tab refs/state
+Effects: owned-card detail sticky-tab scroll listener
+Deps: `screen`, `setScreen`
+
+### Slice 8 - `useCalculatorRedeemUiState` (`src/pages/useCalculatorRedeemUiState.ts`) - done
+State: calculator selections/results/search/filter/chart state and redeem selections/results/tab state
+Effects: none
+Deps: none
+
+### Slice 9 - `useOverlayUiState` (`src/pages/useOverlayUiState.ts`) - done
+State: generic sheets, toast, skip confirmation
+Effects: toast auto-dismiss timer
+Deps: none
+
+### Slice 10 - `useOptimizeActionsUiState` (`src/pages/useOptimizeActionsUiState.ts`) - done
+State: actions filter and optimize tab/sheet/expansion UI state
+Effects: none
+Deps: none
+
+
+### Slice 11 - `useScreenScrollReset` (`src/pages/useScreenScrollReset.ts`) - done
+State/refs: previous screen ref and scroll reset timer ref
+Effects: reset `[data-scroll]` containers on screen change
+Deps: `screen`
+
+
+### Slice 12 - `buildIndexContext` (`src/pages/buildIndexContext.ts`) - done
+Responsibility: explicit legacy AppContext key map from extracted hook groups
+Effects: none
+Deps: hook result groups plus `screen` and `setScreen`
+
+### Slice 13 - Index dead-code cleanup - done
+Removed: unused haptics setup, debug-only `setScreen` locals, and old placeholder components/constants
+Effects: none
+Deps: none
+
+
+### Slice 14 - `buildIndexContext.test` (`src/pages/buildIndexContext.test.ts`) - done
+Coverage: exact legacy context key contract plus representative owner-group mappings
+Verification: `bun run test` now covers 15 tests across 5 files
+Deps: `buildIndexContext`
+
+
+### Slice 15 - `routeState.test` (`src/routes/routeState.test.ts`) - done
+Coverage: slug normalization, core route parsing, owned vs market card route separation, screen-to-path output, unknown path fallback
+Verification: `bun run test` now covers 20 tests across 6 files
+Deps: `src/routes/routeState.ts`
+
 ### ✅ Slice 1 — `useGmailFlow` (`src/pages/useGmailFlow.ts`)
 State: `gmailStep`, `gmailReturnTo`, `gmailOtp`, `gmailFirstName`, `gmailLastName`, `gmailDob`, `hsbcDigits1`, `hsbcDigits2`
 Functions: `completeGmailLink`, `startGmailFlow`
@@ -21,7 +95,7 @@ Deps: `screen`, `setScreen`
 
 ## Remaining
 
-### 3 — `useBuildingFlow` ← **next**
+### 3 - `useBuildingFlow` - completed (details kept for reference)
 
 **File**: `src/pages/useBuildingFlow.ts`
 
@@ -60,7 +134,7 @@ Deps: `screen`, `setScreen`
 
 ---
 
-### 4 — `useNudgeAndVoiceFlow`
+### 4 - `useNudgeAndVoiceFlow` - completed (details kept for reference)
 
 **File**: `src/pages/useNudgeAndVoiceFlow.ts`
 
@@ -95,9 +169,7 @@ Deps: `screen`, `setScreen`
 
 ---
 
-### 5 — `useTransactionUiState`
-
-**File**: `src/pages/useTransactionUiState.ts`
+### 5 - `useTransactionUiState` - completed (details kept for reference)
 
 **State**
 | Name | Line |
@@ -129,9 +201,9 @@ Deps: `screen`, `setScreen`
 
 ---
 
-### 6 — `useBestCardsUiState`
+### 6 - `useBestCardsUiState` - completed (details kept for reference)
 
-**File**: `src/pages/useBestCardsUiState.ts`
+### 6 - `useBestCardsUiState` - completed (details kept for reference)
 
 **State** (all lines 36–50)
 `bestCardDetail`, `portfolioNew`, `portfolioEntryCard`, `bcFilter`, `bcSearch`, `bcSearchOpen`, `bcDetTab`, `bcViewMode`, `bcSection`, `bcFavs`, `bcSort`, `bcListView`, `bcShowSort`, `bcEligSheet`, `bcFromScreen`
@@ -236,3 +308,9 @@ bun run build         # must exit 0 (no TS errors)
 ```
 
 Also grep that `ctxValue` still contains the same keys before and after each slice (no accidental renames).
+
+
+
+
+
+

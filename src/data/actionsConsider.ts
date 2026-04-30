@@ -8,6 +8,7 @@
 import { selectOwnedCardDetailMetrics } from "@/data/simulation/metrics";
 import { USER_CARDS } from "@/data/simulation/inputs";
 import { f } from "@/lib/format";
+import { categoryImage } from "@/data/domain/buckets";
 
 export type ConsiderCat = "credit" | "cap" | "fee" | "milestone" | "benefit" | "points";
 export type Urgency = "now" | "soon" | "later" | "info";
@@ -68,13 +69,13 @@ export const HOOK_ICON: Record<string, string> = {
   C1:  "/legacy-assets/opt/0e60286a81e4.webp", // gift box w/ warning badge
   C3:  "/legacy-assets/opt/0e60286a81e4.webp",
   C2:  "/legacy-assets/opt/0e60286a81e4.webp",
-  F1:  "/categories/bills.webp",                // receipt
-  F4:  "/categories/bills.webp",
-  M1:  "/categories/milestones.webp",           // podium/star
-  B4a: "/categories/bills.webp",
-  B4b: "/categories/bills.webp",
-  B4c: "/categories/bills.webp",
-  B3:  "/categories/bills.webp",
+  F1:  categoryImage("Bills"),                // receipt
+  F4:  categoryImage("Bills"),
+  M1:  categoryImage("Flights"),              // milestone fallback until CDN has a dedicated asset
+  B4a: categoryImage("Bills"),
+  B4b: categoryImage("Bills"),
+  B4c: categoryImage("Bills"),
+  B3:  categoryImage("Bills"),
   P1:  "/legacy-assets/opt/0e60286a81e4.webp",
 };
 
@@ -240,8 +241,8 @@ export const CONSIDER_HOOKS: any[] = [
       },
       sectionLabel: "Best Categories to Spend",
       categories: [
-        { img: "/categories/shopping.webp", name: "Dining", rate: "Best Reward Rate - 5%" },
-        { img: "/categories/groceries.webp", name: "Groceries", rate: "Best Reward Rate - 5%" },
+        { img: categoryImage("Dining"), name: "Dining", rate: "Best Reward Rate - 5%" },
+        { img: categoryImage("Groceries"), name: "Groceries", rate: "Best Reward Rate - 5%" },
       ],
       details: [
         { q: "What is a Fee Waiver", a: "A fee waiver is when the bank cancels your annual fee — usually because you spent enough on the card to 'earn' it back. The clock starts on your card anniversary (15 June for this card). Cross the threshold and the renewal fee is reversed automatically. Most cards exclude fuel, rent, and wallet loads from spend counted toward the waiver." },

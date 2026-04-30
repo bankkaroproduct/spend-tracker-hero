@@ -12,6 +12,7 @@ import {
   selectTransactionMetrics,
   selectCalculatorMetrics,
   calculateRewardsForInput,
+  __metricsDebug,
 } from "./metrics";
 import { getTransactionScenario } from "./txnScenario";
 import { getCardRewardForSpend, recommendResponse } from "./mockApi";
@@ -37,6 +38,14 @@ describe("canonical metrics invariants", () => {
 
     expect(withUltimate.reduce((sum, row) => sum + row.spend, 0)).toBe(total);
     expect(withoutUltimate.reduce((sum, row) => sum + row.spend, 0)).toBe(total);
+  });
+
+  it("exposes old-vs-engine summary diagnostics during metrics migration", () => {
+    const debug = __metricsDebug();
+    expect(debug.summary.currentSavings).toBe(debug.engineSummary.currentSavings);
+    expect(debug.summary.optimizedSavings).toBe(debug.engineSummary.optimizedSavings);
+    expect(Math.abs(debug.summaryDrift.currentSavings)).toBeLessThanOrEqual(1);
+    expect(Math.abs(debug.summaryDrift.optimizedSavings)).toBeLessThanOrEqual(1);
   });
 
   it("reconciles portfolio per-card savings to spends plus milestones minus fees", () => {
