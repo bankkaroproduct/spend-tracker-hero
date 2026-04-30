@@ -19,6 +19,7 @@ import {
   selectActionsMetrics,
   selectBestCardBreakdownMetrics,
   selectBestCardDetailMetrics,
+  selectBestCardHelpMetrics,
   selectBestCardsCombinedSavings,
   selectBestCardsListMetrics,
   selectCalculatorMetrics,
@@ -279,6 +280,7 @@ export { computeTxnSaved, computeTxnMissed, computeTxnMarketDelta } from "./comp
 export {
   calculateRewardsForInput,
   selectBestCardBreakdownMetrics,
+  selectBestCardHelpMetrics,
   selectPortfolioMetrics,
 };
 

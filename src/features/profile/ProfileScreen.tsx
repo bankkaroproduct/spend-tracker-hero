@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { User, Smartphone, Mail, Bell, CreditCard, Target, Settings, Calculator, HandCoins, Award, Lock, BarChart3, HelpCircle, FileText, ChevronRight } from "lucide-react";
 import { C, FN } from "@/lib/theme";
+import { f } from "@/lib/format";
 import { FL } from "@/components/shared/FontLoader";
 import { DotDiv } from "@/components/shared/Primitives";
 import { NavBar } from "@/components/shared/NavBar";
@@ -10,6 +11,8 @@ import { Toast, InfoBS, TxnSheet, ActSheet, GmailNudgePopup, GmailNudgeSheet, Re
 
 export const ProfileScreen = () => {
   const { hasGmail, openCard, setInfoSheet, setScreen, setSelBrand, setCalcAmt, setCalcResult, setSearchQ, setRedeemCard, setRedeemPts, setRedeemResult, setRedeemPref, setShowGmailNudgeSheet } = useAppContext();
+  const savedLabel = "₹" + f(SAVINGS_BARS.bar1);
+  const txnCount = ALL_TXNS.length;
   const syncItems=[{Ic:Smartphone,label:"SMS Parsing",desc:"Auto-reads transaction SMS",status:"Active",statusColor:C.green},{Ic:Mail,label:"Gmail Sync",desc:"Statement import via Gmail",status:hasGmail?"Connected":"Not Connected",statusColor:hasGmail?C.green:C.orange},{Ic:Bell,label:"Push Notifications",desc:"Spending alerts & tips",status:"Enabled",statusColor:C.green}];
   const menuItems=[
     {Ic:CreditCard,label:"Manage Cards",desc:`${CARDS.length} cards linked`,action:()=>openCard(0)},
@@ -34,8 +37,8 @@ export const ProfileScreen = () => {
       </div>
       <div style={{display:"flex",gap:10,marginTop:20}}>
         <div style={{flex:1,padding:"14px",borderRadius:14,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.18)",backdropFilter:"blur(12px)",textAlign:"center"}}><div style={{fontSize:18,fontWeight:700}}>{CARDS.length}</div><div style={{fontSize:10,opacity:0.5,marginTop:2}}>Cards</div></div>
-        <div style={{flex:1,padding:"14px",borderRadius:14,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.18)",backdropFilter:"blur(12px)",textAlign:"center"}}><div style={{fontSize:18,fontWeight:700}}>₹50K</div><div style={{fontSize:10,opacity:0.5,marginTop:2}}>Saved</div></div>
-        <div style={{flex:1,padding:"14px",borderRadius:14,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.18)",backdropFilter:"blur(12px)",textAlign:"center"}}><div style={{fontSize:18,fontWeight:700}}>100</div><div style={{fontSize:10,opacity:0.5,marginTop:2}}>Txns</div></div>
+        <div style={{flex:1,padding:"14px",borderRadius:14,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.18)",backdropFilter:"blur(12px)",textAlign:"center"}}><div style={{fontSize:18,fontWeight:700}}>{savedLabel}</div><div style={{fontSize:10,opacity:0.5,marginTop:2}}>Saved</div></div>
+        <div style={{flex:1,padding:"14px",borderRadius:14,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.18)",backdropFilter:"blur(12px)",textAlign:"center"}}><div style={{fontSize:18,fontWeight:700}}>{txnCount}</div><div style={{fontSize:10,opacity:0.5,marginTop:2}}>Txns</div></div>
       </div>
     </div>
     <div style={{padding:"0 24px 44px"}}>

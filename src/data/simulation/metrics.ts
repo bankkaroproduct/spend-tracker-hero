@@ -117,6 +117,15 @@ function marketYearlySavings(card: any): number {
   return roundMoney(parseMoney(card?.annual_rewards_value) || parseMoney(card?.net_annual_savings) || 0);
 }
 
+function findBestCardSource(cardOrIndex: any) {
+  const list = selectBestCardsListMetrics();
+  const card = typeof cardOrIndex === "number" ? list[cardOrIndex] : cardOrIndex;
+  const source = typeof cardOrIndex === "number"
+    ? recommendResponse?.savings?.[cardOrIndex]
+    : (recommendResponse?.savings || []).find((c) => cleanCardName(c.card_name) === card?.name || norm(c.card_name) === norm(card?.name));
+  return { list, card, source };
+}
+
 function yearlySavingsForBreakdown(card: any, bucket: string): number {
   return roundMoney((card?.spending_breakdown?.[bucket]?.savings || 0) * 12);
 }
@@ -392,11 +401,7 @@ export function selectBestCardsCombinedSavings(topN = 2) {
 }
 
 export function selectBestCardBreakdownMetrics(cardOrIndex: any) {
-  const list = selectBestCardsListMetrics();
-  const card = typeof cardOrIndex === "number" ? list[cardOrIndex] : cardOrIndex;
-  const source = typeof cardOrIndex === "number"
-    ? recommendResponse?.savings?.[cardOrIndex]
-    : (recommendResponse?.savings || []).find((c) => cleanCardName(c.card_name) === card?.name || norm(c.card_name) === norm(card?.name));
+  const { list, card, source } = findBestCardSource(cardOrIndex);
   if (!card || !source?.spending_breakdown) {
     return {
       milestone: 0,
@@ -452,6 +457,116 @@ export function selectBestCardBreakdownMetrics(cardOrIndex: any) {
     onHSBCTravelOne: onCard0,
     onHSBCLivePlus: onCard2,
     combined: roundMoney(thisCard + onCard0 + onCard1 + onCard2),
+  };
+}
+
+export function selectBestCardHelpMetrics(cardOrIndex: any) {
+  const { card, source } = findBestCardSource(cardOrIndex);
+  if (!card || !source?.spending_breakdown) {
+    return {
+      brandItems: [],
+      categoryItems: [],
+      totalPotential: 0,
+      totalSaved: 0,
+    };
+  }
+
+  const txns = generateTransactions();
+  const brandItems = Object.entries(source.spending_breakdown)
+    .filter(([bucket, data]: any) => !LOUNGE_BUCKETS.includes(bucket) && !RESPONSE_ONLY_BUCKETS.includes(bucket) && (data?.spend || 0) > 0)
+    .map(([bucket, data]: any) => {
+      const merchants = BUCKET_TO_MERCHANT[bucket] || [bucket];
+      const name = merchants[0] || bucket;
+      const cat = BUCKET_TO_CATEGORY[bucket] || "Others";
+      const annualSpend = yearlySpendForBreakdown(source, bucket);
+      const potential = yearlySavingsForBreakdown(source, bucket);
+      const actualIdx = ACTUAL_CARD_USAGE[bucket] ?? 0;
+      const saved = yearlySavingsForBreakdown(calculateResponses[actualIdx], bucket);
+      const rate = data.spend > 0 ? Math.round(((data.savings || 0) / data.spend) * 1000) / 10 : 0;
+      const txnCount = txns.filter((t: any) => !t.unaccounted && t.bucket === bucket).length;
+      const maxCap = typeof data.maxCap === "number" ? data.maxCap : null;
+      const capInfo = data.maxCapReached && maxCap != null
+        ? "Reward cap on " + name + ": ₹" + maxCap.toLocaleString("en-IN") + "/month reached."
+        : maxCap != null
+          ? "Reward cap on " + name + ": ₹" + maxCap.toLocaleString("en-IN") + "/month."
+          : "Reward cap data unavailable";
+      const benefitText = rate > 0 ? rate + "% cashback" : "data unavailable";
+      const item = {
+        name,
+        icon: MERCHANT_ICONS[name] || "📦",
+        cat,
+        bucket,
+        spend: annualSpend,
+        potential,
+        saved,
+        rate,
+        benefitText,
+        totalSpend: annualSpend,
+        bestSaved: potential,
+        bestCard: card.name,
+        bestRate: rate,
+        altCard: "data unavailable",
+        altRate: 0,
+        breakdown: [{ card: card.name, pct: 100, spend: annualSpend, saved: potential }],
+        txnCount,
+        capInfo,
+        howToUse: [
+          "Use " + card.name + " for " + name + " spends.",
+          capInfo,
+        ],
+      };
+      return { ...item, optimizePayload: item };
+    })
+    .sort((a: any, b: any) => b.potential - a.potential);
+
+  const categoryIcon = (cat: string) => cat === "Shopping" ? "🛒" : cat === "Food & Dining" ? "🍔" : cat === "Travel" ? "✈️" : cat === "Groceries" ? "🥬" : "📦";
+  const categoryGroups: Record<string, any> = {};
+  for (const b of brandItems) {
+    if (!categoryGroups[b.cat]) {
+      categoryGroups[b.cat] = {
+        cat: b.cat,
+        name: b.cat,
+        icon: categoryIcon(b.cat),
+        spend: 0,
+        potential: 0,
+        saved: 0,
+        brands: [],
+        breakdown: [],
+        txnCount: 0,
+      };
+    }
+    const g = categoryGroups[b.cat];
+    g.spend += b.spend;
+    g.potential += b.potential;
+    g.saved += b.saved;
+    g.brands.push(b.name);
+    g.breakdown.push(...b.breakdown);
+    g.txnCount += b.txnCount;
+  }
+  const categoryItems = Object.values(categoryGroups).map((g: any) => {
+    const item = {
+      ...g,
+      totalSpend: roundMoney(g.spend),
+      bestSaved: roundMoney(g.potential),
+      bestCard: card.name,
+      bestRate: 0,
+      altCard: "data unavailable",
+      altRate: 0,
+      spend: roundMoney(g.spend),
+      potential: roundMoney(g.potential),
+      saved: roundMoney(g.saved),
+      benefitText: "See brand breakdown",
+      capInfo: "Category caps depend on the underlying brands and buckets.",
+      howToUse: ["Use " + card.name + " for " + g.cat + " spends.", "Review per-brand caps before switching after a cap is reached."],
+    };
+    return { ...item, optimizePayload: item };
+  }).sort((a: any, b: any) => b.potential - a.potential);
+
+  return {
+    brandItems,
+    categoryItems,
+    totalPotential: roundMoney(brandItems.reduce((s: number, b: any) => s + b.potential, 0)),
+    totalSaved: roundMoney(brandItems.reduce((s: number, b: any) => s + b.saved, 0)),
   };
 }
 
@@ -816,6 +931,7 @@ export const METRICS = {
   selectOwnedCardDetailMetrics,
   selectBestCardsListMetrics,
   selectBestCardBreakdownMetrics,
+  selectBestCardHelpMetrics,
   selectBestCardDetailMetrics,
   selectBestCardsCombinedSavings,
   selectPortfolioMetrics,

@@ -35,6 +35,8 @@ listed here unless they affect business values.
 | `src/data/integrations/*` | all | USER_CARDS / CardGenius adapters | Converts raw data to domain models and validates duplicates. | Production source. |
 | `src/data/simulation/metrics.ts` | summary selector | current/optimized savings | Now computed through engine/adapters for owned spend rewards, with API-valued lounge benefits added once. | `selectSummaryMetrics()` only. |
 | `src/data/simulation/metrics.ts` | `__metricsDebug()` | old-vs-engine summary drift | Migration diagnostic. | Remove or keep dev-only after full migration. |
+| `src/data/simulation/metrics.ts` | `selectBestCardHelpMetrics()` | Best-card brand/category help payload | Best Cards detail "How to use" payload now owns spend, saved, could-save, rate label, cap info, breakdown, and txn count. | UI calls selector and only renders/navigates. |
+| `src/features/profile/ProfileScreen.tsx` | profile stats | saved and transaction count | Profile stats now read `SAVINGS_BARS.bar1` and `ALL_TXNS.length` instead of fixed display values. | Keep wired to canonical summary/transaction selectors. |
 
 ## Remaining Invalid / UI-Side Business Values To Remove
 
@@ -48,6 +50,13 @@ listed here unless they affect business values.
 | `src/features/cardDetail/CardAnalysisFigma.tsx` | 457 | “save upto ₹potential” copy | Value is selector-backed, copy remains UI. | Keep copy; ensure `cd.potential` comes from owned-card selector only. |
 
 ## Asset Values
+
+## Removed UI-Side Business Values
+
+| File | Removed value | Replacement/source |
+|---|---|---|
+| `src/features/bestcards/BestCardsScreen.tsx` | Local `b.spend * b.rate / 100`, invented `saved = potential * 0.35`, fallback `0.03`, `altRate: 1`, and `txnCount = spend / 800` | `selectBestCardHelpMetrics()` in `src/data/simulation/metrics.ts`. |
+| `src/features/profile/ProfileScreen.tsx` | Fixed saved and transaction-count display values | `SAVINGS_BARS.bar1` and `ALL_TXNS.length`. |
 
 | File | Status | Meaning |
 |---|---|---|
@@ -66,3 +75,4 @@ Current anti-drift grep status:
 
 - `/categories/*` production code references have been migrated to `/cdn/categories/*`.
 - UI-side business fallbacks still remain in `BottomSheets.tsx` and `actionsConsider.ts`; these are explicitly listed above and should be removed after Actions/BottomSheet metrics are selector-backed.
+- Best Cards detail and Profile display hardcodes listed above have been removed.

@@ -4,7 +4,7 @@ import { C, FN } from "@/lib/theme";
 import { f } from "@/lib/format";
 import { FL } from "@/components/shared/FontLoader";
 import { TOTAL_ACC } from "@/data/simulation/legacy";
-import { BEST_CARDS as LEGACY_BEST_CARDS, BEST_CARDS_COMB_SAVINGS, getBestCardDetail, USER_CARD_YEARLY_SAVINGS, SAVINGS_BARS, selectPortfolioMetrics } from "@/data/simulation/legacy";
+import { BEST_CARDS as LEGACY_BEST_CARDS, BEST_CARDS_COMB_SAVINGS, getBestCardDetail, USER_CARD_YEARLY_SAVINGS, SAVINGS_BARS, selectPortfolioMetrics, selectBestCardHelpMetrics } from "@/data/simulation/legacy";
 import { NavBar } from "@/components/shared/NavBar";
 import { useAppContext } from "@/store/AppContext";
 import { Toast, InfoBS, TxnSheet, ActSheet, GmailNudgePopup, GmailNudgeSheet, RetroOverlay, VoiceFlowOverlay, CatBS, FilterSheet } from "@/components/sheets/BottomSheets";
@@ -195,13 +195,10 @@ export const BestCardsScreen = () => {
         <div style={{fontSize:12,color:C.sub,marginTop:4,marginBottom:12}}>Based on your spends in the past 365 days</div>
         <div style={{display:"flex",borderRadius:10,background:C.bg,padding:3,marginBottom:16}}>{["On Brands","On Categories"].map(t=>(<div key={t} onClick={()=>setBcViewMode(t)} style={{flex:1,textAlign:"center",padding:"9px 0",borderRadius:8,cursor:"pointer",background:bcViewMode===t?C.blue:"transparent",color:bcViewMode===t?"#fff":C.sub,fontSize:12,fontWeight:700}}>{t}</div>))}</div>
         {(()=>{
-          const catMap={"Amazon":"Shopping","Flipkart":"Shopping","Myntra":"Shopping","Swiggy":"Food & Dining","Zomato":"Food & Dining","MakeMyTrip":"Travel","BigBasket":"Groceries"};
-          const brandItems=card.brandFit.map(b=>{const potential=Math.round(b.spend*b.rate/100);const saved=Math.round(potential*0.35);return{...b,potential,saved,cat:catMap[b.name]||"Others"};});
-          const totalPotential=brandItems.reduce((s,b)=>s+b.potential,0);
-          const totalSaved=brandItems.reduce((s,b)=>s+b.saved,0);
-          /* Build category items by grouping brands */
-          const catGroups={};brandItems.forEach(b=>{if(!catGroups[b.cat])catGroups[b.cat]={cat:b.cat,spend:0,potential:0,saved:0,brands:[],icon:b.cat==="Shopping"?"🛒":b.cat==="Food & Dining"?"🍔":b.cat==="Travel"?"✈️":b.cat==="Groceries"?"🥬":"📦"};catGroups[b.cat].spend+=b.spend;catGroups[b.cat].potential+=b.potential;catGroups[b.cat].saved+=b.saved;catGroups[b.cat].brands.push(b.name);});
-          const catItems=(Object.values(catGroups) as any[]).sort((a,b)=>b.potential-a.potential);
+          const help=selectBestCardHelpMetrics(card);
+          const brandItems=help.brandItems;
+          const catItems=help.categoryItems;
+          const totalPotential=help.totalPotential;
           const viewItems=bcViewMode==="On Brands"?brandItems:catItems;
           const barMx=Math.max(...viewItems.map(x=>x.potential),1);
           return(<>
@@ -237,8 +234,8 @@ export const BestCardsScreen = () => {
             {expanded&&<div style={{padding:"0 18px 18px"}}>
               <div style={{height:1,background:C.brd,marginBottom:14}}/>
               <div style={{display:"flex"}}>{[{l:"Spent",v:"₹"+f(b.spend),c:C.text},{l:"Saved",v:"₹"+f(b.saved),c:C.green},{l:"Could save",v:"₹"+f(b.potential),c:C.green}].map((s,si)=>(<div key={si} style={{flex:1,textAlign:"center"}}><div style={{fontSize:10,fontWeight:600,color:C.sub}}>{s.l}</div><div style={{fontSize:15,fontWeight:700,color:s.c,marginTop:4}}>{s.v}</div></div>))}</div>
-              <div style={{marginTop:14,padding:"14px 16px",borderRadius:12,background:C.bg,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontSize:10,fontWeight:600,color:C.sub}}>Benefit on this card</div><div style={{fontSize:14,fontWeight:700,color:C.text,marginTop:3}}>{b.rate?b.rate+"% cashback":"Up to "+Math.max(...(b.brands||[]).map(br=>{const found=brandItems.find(x=>x.name===br);return found?found.rate:0;}))+"%"}</div></div>
-              <div onClick={()=>{const userCards=["HSBC Travel One","Axis Flipkart Card","HSBC Live+"];const currentCard=userCards[0];const capAmt=b.rate>3?Math.round(b.spend*0.03):Math.round(b.spend*b.rate/100*1.5);const brandItem={name:b.name||b.cat,icon:b.icon||"📦",cat:b.cat||"Shopping",totalSpend:b.spend,saved:b.saved,bestSaved:b.potential,bestCard:card.name,bestRate:b.rate||3,altCard:currentCard,altRate:1,breakdown:[{card:card.name,pct:100,spend:b.spend,saved:b.potential}],txnCount:Math.round(b.spend/800),capInfo:"Reward cap on "+(b.name||b.cat)+": ₹"+f(capAmt)+"/month. Switch to "+currentCard+" after cap is reached.",howToUse:["Use "+card.name+" for all "+(b.name||b.cat)+" purchases to earn "+(b.rate||3)+"% back","Maximum reward on this category: ₹"+f(capAmt)+"/month — switch card after cap"]};setOptSheetFrom("bestcards");setOptSheet(brandItem);setScreen("optimize");}} style={{padding:"8px 14px",borderRadius:10,background:"#111827",cursor:"pointer"}}><span style={{fontSize:12,fontWeight:600,color:"#fff"}}>How to use</span></div></div>
+              <div style={{marginTop:14,padding:"14px 16px",borderRadius:12,background:C.bg,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontSize:10,fontWeight:600,color:C.sub}}>Benefit on this card</div><div style={{fontSize:14,fontWeight:700,color:C.text,marginTop:3}}>{b.benefitText||"data unavailable"}</div></div>
+              <div onClick={()=>{setOptSheetFrom("bestcards");setOptSheet(b.optimizePayload||b);setScreen("optimize");}} style={{padding:"8px 14px",borderRadius:10,background:"#111827",cursor:"pointer"}}><span style={{fontSize:12,fontWeight:600,color:"#fff"}}>How to use</span></div></div>
             </div>}
           </div>);})}
         </div>
