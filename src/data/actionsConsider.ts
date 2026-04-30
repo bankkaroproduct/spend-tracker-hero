@@ -5,7 +5,7 @@
 // To revert this entire feature: in src/features/actions/ActionsScreen.tsx,
 // set `USE_NEW_FLOW = false`. The original screen is preserved untouched.
 
-import { selectOwnedCardDetailMetrics } from "@/data/simulation/metrics";
+import { selectOwnedCardDetailMetrics, selectFeeWaiverCategories } from "@/data/simulation/metrics";
 import { USER_CARDS } from "@/data/simulation/inputs";
 import { f } from "@/lib/format";
 
@@ -239,10 +239,7 @@ export const CONSIDER_HOOKS: any[] = [
         meta: "50 Days left",
       },
       sectionLabel: "Best Categories to Spend",
-      categories: [
-        { img: "/categories/shopping.webp", name: "Dining", rate: "Best Reward Rate - 5%" },
-        { img: "/categories/groceries.webp", name: "Groceries", rate: "Best Reward Rate - 5%" },
-      ],
+      categories: selectFeeWaiverCategories(0, 2),
       details: [
         { q: "What is a Fee Waiver", a: "A fee waiver is when the bank cancels your annual fee — usually because you spent enough on the card to 'earn' it back. The clock starts on your card anniversary (15 June for this card). Cross the threshold and the renewal fee is reversed automatically. Most cards exclude fuel, rent, and wallet loads from spend counted toward the waiver." },
       ],

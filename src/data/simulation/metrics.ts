@@ -626,6 +626,39 @@ export function calculateRewardsForInput(amount: number, queryName: string, isCa
   }).sort((a, b) => b.saved - a.saved);
 }
 
+const CAT_IMG_MAP: Record<string, string> = {
+  "Shopping": "/cdn/categories/Shopping.webp",
+  "Groceries": "/cdn/categories/Groceries.webp",
+  "Dining": "/cdn/categories/Dining Out.webp",
+  "Food Ordering": "/cdn/categories/Food Ordering.webp",
+  "Bills": "/cdn/categories/Bills.webp",
+  "Fuel": "/cdn/categories/Fuel.webp",
+  "Entertainment": "/cdn/categories/Entertainment.webp",
+  "Flights": "/cdn/categories/Flights.webp",
+  "Hotels": "/cdn/categories/Hotels.webp",
+  "Insurance": "/cdn/categories/Insurance.webp",
+  "Cab Rides": "/cdn/categories/Shopping.webp",
+};
+
+export function selectFeeWaiverCategories(cardIndex: number, topN = 3) {
+  const cd = computeCardDetail(cardIndex);
+  return cd.categories
+    .filter((c) => c.spend > 0 && c.saved > 0)
+    .map((c) => {
+      const pct = Math.round((c.saved / c.spend) * 1000) / 10;
+      return {
+        img: CAT_IMG_MAP[c.name] || `/cdn/categories/${c.name}.webp`,
+        name: c.name,
+        ratePct: pct + "%",
+        rate: "Best Reward Rate - " + pct + "%",
+        _sort: pct,
+      };
+    })
+    .sort((a, b) => b._sort - a._sort)
+    .slice(0, topN)
+    .map(({ _sort, ...rest }) => rest);
+}
+
 export function selectActionsMetrics() {
   return generateActions();
 }
@@ -705,6 +738,7 @@ export const METRICS = {
   selectPortfolioMetrics,
   selectCalculatorMetrics,
   calculateRewardsForInput,
+  selectFeeWaiverCategories,
   selectActionsMetrics,
   selectRedeemMetrics,
 };

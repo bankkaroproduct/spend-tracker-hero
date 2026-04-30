@@ -6,6 +6,7 @@ import { f } from "@/lib/format";
 import { useAppContext } from "@/store/AppContext";
 import { SEMI_CARDS, ALL_TXNS, CAT_OPTIONS, BRAND_MAP, SIM_CARD_RATE, SIM_CARD_BASE_RATE, SIM_BEST_FOR, SIM_MARKET_BEST, computeTxnMissed, computeTxnMarketDelta, CD, CARDS, CARD_IMG_MAP } from "@/data/simulation/legacy";
 import { USER_CARDS } from "@/data/simulation/inputs";
+import { selectFeeWaiverCategories } from "@/data/simulation/metrics";
 import { SCENARIO_SAVED_COLOR, getTransactionScenario } from "@/data/simulation/txnScenario";
 
 const NOT_SPEND_REASONS=["Loan / EMI","Refund / Reversal","OTP / Auth charge","Duplicate SMS","Other (not a spend)"];
@@ -326,11 +327,7 @@ export function ActSheet(){
 
       <div className="txn-stagger txn-s3" style={{marginBottom:20}}>
         <div style={{fontSize:10,fontWeight:700,color:"#364060",letterSpacing:"0.14em",textTransform:"uppercase",marginBottom:14}}>Best Categories to Spend</div>
-        <ActCategoryCard icon="/categories/dining.webp" name="Dining" rate="5%"/>
-        <div style={{height:0,borderBottom:"1px dashed rgba(0,0,0,0.06)"}}/>
-        <ActCategoryCard icon="/categories/groceries.webp" name="Groceries" rate="3%"/>
-        <div style={{height:0,borderBottom:"1px dashed rgba(0,0,0,0.06)"}}/>
-        <ActCategoryCard icon="/categories/shopping.webp" name="Online Shopping" rate="2%"/>
+        {selectFeeWaiverCategories(actSheet._ci??cardIndex,3).map((c,i)=>(<div key={i}>{i>0&&<div style={{height:0,borderBottom:"1px dashed rgba(0,0,0,0.06)"}}/>}<ActCategoryCard icon={c.img} name={c.name} rate={c.ratePct}/></div>))}
       </div>
 
       <div className="txn-stagger txn-s4">
